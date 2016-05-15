@@ -2,11 +2,15 @@
     cd C:\GitHub\banban\OhMySearch\BackEnd
     #dev test
     .\Setup.ps1 -ESVersion "5.0.0-alpha2" -ClusterName "Search-Dev" -SearchFolder "C:\Search" -LogFolder "C:\Logs"
+
     local executable test:
     cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha2\bin\elasticsearch.bat"
 
+
     #prod cluster
-    .\setup.ps1 -ESVersion "5.0.0-alpha2" -ClusterName "Nova-Search" -SearchFolder "E:\Search" -LogFolder "F:\Logs" -DiscoveryHosts @("10.1.0.178","10.1.0.179") -SetWinService $true
+    .\setup.ps1 -ESVersion "5.0.0-alpha2" -ClusterName "Nova-Search" -SearchFolder "E:\Search" -LogFolder "F:\Logs" `
+        -DiscoveryHosts @("10.1.0.178","10.1.0.179") -SetWinService $false `
+        -LicenceFilePath "C:\Search\andrew-butenko-287161d3-a6db-4e47-a8b3-5e62df55586f.json"
 
     Exception in thread "main" java.lang.RuntimeException: bootstrap checks failed initial heap size [268435456] not equal to maximum heap size [1073741824]; 
     this can cause resize pauses and prevents mlockall from locking the entire heap 
@@ -19,8 +23,9 @@ Param(
     [string]$ClusterName,
     [string]$SearchFolder,
     [string]$LogFolder,
-    $DiscoveryHosts = @(),
-    $SetWinService = $false
+    [string[]]$DiscoveryHosts = @(),
+    [switch]$SetWinService = $false,
+    [string]$LicenceFilePath
 )
 
 function DownLoadAndExtract(){
@@ -30,7 +35,7 @@ function DownLoadAndExtract(){
     $fileName = split-path $Url -Leaf
     [IO.FileInfo]$archiveFileInfo = "$SearchFolder\$fileName"
     if ((Test-Path $archiveFileInfo.FullName) -eq $false){
-        Write-Output "Downloading archive  $Url ..."
+        Echo "Downloading archive  $Url ..."
         (New-Object Net.WebClient).DownloadFile($Url,$archiveFileInfo.FullName);
         Unblock-File -Path $archiveFileInfo.FullName
         (new-object -com shell.application).namespace($SearchFolder).CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
@@ -87,7 +92,7 @@ function Main(){
     }
     if ($env:JAVA_HOME -eq $null)
     {
-        Write-Output "Please install last version of Java" and configure working catalog
+        Echo "Please install last version of Java" and configure working catalog
     }
 
     if ($SetWinService -eq $true){
@@ -103,14 +108,33 @@ function Main(){
         cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\service.bat" start Elastic-Search
     }
     else{
-        #cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch.bat"
-        
-        #Managing your licence https://www.elastic.co/guide/en/marvel/current/license-management.html#listing-licenses
-        #Marvel trial licence:
-        #&$get '_license'
-        #1 year licence
-        #&$put '_license?acknowledge=true' '{"license":{"uid":"put your licence guid","type":"basic","issue_date_in_millis":1461715200000,"expiry_date_in_millis":1493423999999,"max_nodes":100,"issued_to":"put you user name","issuer":"Web Form","signature":"put your signature"}}'
+        Echo "To run elastic service use this command in separate cmd line tool: cmd.exe /C '$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch.bat'"
     }
+
+    #plugins
+    #cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat list"
+    #cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install x-pack"
+    #cmd.exe /C "$SearchFolder\kibana-$ESVersion\bin\kibana-plugin.bat install x-pack"
+        #https://download.elastic.co/kibana/x-pack/x-pack-5.0.0-alpha2.zip
+
+    <#
+    #Managing your licence https://www.elastic.co/guide/en/marvel/current/license-management.html#listing-licenses
+    #Marvel trial licence:
+    cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install license"
+    cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install marvel-agent"
+
+    #&$get '_license'
+    #install licence from file
+    if (Test-Path $LicenceFilePath){
+        [string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
+        if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
+        Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force #-Verbose
+
+        $license = Get-Content -Raw -Path $LicenceFilePath #| ConvertFrom-Json
+        Echo "Installing licence from file $LicenceFilePath"
+        &$put "_license?acknowledge=true" $license
+     }
+     #>
 }
 
 Main
