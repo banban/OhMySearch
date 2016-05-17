@@ -1,19 +1,22 @@
 ﻿<#
 Unit tests:
-    cd C:\_AdminTools\Nova_Scripts\ #cd C:\SVN\AB\Nova_Scripts\trunk
-    .\Search.Index.Files.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\GeoTags" -indexName "shared_v1" -NewIndex $true -aliasName "shared"
-    .\Search.Index.Files.ps1 -SharedFolders "\\NB-HWLW3X1\C$\Search\_search" -indexName "shared_v1" -NewIndex $true -aliasName "shared"
-    #test file update/add 
-    
-    &$get "/shared/_mapping"
-    &$get "/shared/file,photo/_search"
-    &$get "/shared/photo/AVQZ9Boa2V9OaD-z4_3i"
+    command line call examples:
+        cd C:\Search\Scripts\
+        powershell -ExecutionPolicy ByPass -command "C:\Search\Scripts\Search.Index.Files.ps1" -SharedFolders "\\shares\files\" -indexName "shared_v1" -aliasName "shared" -NewIndex
+        powershell -executionPolicy bypass -noexit -file "C:\Search\Scripts\Search.Index.Files.ps1" -SharedFolders "\\shares\files\" -indexName "shared_v1" -aliasName "shared" -NewIndex
+    PS environment call examples:
+        .\Search.Index.Files.ps1 -SharedFolders "\\shares\files\" -indexName "files_v1" -aliasName "files" -NewIndex
+        .\Search.Index.Files.ps1 -SharedFolders "\\shares\library\" -indexName "library_v1" -aliasName "library" -NewIndex
+        .\Search.Index.Files.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\GeoTags" -indexName "shared_v1" -aliasName "shared" -NewIndex
+        .\Search.Index.Files.ps1 -SharedFolders "\\$(hostname)\C$\Search\_search" -indexName "shared_v1" -aliasName "shared" -NewIndex
 
-    .\Search.Index.Files.ps1 -SharedFolders "\\shared\files\" -indexName "files_v1" -aliasName "files" -NewIndex $true 
-    .\Search.Index.Files.ps1 -SharedFolders "\\shares\library\" -indexName "library_v1" -aliasName "library" -NewIndex $true
-    
-    &$delete "files"
-    &$get "/files,library/_mapping"
+    ES helper function call examples:
+        #test file update/add 
+        &$get "/shared/_mapping"
+        &$get "/shared/file,photo/_search"
+        &$get "/shared/photo/AVQZ9Boa2V9OaD-z4_3i"
+        &$delete "files"
+        &$get "/files,library/_mapping"
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] 
@@ -27,19 +30,19 @@ Param(
     [string]$SearchFileMask = "*.search.json",
     [bool]$SearchFileNameHashed = $true,
 
-    [string]$EventLogSource = "Nova.Search",
+    [string]$EventLogSource = "Search",
     [string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.Files.log",
 
     [string]$indexName = "",
     [string]$aliasName = "",
-    [int]$MaxFileBiteSize = 20000000,  #<=20 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.
-    [string]$ElasticUri = $env:ElasticUri, #"http://localhost:9200",
-    [bool]$NewIndex = $false,
-    [bool]$BulkDocuments = $true,
-    [bool]$DeleteAllDocuments = $false
+    [int]$MaxFileBiteSize = 20000000,  #~20 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.
+
+    #[parameter(parametersetname="indexSwitches")]
+    [switch]$NewIndex,
+    [switch]$BulkDocuments = $true
 )
 
-#cd C:\SVN\AB\Nova_Scripts\trunk
+
 function Main(){
     Clear-Host
     <#if ($pscmdlet.ShouldProcess($SharedFolders)){
@@ -60,10 +63,8 @@ function Main(){
 
     #index helper functions
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force #-Verbose
-    $global:ElasticUri = $ElasticUri
     #&$get
     #&$call "Get" "/_cluster/state"
-    #&$cat
 
     #get storage status summary before index
     #ConvertFrom-Json (&$cat) | ft
@@ -79,8 +80,7 @@ function Main(){
     #$filesDBDict = New-Object 'System.Collections.Generic.Dictionary[[string],[DateTime]]'
     #TBD: populate disct with existing documents/files...
 
-    #delete all documents in current index for all types
-    if ($NewIndex -eq $true){
+    if ($NewIndex.IsPresent){
         try{
             &$delete $indexName 
         }
@@ -444,9 +444,9 @@ function Main(){
 
     }
 
-    if ($DeleteAllDocuments -eq $true){
+    <#if ($DeleteAllDocuments.IsPresent){
         &$delete "$indexName/file,photo/_query?q=*"
-    }
+    }#>
 
     [string]$global:BulkBody = ""
     #Set-Variable -Name BulkBody -Option AllScope #make this variable available in functions 
@@ -454,7 +454,7 @@ function Main(){
     foreach ($sharedFolder in $SharedFolders){
         #$sharedFolder = "C:\Temp"
         if (Test-Path $sharedFolder -PathType Container){
-            Write-Event "$(Get-Date) Start crawling folder: $sharedFolder ..."
+            Echo "$(Get-Date) Start crawling folder: $sharedFolder ..." #Write-Event 
             #$filesDBDict.Clear()
             LoadFolder -RootPath $sharedFolder -Level 0
         }
@@ -462,25 +462,17 @@ function Main(){
             LoadFile -fileInfo $sharedFolder
         }
     }
-#$global:BulkBody.Length
     if ($global:BulkBody -ne ""){
         $result = &$post "$indexName/_bulk" $global:BulkBody
-#$global:BulkBody
-#$result
         $global:BulkBody = ""
-
-        #get final storage status summary after index
-        #(ConvertFrom-Json (&$cat)) | Where-Object {$_.index -EQ $indexName} | select health, status, docs.count, store.size |  fl
     }
 
-    Write-Host "$(Get-Date) End session."
+    Echo "$(Get-Date) End session." #Write-Host
 }
 
 
-#LoadFolder -RootPath "\\nova\fs\bus\ba\" -FileExtension ".pdf" -ParentHasDFSFolder $false -Level 0
+#LoadFolder -RootPath "\\shares\fs\" -FileExtension ".pdf" -ParentHasDFSFolder $false -Level 0
 #LoadFolder -RootPath $sharedFolder -DfsFolders $null -Level 0
-#[string]$RootPath = "\\nova\fs\bus\nc\ra\c\0106\work\80_reference docs\relevant human factors standards and docs\human factors hf-std-001 (click on index.htm)\word files"
-# (Get-ChildItem -Path "$RootPath" -Directory -ErrorAction SilentlyContinue -ErrorVariable err) | %{$_.FullName}
 function LoadFolder(){
     Param(
         [string]$RootPath,
@@ -511,7 +503,6 @@ function LoadFolder(){
             if (($Level -lt 20) -and ($RootPath.ToLower() -ne $_.FullName.ToLower()) ){ 
                 LoadFolder -RootPath $_.FullName -Level $Level
             }
-
         }
     }
     foreach ($errorRecord in $err) {
@@ -638,26 +629,22 @@ function LoadFile() {
     if ($BulkDocuments -eq $true){
         $percent = [decimal]::round(($global:BulkBody.Length / $MaxFileBiteSize)*100)
         if ($percent -gt 100) {$percent = 100}
-    Write-Progress -Activity "Batching in progress: $fullPath" -status "$percent% complete" -percentcomplete $percent;
-    #$global:BulkBody.Length
+        Write-Progress -Activity "Batching in progress: $fullPath" -status "$percent% complete" -percentcomplete $percent;
         if ($global:BulkBody.Length -ge $MaxFileBiteSize){
             $result = &$post "$indexName/_bulk" $global:BulkBody
             $global:BulkBody = ""
-    #$result
-            #(ConvertFrom-Json (&$cat)) | Where-Object {$_.index -EQ $indexName} | select health, status, docs.count, store.size |  fl
         }
     }
     else{
-#Echo "try to find id for searchPath: $searchPath"
         $id = (ConvertFrom-Json(&$search -index "$indexName" -type "$typeName" -obj @{
           fields = @("_id")
           query = @{ match_phrase = @{ Path = $searchPath }}})).hits.hits[0]._id
         if ($id -ne  ""){
-Echo "Update file id: $id"
+#Echo "Update file id: $id"
             &$replace -index $indexName -type $typeName -id $id -obj $indexObj
         }
         else{
-Echo "Add file: $filePath"
+#Echo "Add file: $filePath"
             &$add -index "$indexName" -type "$typeName" -obj $indexObj
         }
     }

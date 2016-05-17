@@ -1,41 +1,41 @@
-﻿<#Unit tests: cd E:\Search\Scripts #cd C:\SVN\AB\Nova_Scripts\trunk
- xml:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex $true `
+﻿<#Unit tests: 
+ cd C:\Search\Scripts
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex `
         -SQL_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -SQL_Query "SELECT * FROM [Person].[Person]"
 
-&$cat | select index, health, status, docs.count, store.size |  ft
-(ConvertFrom-Json (&$cat)) | select index, health, status, docs.count, store.size |  ft
-&$get "/adworks/_mapping"
-&$get "/adworks/person/2"
-&$get "/adworks/person/_query?q=*"
+    &$cat | select index, health, status, docs.count, store.size |  ft
+    (ConvertFrom-Json (&$cat)) | select index, health, status, docs.count, store.size |  ft
+    &$get "/adworks/_mapping"
+    &$get "/adworks/person/2"
+    &$get "/adworks/person/_query?q=*"
 
  hierarchies:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType $true `
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType `
         -SQL_DbName "AdventureWorks" -typeName "employee" -keyFieldName "BusinessEntityID" -SQL_Query "select * from [HumanResources].[Employee]"
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType $true `
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType `
         -SQL_DbName "AdventureWorks" -typeName "pdocument" -keyFieldName "DocumentNode" -SQL_Query "select * from [Production].[Document]"
 
     #failed for OrganizationNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -SQL_DbName "AdventureWorks" -typeName "employee" -keyFieldName "BusinessEntityID" -SQL_Query "select * from [HumanResources].[Employee]"
     #failed for DocumentNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -SQL_DbName "AdventureWorks" -typeName "pdocument" -keyFieldName "DocumentNode" -SQL_Query "select * from [Production].[Document]"
 
  geography:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType $true `
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType `
         -SQL_DbName "AdventureWorks" -typeName "address" -keyFieldName "AddressID" -SQL_Query "select * from [Person].[Address]"
 
 views:
     multi language test:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType $true `
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType `
         -SQL_DbName "AdventureWorks" -typeName "candidate" -keyFieldName "JobCandidateID" -SQL_Query "SELECT * FROM [HumanResources].[vJobCandidate]"
 
 big tables:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType $true `
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -NewType `
         -SQL_DbName "AdventureWorks" -typeName "sales" -keyFieldName "SalesOrderDetailID" -SQL_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] FROM [Sales].[SalesOrderDetail]"
 
-    .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewIndex $true -aliasName "bms" `
-        -SQL_ServerName "SVRSA1DB04" -SQL_DbName "Nova_Search" -typeName "acronym" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
+    .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewIndex -aliasName "bms" `
+        -SQL_ServerName "SVRSA1DB04" -SQL_DbName "DataMart" -typeName "acronym" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
 
-    .\Search.Index.SQL.ps1 -indexName "nova_v1" -NewType $true `
-        -SQL_DbName "Integrations_NOVA" -typeName "austender" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
+    .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewType `
+        -SQL_DbName "Integration" -typeName "austender" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
             ,[Value],[Description],[Agency_Ref_ID],[Category],[Procurement_Method],[ATM_ID],[SON_ID],[Confidentiality_Contract]
             ,[Confidentiality_Contract_Reasons],[Confidentiality_Outputs],[Confidentiality_Outputs_Reasons],[Consultancy],[Consultancy_Reasons],[Amendment_Reason]
             ,[Supplier_Name],[Supplier_Address],[Supplier_City],[Supplier_Postcode],[Supplier_Latitude],[Supplier_Longitude]
@@ -54,16 +54,16 @@ Param(
 
     [string]$indexName = "",
     [string]$aliasName = "",
-    [string]$ElasticUri = $env:ElasticUri,
-    [int]$BatchMaxSize = 1000000,  #<=1 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.
+    [int]$BatchMaxSize = 1000000,  #~1 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.
     [int]$BatchRowSize = 100000,
     [int]$MaxSearchBiteSize = 4194304,  #~4MB should be enough. They allow up to 4 MB in the RRS request.
-    [bool]$NewIndex = $false,
-    [bool]$NewType = $false,
-    [bool]$DeleteAllDocuments = $false,
 
-    [string]$EventLogSource = "Nova.Search",
-    [string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.SQL.log"
+    #[string]$EventLogSource = "Search",
+    #[string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.SQL.log",
+
+    [switch]$NewIndex,
+    [switch]$NewType,
+    [switch]$DeleteAllDocuments
 )
 
 function Main(){
@@ -84,9 +84,8 @@ function Main(){
     #Write-Event -Error "Error test"
     #>
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force #-Verbose
-    $global:ElasticUri = $ElasticUri
     
-    if ($NewIndex -eq $true){
+    if ($NewIndex.IsPresent){
         try{
             &$delete $indexName 
         }
@@ -137,7 +136,7 @@ function Main(){
                 $name = $reader1.GetName($i)
 #$names
 #$types
-                if ($NewIndex -eq $true -or $NewType -eq $true){
+                if ($NewIndex.IsPresent -or $NewType.IsPresent){
                     $dataTypes = New-Object PSObject
                     if ($type -eq "SqlGeography"){ #This field should be typed in mapping explicitly
                         $dataTypes | Add-Member Noteproperty $name @{

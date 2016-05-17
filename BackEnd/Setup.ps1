@@ -108,7 +108,7 @@ function Main(){
         cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\service.bat" start Elastic-Search
     }
     else{
-        Echo "To run elastic service use this command in separate cmd line tool: cmd.exe /C '$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch.bat'"
+        Echo "To run elastic service use this command in separate window: cmd.exe /C '$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch.bat'"
     }
 
     #plugins
