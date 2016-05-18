@@ -43,6 +43,7 @@ big tables:
             ,[Agency],[Agency_Branch],[Agency_Divison],[Agency_Postcode],[Agency_State],[Agency_Latitude],[Agency_Longitude]
         FROM [dbo].[t_AusTenderContractNotice] ORDER BY [Id]"
 #>
+
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
 Param(
     #[Parameter(Mandatory=$true, Position = 0, ValueFromRemainingArguments=$true , HelpMessage = 'Target server')]
@@ -62,8 +63,8 @@ Param(
     #[string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.SQL.log",
 
     [switch]$NewIndex,
-    [switch]$NewType,
-    [switch]$DeleteAllDocuments
+    [switch]$NewType
+    #[switch]$DeleteAllDocuments # v2 delete all plugin
 )
 
 function Main(){
@@ -92,12 +93,12 @@ function Main(){
         catch{}
     }
 
-    if ($DeleteAllDocuments -eq $true){
+    <#if ($DeleteAllDocuments -eq $true){
         try{
             &$delete "$indexName/$typeName/_query?q=*"
         }
         catch{}
-    }
+    }#>
     #&$get
     #&$call "Get" "/_cluster/state"
     #&$cat
@@ -148,7 +149,7 @@ function Main(){
 
                     elseif ($type -eq "SqlHierarchyId"){ #This field should be typed in mapping explicitly
                         $dataTypes | Add-Member Noteproperty $name @{
-                            type = "string"
+                            type = "text"
                             index = "not_analyzed"
                             fields = @{
                                 tree = @{
@@ -196,7 +197,7 @@ function Main(){
                     }
                     else{ #$type -in "String","Guid","Char[]","Xml"
                         $dataTypes | Add-Member Noteproperty $name @{
-                            type = "string"
+                            type = "text"
                         }
                     }
                 }
@@ -321,6 +322,12 @@ function Main(){
 
         if ($BulkBody.Length -ge $BatchMaxSize){
             $result = &$post "$indexName/_bulk" $BulkBody
+            #validate bulk errors
+            $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+            if ($errors -ne $null -and $errors.Count -gt 0){
+                $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+            }
+
             $BulkBody = ""
             #(ConvertFrom-Json (&$cat)) | Where-Object {$_.index -EQ $indexName} | select health, status, docs.count, store.size |  fl
         }
@@ -333,7 +340,11 @@ function Main(){
 
     if ($BulkBody -ne ""){
         $result = &$post "$indexName/_bulk" $BulkBody
-#$result
+        #validate bulk errors
+        $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+        if ($errors -ne $null -and $errors.Count -gt 0){
+            $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+        }
         $BulkBody = ""
     }
 
@@ -393,7 +404,7 @@ function Get-ElasticType
         'Float' {"float"}
         'Single' {"float"}
         #'Guid' {[Data.SqlDbType]::UniqueIdentifier} 
-        default {"string"} 
+        default {"text"} 
     } 
      
 } #Get-ElasticType

@@ -1,9 +1,38 @@
 ﻿<#
     cd C:\Search\Scripts\
 
-    &$delete "bms_v1"
+    .\Search.Index.SQL.ParallelLoad.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex `
+        -SQL_DbName "AdventureWorks" -typeName "sales" -keyFieldName "SalesOrderDetailID" `
+        -SQL_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] 
+        FROM [Sales].[SalesOrderDetail]
+         WHERE YEAR([ModifiedDate]) = $year
+        --OFFSET $i ROWS FETCH NEXT $take ROWS ONLY"
+
+    .\Search.Index.SQL.ParallelLoad.ps1 -SQL_DbName "Integration" -indexName "austender" -typeName "contract" -keyFieldName "Id" -NewIndex `
+        -SQL_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
+                ,[Value],[Description],[Agency_Ref_ID],[Category],[Procurement_Method],[ATM_ID],[SON_ID],[Confidentiality_Contract]
+                ,[Confidentiality_Contract_Reasons],[Confidentiality_Outputs],[Confidentiality_Outputs_Rea=sons],[Consultancy],[Consultancy_Reasons],[Amendment_Reason]
+                ,[Supplier_Name],[Supplier_Address],[Supplier_City],[Supplier_Postcode],[Supplier_Latitude],[Supplier_Longitude]
+                ,[Supplier_Country],[Supplier_ABNExempt],[Supplier_ABN]
+                ,[Agency],[Agency_Branch],[Agency_Divison],[Agency_Postcode],[Agency_State],[Agency_Latitude],[Agency_Longitude]
+            FROM [dbo].[t_AusTenderContractNotice]
+            WHERE YEAR([Publish_Date]) = $year
+            ORDER BY [Id]"
 #>
 
+[CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
+Param(
+    $jobMask = "IndexTable",
+
+    $SQL_DbName, 
+    $SQL_Query,
+    $keyFieldName = "Id",
+
+    $indexName,
+    $typeName, 
+    #[parameter(parametersetname="indexSwitches")]
+    [switch]$NewIndex
+)
 function Main(){
     cls
     #generate 10 jobs
@@ -12,12 +41,6 @@ function Main(){
     #[int]$Total = 1000000 #647840
     #[int]$Take =  [int]($Total / 10)
 
-    $jobMask = "IndexTable"
-    $indexName = "austender"
-    $NewIndex = $true
-    $SQL_DbName = "Integration" 
-    $typeName = "contract" 
-    $keyFieldName = "Id"
 
     $processRowBlock = {
         #echo $args[0]
@@ -35,17 +58,6 @@ function Main(){
 
     #generate jobs
     do{
-        $SQL_Query = "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
-                ,[Value],[Description],[Agency_Ref_ID],[Category],[Procurement_Method],[ATM_ID],[SON_ID],[Confidentiality_Contract]
-                ,[Confidentiality_Contract_Reasons],[Confidentiality_Outputs],[Confidentiality_Outputs_Rea=sons],[Consultancy],[Consultancy_Reasons],[Amendment_Reason]
-                ,[Supplier_Name],[Supplier_Address],[Supplier_City],[Supplier_Postcode],[Supplier_Latitude],[Supplier_Longitude]
-                ,[Supplier_Country],[Supplier_ABNExempt],[Supplier_ABN]
-                ,[Agency],[Agency_Branch],[Agency_Divison],[Agency_Postcode],[Agency_State],[Agency_Latitude],[Agency_Longitude]
-            FROM [dbo].[t_AusTenderContractNotice]
-            WHERE YEAR([Publish_Date]) = $year
-            ORDER BY [Id]
-            " #--OFFSET $i ROWS FETCH NEXT $take ROWS ONLY
-
         #Invoke-Command {param($Debug=$False, $Clear=$False) "$scripLocation\Search.Index.SQL.ps1"} -ArgumentList @{"indexName"="$indexName"; "SQL_DbName"="$SQL_DbName"; "typeName"= "$typeName"; "keyFieldName"="$keyFieldName"; "SQL_Query"="$SQL_Query"} 
         #Invoke-Command -FilePath "$scripLocation\Search.Index.SQL.ps1" -ArgumentList @{"indexName"="$indexName"; "SQL_DbName"="$SQL_DbName"; "typeName"= "$typeName"; "keyFieldName"="$keyFieldName"; "SQL_Query"="$SQL_Query"} 
         Write-Host "Start new job $jobMask-$($year)"

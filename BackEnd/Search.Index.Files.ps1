@@ -91,7 +91,9 @@ function Main(){
         There is a reason to avoid aggregating analyzed fields: high-cardinality fields consume a large amount of memory when loaded into fielddata. 
         The analysis process often (although not always) generates a large number of tokens, many of which are unique. 
         This increases the overall cardinality of the field and contributes to more memory pressure.
-         use index = "not_analyzed" for strings where possible#>
+        The string field datatype has been replaced by the text field for full text analyzed content, and the keyword field for not-analyzed exact string values. For backwards compatibility purposes, during the 5.x series:
+        #>
+
         &$createIndex $indexName -obj @{
             settings = @{
                 analysis = @{
@@ -137,9 +139,7 @@ function Main(){
                      properties = @{
                         #general properties
                         Path = @{
-                            type = "string"
-        			        #key = $True #obsolete notation, not supported in ES 2.0
-                            index = "not_analyzed" #To be able to group on the whole path 
+                            type = "keyword"
                             fields = @{
                                 Tree = @{ # Path.Tree field will contain the path hierarchy.
                                     type = "string"
@@ -148,20 +148,10 @@ function Main(){
                             }
                         }
                         Extension = @{
-                            type = "string"
-                            index = "not_analyzed" #To be able to group on the whole extension
+                            type = "keyword"
                         }
-                        <#Content= @{ #multifield Content and Content.english
-                            type="string"
-                            fields = @{
-                                english = @{ 
-                                    type = "string"
-                                    analyzer = "english"
-                                }
-                            }
-                        }#>
                         Content = @{
-                            type = "string"
+                            type = "text"
                             analyzer = "english"
                         }
                         LastModified = @{
@@ -170,135 +160,7 @@ function Main(){
                         }
 
 
-                        <#the rest fields would be added dynamically
-                        LastModifiedBy= @{
-                            type = "string"
-                        }
-                        LastPrinted= @{
-                            type = "string"
-                        }
-
-                        #custom properties
-                        Application= @{
-                            type = "string"
-                        }
-                        AppVersion= @{
-                            type = "string"
-                            index = "not_analyzed"
-                        }
-                        Author= @{
-                            type = "string"
-                        }
-                        Category= @{
-                            type = "string"
-                        }
-                        Characters= @{
-                            type = "string"
-                        }
-                        Comment= @{
-                            type = "string"
-                        }
-                        Company= @{
-                            type = "string"
-                        }
-                        Copyright= @{
-                            type = "string"
-                        }
-                        Created= @{
-                            type = "string"
-                        }
-                        Creator= @{
-                            type = "string"
-                        }
-
-                        Description= @{
-                            type = "string"
-                        }
-                        FileSource= @{
-                            type = "string"
-                        }
-
-                        Keywords= @{
-                            type = "string"
-                        }
-                        Manager= @{
-                            type = "string"
-                        }
-                        Manufacturer= @{
-                            type = "string"
-                        }
-                        Model= @{
-                            type = "string"
-                        }
-                        Notes= @{
-                            type = "string"
-                        }
-
-                        Revision= @{
-                            type = "string"
-                        }
-                        SharedDoc= @{
-                            type = "string"
-                        }
-                        Software= @{
-                            type = "string"
-                        }
-                        Subject= @{
-                            type = "string"
-                        }
-                        Template= @{
-                            type = "string"
-                        }
-                        Title= @{
-                            type = "string"
-                        }
-                        TitlesOfParts= @{
-                            type = "string"
-                        }
-                        TotalTime= @{
-                            type = "string"
-                        }
-
-                        #statistics
-                        #Pages and NumberOfPages may be merged ?
-                        Pages= @{#office docs
-                            type = "string"
-                            index = "not_analyzed"
-                        }
-                        NumberOfPages= @{ # from PDF
-                            type = "integer"
-                            index = "not_analyzed"
-                        }
-                        Words= @{
-                            type = "string"
-                        }
-                        Orientation= @{
-                            type = "string"
-                        }
-                        Paragraphs= @{
-                            type = "string"
-                        }
-                        PresentationFormat= @{
-                            type = "string"
-                        }
-                        FNumber= @{
-                            type = "string"
-                            index = "not_analyzed"
-                        }
-                        Lines= @{
-                            type = "string"
-                            index = "not_analyzed"
-                        }
-                        HLinks= @{
-                            type = "string"
-                        }
-                        LinksUpToDate= @{
-                            type = "string"
-                        }
-                        HyperlinkBase= @{
-                            type = "string"
-                        }#>
-
+                        #the rest fields would be added dynamically
 
                         <#Azure ML output based on Content
                         Entities = @{
@@ -326,9 +188,9 @@ function Main(){
                     properties = @{
                         #general properties
                         Path = @{
-                            type = "string"
+                            type = "keyword"
         			        #key = $True #obsolete notation, not supported in ES 2.0
-                            index = "not_analyzed"
+                            #index = "not_analyzed"
                             fields = @{
                                 Tree = @{ # Path.Tree field will contain the path hierarchy.
                                     type = "string"
@@ -337,7 +199,7 @@ function Main(){
                             }
                         }
                         Extension = @{
-                            type = "string"
+                            type = "keyword"
                             index = "not_analyzed" #To be able to group on the whole extension
                         }
 
@@ -350,88 +212,88 @@ function Main(){
 
                         <#the rest fields would be added dynamically
                         LastPrinted= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         ISO= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         DateTaken= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         DigitalZoomRatio= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Flash= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         CaptureMode= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         CharactersWithSpaces= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         ColorSpace= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         FocalLength= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         FocalLength35mm= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Contrast= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         LightSource= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         MaxApperture= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         MeteringMode= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         MMClips= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Sharpness= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Slides= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         HeadingPairs= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         HiddenSlides= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Height= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         ExposureBias= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         ExposureMode= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         ExposureProgram= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Exposuretime= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         ScaleCrop= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Saturation= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         WhiteBalance= @{
-                            type = "string"
+                            type = "keyword"
                         }
                         Width= @{
-                            type = "string"
+                            type = "keyword"
                         }#>
                     } #properties
                 } #photo
@@ -464,6 +326,12 @@ function Main(){
     }
     if ($global:BulkBody -ne ""){
         $result = &$post "$indexName/_bulk" $global:BulkBody
+        #validate bulk errors
+        $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+        if ($errors -ne $null -and $errors.Count -gt 0){
+            $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+        }
+
         $global:BulkBody = ""
     }
 
@@ -601,7 +469,7 @@ function LoadFile() {
         #$indexObj | Remove-Member Noteproperty "Content"
 
         #&$add -index $indexName -type 'photo' -obj $indexObj
-        if ($BulkDocuments -eq $true){
+        if ($BulkDocuments.IsPresent){
             $global:BulkBody += '{"index": {"_type": "photo"}'+ "`n" +($indexObj | ConvertTo-Json -Depth 2 -Compress| Out-String)  + "`n"
         }
     }
@@ -621,17 +489,23 @@ function LoadFile() {
         $indexObj | Add-Member Noteproperty "Content" "$(CleanContent($fileObj.Content))"
         
         #&$add -index $indexName -type 'file' -obj $indexObj
-        if ($BulkDocuments -eq $true){
+        if ($BulkDocuments.IsPresent){
             $global:BulkBody += '{"index": {"_type": "file"}'+ "`n" +($indexObj | ConvertTo-Json -Compress| Out-String)  + "`n"
         }
     }
 
-    if ($BulkDocuments -eq $true){
+    if ($BulkDocuments.IsPresent){
         $percent = [decimal]::round(($global:BulkBody.Length / $MaxFileBiteSize)*100)
         if ($percent -gt 100) {$percent = 100}
         Write-Progress -Activity "Batching in progress: $fullPath" -status "$percent% complete" -percentcomplete $percent;
         if ($global:BulkBody.Length -ge $MaxFileBiteSize){
             $result = &$post "$indexName/_bulk" $global:BulkBody
+            #validate bulk errors
+            $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+            if ($errors -ne $null -and $errors.Count -gt 0){
+                $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status); path: $($searchPath)" -f Red }
+            }
+
             $global:BulkBody = ""
         }
     }
