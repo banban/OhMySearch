@@ -1,0 +1,34 @@
+﻿@*@model Nest.ISearchResponse<dynamic>*@
+@model IEnumerable<Search.Core.Windows.Models.SearchResult>
+@if (Model != null)
+{
+    @*<label>from=@(ViewBag.From)&term=@(ViewBag.QueryTerm)&options=@(ViewBag.ChosenOptions)</label>*@
+    @foreach (var item in Model)
+    {
+        string tooltipSource = item.Source.ToString();
+        if (tooltipSource?.Length > 256)
+        {
+            tooltipSource = tooltipSource.Substring(0, 256);
+        }
+        <li title="@tooltipSource">
+            <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index"></button>
+            Index: @item.Index; Type: @item.Type; Score: @item.Score;
+            @if(item.Type == "photo" || item.Type == "file")
+                {
+                    <a class="glyphicon glyphicon-file" href='file:///@item.Path.Replace("\\", "/")' > @item.Path.Replace("/", "\\") </a><br />
+                }
+
+
+            @*@if (item.Highlights.Count > 0)
+                {
+                    <ul>
+                        @foreach (var highlight in item.Highlights)
+                        {
+                            <li>Key: @highlight.Key; Value: @highlight.Value </li>
+                        }
+                    </ul>
+                }*@
+        </li>
+    }
+    <li><a class="jscroll-next" hidden href="Scroll?from=@(ViewBag.From)&term=@(ViewBag.QueryTerm)&options=@(ViewBag.ChosenOptions)">End of page...</a></li>
+}

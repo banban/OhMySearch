@@ -48,7 +48,7 @@ function Main(){
 
     DownLoadAndExtract -Url "https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/zip/elasticsearch/5.0.0-alpha2/elasticsearch-$ESVersion.zip"
     DownLoadAndExtract -Url "https://download.elastic.co/logstash/logstash/logstash-$ESVersion.zip"
-    DownLoadAndExtract -Url "https://download.elastic.co/kibana/kibana/kibana-$ESVersion-windows.zip"
+    DownLoadAndExtract -Url "https://download.elastic.co/kibana/kibana/kibana-$ESVersion-windows.zip" #http://download.elastic.co/kibana/kibana-snapshot/kibana-5.0.0-snapshot-windows.zip
     DownLoadAndExtract -Url "https://download.elastic.co/beats/winlogbeat/winlogbeat-$ESVersion-windows-64.zip"
 
     #configure search parameters 

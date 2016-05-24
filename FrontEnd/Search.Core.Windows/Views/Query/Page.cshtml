@@ -1,0 +1,51 @@
+﻿@*@model Nest.ISearchResponse<dynamic>*@
+@model Search.Core.Windows.Models.SearchResults
+@if (Model != null)
+{
+    <div class="container">
+        <div class="col-md-6 col-md-offset-3">
+            <h1>ASP.NET MVC - Pagination Example</h1>
+
+            <!-- items being paged -->
+            <ul>
+                @foreach (var item in Model.Items)
+                {
+                    <li>@item</li>
+                }
+            </ul>
+
+            <!-- pager -->
+            @if (Model.Pager.EndPage > 1)
+            {
+                <ul class="pagination">
+                    @if (Model.Pager.CurrentPage > 1)
+                    {
+                        <li>
+                            <a href="~/SearchResults/Index">First</a>
+                        </li>
+                        <li>
+                            <a href="~/SearchResults/Index?page=@(Model.Pager.CurrentPage - 1)">Previous</a>
+                        </li>
+                    }
+
+                    @for (var page = Model.Pager.StartPage; page <= Model.Pager.EndPage; page++)
+                    {
+                        <li class="@(page == Model.Pager.CurrentPage ? "active" : "")">
+                            <a href="~/SearchResults/Index?page=@page">@page</a>
+                        </li>
+                    }
+
+                    @if (Model.Pager.CurrentPage < Model.Pager.TotalPages)
+                    {
+                        <li>
+                            <a href="~/SearchResults/Index?page=@(Model.Pager.CurrentPage + 1)">Next</a>
+                        </li>
+                        <li>
+                            <a href="~/SearchResults/Index?page=@(Model.Pager.TotalPages)">Last</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+}

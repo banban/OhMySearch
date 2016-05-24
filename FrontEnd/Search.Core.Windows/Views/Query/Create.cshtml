@@ -1,0 +1,57 @@
+﻿@model Search.Core.Windows.Models.Query
+@{
+    ViewData["Title"] = "Create";
+}
+
+@await Component.InvokeAsync("QueryOptions")
+<hr/>
+<span>Found @Model.Total record(s)</span>
+
+<div class="scroll">
+    <ul id="ulllist">
+        @*@await Html.PartialAsync("Scroll", ViewData)*@
+        <li><a class="jscroll-next" hidden href="Scroll?from=0&term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)">End of page...</a></li>
+    </ul>
+</div>
+
+
+@section Scripts {
+    <script src="~/lib/jquery.jscroll/jquery.jscroll.min.js"></script>
+    <script type="text/javascript">
+    $(document).ready(function () {
+        $('.scroll').jscroll({
+            //autoTriggerUntil: 3,
+            //padding: 20,
+            //loadingHtml: '<div>End of seach</div>',
+            loadingHtml: '<div class="row"><div class="col s4 center"><div class="progress"><div class="indeterminate"></div>End of seach</div></div></div>',
+            nextSelector: 'a.jscroll-next:last',
+            contentSelector: 'li'
+        });
+        $(".chosen-select").chosen({
+            include_group_label_in_selected: true,
+            disable_search_threshold: 10,
+            no_results_text: "Incorrect option:",
+            width: "70%"
+        }).change(function (event, params) {
+            if (params.selected) {
+                $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + ",");
+                if (params.selected == "2_1") {
+                    $("#QueryTerm").val("The quick brown fox");
+                }
+                else if (params.selected == "2_2") {
+                    $("#QueryTerm").val("The qick broon foox");
+                }
+                else if (params.selected == "2_3") {
+                    $("#QueryTerm").val("/1/2/3");
+                }
+                else if (params.selected == "2_4") {
+                    $("#QueryTerm").val("Perth");
+                }
+            }
+            else if (params.deselected) {
+                $("#ChosenOptions").val($("#ChosenOptions").val().replace(params.deselected + ",", ""));
+            }
+        });
+    });
+    </script>
+}

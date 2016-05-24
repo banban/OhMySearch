@@ -1,0 +1,23 @@
+﻿@model IEnumerable<Search.Core.Windows.Models.Query>
+@{
+    ViewData["Title"] = "History of search queries";
+}
+
+@if (Model != null)
+{
+    @*<hr />*@
+    @*<h4>Page: @(ViewBag.Page)</h4>*@
+    @foreach (var item in Model)
+    {
+        string tooltipSource = item.QueryTerm;
+        if (tooltipSource?.Length > 256)
+        {
+            tooltipSource = tooltipSource.Substring(0, 256);
+        }
+        <li title="@tooltipSource">
+            @*<a href='file://////@item.Id'> @item.Id </a><br />*@
+            @*<a asp-controller="Entry" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index">@item.Id</a>*@
+            Term: @item.QueryTerm; Total: @item.Total.ToString();
+        </li>
+    }
+}

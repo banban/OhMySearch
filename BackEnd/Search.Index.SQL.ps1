@@ -2,6 +2,8 @@
  cd C:\Search\Scripts
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex `
         -SQL_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -SQL_Query "SELECT * FROM [Person].[Person]"
+        #this command has some unicode fields which are not acepted by ES. Please read this: https://www.elastic.co/guide/en/elasticsearch/guide/master/unicode-normalization.html
+        
 
     &$cat | select index, health, status, docs.count, store.size |  ft
     (ConvertFrom-Json (&$cat)) | select index, health, status, docs.count, store.size |  ft
@@ -32,7 +34,7 @@ big tables:
         -SQL_DbName "AdventureWorks" -typeName "sales" -keyFieldName "SalesOrderDetailID" -SQL_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] FROM [Sales].[SalesOrderDetail]"
 
     .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewIndex -aliasName "bms" `
-        -SQL_ServerName "SVRSA1DB04" -SQL_DbName "DataMart" -typeName "acronym" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
+        -SQL_ServerName ".\SQL2014" -SQL_DbName "Nova_Search" -typeName "acronym" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
 
     .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewType `
         -SQL_DbName "Integration" -typeName "austender" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
@@ -220,13 +222,34 @@ function Main(){
                         }
                         }
                         analyzer = @{
-                        hierarchy_analyzer = @{ 
-                            tokenizer= "path_hierarchy"
+                            hierarchy_analyzer = @{ 
+                                tokenizer= "path_hierarchy"
+                            }
+                            quotes_analyzer= @{
+                                tokenizer = "standard"
+                                char_filter = @( "quotes" )
+                            }
+
+                            <#When using the standard tokenizer or icu_tokenizer, this doesn’t really matter. 
+                              These tokenizers know how to deal with all forms of Unicode correctly.#>
+                            nfkc_cf_normalized = @{ 
+                                tokenizer = "icu_tokenizer"
+                                filter = @("icu_normalizer")
+                            }
+                            nfc_normalized = @{ 
+                                tokenizer = "icu_tokenizer"
+                                filter = @("nfc_normalizer")
+                            }
                         }
-                        quotes_analyzer= @{
-                            tokenizer = "standard"
-                            char_filter = @( "quotes" )
-                        }
+
+                        filter = @{
+                            nfkc_normalizer = @{ #Normalize all tokens into the nfkc normalization form
+                                <#The icu_tokenizer uses the same Unicode Text Segmentation algorithm as the standard tokenizer, 
+                                  but adds better support for some Asian languages by using a dictionary-based approach to identify words in Thai, Lao, Chinese, Japanese, and Korean, 
+                                  and using custom rules to break Myanmar and Khmer text into syllables.#>
+                                type = "icu_normalizer"
+                                name = "nfkc"
+                            }
                         }
                     }
                 } #| ConvertTo-Json -Depth 

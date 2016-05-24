@@ -7,8 +7,11 @@ Unit tests:
     PS environment call examples:
         .\Search.Index.Files.ps1 -SharedFolders "\\shares\files\" -indexName "files_v1" -aliasName "files" -NewIndex
         .\Search.Index.Files.ps1 -SharedFolders "\\shares\library\" -indexName "library_v1" -aliasName "library" -NewIndex
+
         .\Search.Index.Files.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\GeoTags" -indexName "shared_v1" -aliasName "shared" -NewIndex
-        .\Search.Index.Files.ps1 -SharedFolders "\\$(hostname)\C$\Search\_search" -indexName "shared_v1" -aliasName "shared" -NewIndex
+        .\Search.Index.Files.ps1 -SharedFolders "\\$(hostname)\C$\Search\_search" -indexName "shared_v1"
+
+    C:\Search\logstash-5.0.0-alpha2\bin\logstash.bat -f "C:\Search\Import\AusTender\logstash-austender.conf"
 
     ES helper function call examples:
         #test file update/add 
@@ -17,6 +20,7 @@ Unit tests:
         &$get "/shared/photo/AVQZ9Boa2V9OaD-z4_3i"
         &$delete "files"
         &$get "/files,library/_mapping"
+
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] 

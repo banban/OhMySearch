@@ -1,9 +1,42 @@
 ﻿<#
 Unit tests:
     cd C:\Search\Scripts
-    &$delete "austender_web_v1"
+    &$delete "web_v1"
 
-    .\Search.Index.Web.ps1 -WebSite "https://www.tenders.gov.au/"-RootPath "C:\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex
+    .\Search.Index.Web.ps1 -WebSite "https://www.tenders.gov.au/"-RootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex
+        -fieldTypes "text,keyword,keyword,date,date,keyword,date,date,double,text,keyword,keyword,keyword,keyword,keyword,text,keyword,keyword,text,keyword,text,text,text,text,keyword,keyword,keyword,keyword,keyword,text,text,keyword"
+
+    .\Search.Index.Web.ps1 -WebSite "https://www.tenders.gov.au/"-RootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex
+        usign keyFieldName "CN ID" causes recursive ref issue:
+         {
+          "error": {
+            "root_cause": [
+              {
+                "type": "circuit_breaking_exception",
+                "reason": "[parent] Data too large, data for [<http_request>] would be larger than limit of [727213670/693.5mb]",
+                "bytes_wanted": 727223400,
+                "bytes_limit": 727213670
+              }
+            ],
+            "type": "circuit_breaking_exception",
+            "reason": "[parent] Data too large, data for [<http_request>] would be larger than limit of [727213670/693.5mb]",
+            "bytes_wanted": 727223400,
+            "bytes_limit": 727213670
+          },
+          "status": 503
+        }
+
+To test logstash in interactive mode use command: logstash.bat -e 'input { stdin { } } output { stdout {} }'
+    logstash-plugin.bat list
+    logstash-plugin.bat install logstash-filter-csv
+
+    logstash -e 'input { stdin { } } output { elasticsearch { host => localhost } }'
+    logstash -e 'input { stdin {} } output { stdout { codec => rubydebug } }'
+
+Test your configuration use this command:
+    logstash.bat -f "C:\Search\Import\AusTender\logstash-austender.conf" --configtest
+Expected result: Configuration OK
+Unexpected error: The signal HUP is in use by the JVM and will not work correctly on this platform
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -11,8 +44,7 @@ Param(
     [string]$WebSite ,
     [string]$RootPath,
     [string]$delimeter,
-    [string[]]$fieldNames, #you can specify fields names for precise data conversion @("1","2","3")
-    [string[]]$fieldTypes, #you can specify fields types for precise data conversion @("int","keyword","text")
+    [string[]]$fieldTypes, #fields types for precise data conversion "int,keyword,text,date"
     [string]$keyFieldName,
     [string]$indexName,
     [string]$aliasName,
@@ -80,6 +112,9 @@ function Main(){
             $file = Get-Content $filePath
             $recordType = $file[0].Trim()
             $headers = $file[2] -split $delimeter
+            $types = $fieldTypes -split ','
+                                    
+
             if ($firstRecord -eq $true -and $NewIndex.IsPresent){
                 try{
                     &$delete $indexName 
@@ -92,12 +127,12 @@ function Main(){
                         $name = $headers[$i].TrimStart('=').Trim('"').Trim()
                         $name = $name -replace '\\u0027|\\u0091|\\u0092|\\u2018|\\u2019|\\u201B', '''' #convert quotes
                         $name = $name -replace '\\u\d{3}[0-9a-zA-Z]', '?' # remove encodded special symbols like '\u0026' '\u003c'
-                        $name = $name -replace '[\,\.\\/''~?!*“"%&•â€¢©ø\[\]{}]', ' ' #special symbols and punctuation
+                        $name = $name -replace '[\,\.\\/''~?!*“"%&•â€¢©ø\[\]{}\(\)]', ' ' #special symbols and punctuation
                         $name = $name -replace '\s+', ' ' #remove extra spaces
                         $headers[$i] = $name
                         $type = "text"
-                        if ($fieldTypes -ne $null -and $fieldTypes.Count -ge $i -and $fieldTypes[$i] -ne $null -and $fieldTypes[$i] -ne ""){
-                            $type = $fieldTypes[$i]
+                        if ($fieldTypes -ne $null -and $types.Count -ge $i -and $types[$i] -ne $null -and $types[$i] -ne ""){
+                            $type = $types[$i]
                         }
                         $dataTypes | Add-Member Noteproperty $name @{
                             type = $type
@@ -135,6 +170,11 @@ function Main(){
                         }
                     }
                 }
+
+                if ($aliasName -ne ""){
+                    &$put "$indexName/_alias/$aliasName"
+                }
+
                 $firstRecord = $false
             }
 
@@ -189,6 +229,11 @@ function Main(){
 
     if ($BulkBody -ne ""){
         $result = &$post "$indexName/_bulk" $BulkBody
+        $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+        if ($errors -ne $null -and $errors.Count -gt 0){
+            $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+        }
+
         $BulkBody = ""
     }
 }
