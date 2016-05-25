@@ -5,15 +5,9 @@ using System.Threading.Tasks;
 
 namespace Search.Core.Windows.Models
 {
-    public class SearchResults
-    {
-        public IEnumerable<SearchResult> Items { get; set; }
-        public Pager Pager { get; set; }
-    }
-
     public class Pager
     {
-        public Pager(int totalItems, int? page, int pageSize = 10)
+        public Pager(long totalItems, int? page, int pageSize = 10)
         {
             // calculate total, start and end pages
             var totalPages = (int)Math.Ceiling((decimal)totalItems / (decimal)pageSize);
@@ -42,7 +36,7 @@ namespace Search.Core.Windows.Models
             EndPage = endPage;
         }
 
-        public int TotalItems { get; private set; }
+        public long TotalItems { get; private set; }
         public int CurrentPage { get; private set; }
         public int PageSize { get; private set; }
         public int TotalPages { get; private set; }

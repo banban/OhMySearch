@@ -1,0 +1,14 @@
+﻿@model IEnumerable<Search.Core.Windows.Models.Query>
+@{
+    ViewData["Title"] = "Query History";
+}
+
+<ul>
+    @foreach (var item in Model)
+    {
+        <li>
+            <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Index" asp-route-term="@item.QueryTerm" asp-route-options="@item.ChosenOptions"></button>
+            Index: @item.QueryTerm; Type: @item.QueryOptions; Total: @item.Total;
+        </li>
+    }
+</ul>

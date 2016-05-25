@@ -1,23 +1,39 @@
-﻿@model IEnumerable<Search.Core.Windows.Models.Query>
+﻿@model Search.Core.Windows.Models.Query
 @{
-    ViewData["Title"] = "History of search queries";
+    ViewData["Title"] = "Search Results";
 }
 
-@if (Model != null)
+@await Component.InvokeAsync("QueryOptions")
+<span>Found @Model.Total record(s)</span>
+<hr />
+
+@if (!Model.ChosenOptions.Contains("3_2"))
 {
-    @*<hr />*@
-    @*<h4>Page: @(ViewBag.Page)</h4>*@
-    @foreach (var item in Model)
-    {
-        string tooltipSource = item.QueryTerm;
-        if (tooltipSource?.Length > 256)
-        {
-            tooltipSource = tooltipSource.Substring(0, 256);
-        }
-        <li title="@tooltipSource">
-            @*<a href='file://////@item.Id'> @item.Id </a><br />*@
-            @*<a asp-controller="Entry" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index">@item.Id</a>*@
-            Term: @item.QueryTerm; Total: @item.Total.ToString();
-        </li>
-    }
+    <div class="scroll col-md-12">
+            <ul id="ulllist">
+                <li><a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)">...</a></li>
+            </ul>
+    </div>
+}
+else
+{
+    <div class="page col-md-12">
+            @await Html.PartialAsync("Page")
+    </div>
+}
+
+@section Scripts {
+    <script src="~/lib/jquery.jscroll/jquery.jscroll.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.scroll').jscroll({
+                //autoTriggerUntil: 3,
+                //padding: 20,
+                //loadingHtml: '<div>End of seach</div>',
+                loadingHtml: '<div class="row"><div class="col s4 center"><div class="progress"><div class="indeterminate"></div>End of seach</div></div></div>',
+                nextSelector: 'a.jscroll-next:last',
+                contentSelector: 'li'
+            });
+        });
+    </script>
 }

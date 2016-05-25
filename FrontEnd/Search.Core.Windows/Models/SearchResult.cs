@@ -21,8 +21,4 @@ namespace Search.Core.Windows.Models
 
         //public IEnumarable<KeyValuePair<string, string>> Hihglights { get; set; }
     }
-
-    //public interface IEnumarable<T>
-    //{
-    //}
 }

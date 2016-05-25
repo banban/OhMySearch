@@ -2,7 +2,6 @@
 @model IEnumerable<Search.Core.Windows.Models.SearchResult>
 @if (Model != null)
 {
-    @*<label>from=@(ViewBag.From)&term=@(ViewBag.QueryTerm)&options=@(ViewBag.ChosenOptions)</label>*@
     @foreach (var item in Model)
     {
         string tooltipSource = item.Source.ToString();
@@ -13,10 +12,14 @@
         <li title="@tooltipSource">
             <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index"></button>
             Index: @item.Index; Type: @item.Type; Score: @item.Score;
-            @if(item.Type == "photo" || item.Type == "file")
-                {
-                    <a class="glyphicon glyphicon-file" href='file:///@item.Path.Replace("\\", "/")' > @item.Path.Replace("/", "\\") </a><br />
-                }
+            @if(item.Type == "file")
+            {
+                <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-file" href='file:///@item.Path.Replace("\\", "/")' ></a><br />
+            }
+            else if (item.Type == "photo")
+            {
+                <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-picture" href='file:///@item.Path.Replace("\\", "/")'></a><br />
+            }
 
 
             @*@if (item.Highlights.Count > 0)
@@ -30,5 +33,5 @@
                 }*@
         </li>
     }
-    <li><a class="jscroll-next" hidden href="Scroll?from=@(ViewBag.From)&term=@(ViewBag.QueryTerm)&options=@(ViewBag.ChosenOptions)">End of page...</a></li>
+    <li><a class="jscroll-next" hidden href="../Query/Scroll?from=@(ViewBag.From)&term=@(ViewBag.QueryTerm)&options=@(ViewBag.ChosenOptions)">End of page...</a></li>
 }

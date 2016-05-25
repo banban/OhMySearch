@@ -1,51 +1,55 @@
-﻿@*@model Nest.ISearchResponse<dynamic>*@
-@model Search.Core.Windows.Models.SearchResults
+﻿@model Search.Core.Windows.Models.Query
 @if (Model != null)
 {
-    <div class="container">
-        <div class="col-md-6 col-md-offset-3">
-            <h1>ASP.NET MVC - Pagination Example</h1>
-
-            <!-- items being paged -->
-            <ul>
-                @foreach (var item in Model.Items)
+    <!-- items being paged -->
+    <ul>
+        @foreach (var item in Model.SearchResults.Items)
+        {
+            <li>
+                <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index"></button>
+                Index: @item.Index; Type: @item.Type; Score: @item.Score;
+                @if (item.Type == "file")
                 {
-                    <li>@item</li>
+                    <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-file" href='file:///@item.Path.Replace("\\", "/")'></a><br />
                 }
-            </ul>
+                else if (item.Type == "photo")
+                {
+                    <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-picture" href='file:///@item.Path.Replace("\\", "/")'></a><br />
+                }
+            </li>
+        }
+    </ul>
 
-            <!-- pager -->
-            @if (Model.Pager.EndPage > 1)
+    <!-- pager -->
+    @if (Model.SearchResults.Pager.EndPage > 1)
+    {
+        <ul class="pagination">
+            @if (Model.SearchResults.Pager.CurrentPage > 1)
             {
-                <ul class="pagination">
-                    @if (Model.Pager.CurrentPage > 1)
-                    {
-                        <li>
-                            <a href="~/SearchResults/Index">First</a>
-                        </li>
-                        <li>
-                            <a href="~/SearchResults/Index?page=@(Model.Pager.CurrentPage - 1)">Previous</a>
-                        </li>
-                    }
-
-                    @for (var page = Model.Pager.StartPage; page <= Model.Pager.EndPage; page++)
-                    {
-                        <li class="@(page == Model.Pager.CurrentPage ? "active" : "")">
-                            <a href="~/SearchResults/Index?page=@page">@page</a>
-                        </li>
-                    }
-
-                    @if (Model.Pager.CurrentPage < Model.Pager.TotalPages)
-                    {
-                        <li>
-                            <a href="~/SearchResults/Index?page=@(Model.Pager.CurrentPage + 1)">Next</a>
-                        </li>
-                        <li>
-                            <a href="~/SearchResults/Index?page=@(Model.Pager.TotalPages)">Last</a>
-                        </li>
-                    }
-                </ul>
+                <li>
+                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)">First</a>
+                </li>
+                <li>
+                    <a href="../Query/Index?page=@(Model.SearchResults.Pager.CurrentPage - 1)">Previous</a>
+                </li>
             }
-        </div>
-    </div>
+
+            @for (var page = Model.SearchResults.Pager.StartPage; page <= Model.SearchResults.Pager.EndPage; page++)
+            {
+                <li class="@(page == Model.SearchResults.Pager.CurrentPage ? "active" : "")">
+                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)&page=@page">@page</a>
+                </li>
+            }
+
+            @if (Model.SearchResults.Pager.CurrentPage < Model.SearchResults.Pager.TotalPages)
+            {
+                <li>
+                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage + 1)">Next</a>
+                </li>
+                <li>
+                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.TotalPages)">Last</a>
+                </li>
+            }
+        </ul>
+    }
 }

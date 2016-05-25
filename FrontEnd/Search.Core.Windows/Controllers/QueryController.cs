@@ -8,6 +8,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
+using Nest;
 
 // For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -15,22 +16,74 @@ namespace Search.Core.Windows.Controllers
 {
     public class QueryController : Controller
     {
-        public IActionResult Index()
+        public IActionResult History()
         {
-            return View();
+            List<Models.Query> history = new List<Models.Query>();
+            //...populate here from db or browser history...
+            return View(history);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Index(string term, string options, int? from, int? page, int? size)
+        {
+            if (string.IsNullOrEmpty(term))
+            {
+                return View(new EmptyResult());
+            }
+            Models.Query query = new Models.Query();
+            if (options == null)
+            {
+                options = string.Empty;
+            }
+            query.ChosenOptions = options;
+            query.QueryTerm = term;
+            query.Size = (size.HasValue ? size.Value : query.Size);
+            if (from.HasValue)
+            {
+                query.From = from.Value;
+            }
+            else if (page.HasValue)
+            {
+                query.From = (page.HasValue ? page.Value : 0) * query.Size;
+            }
+
+            if (!page.HasValue && query.Size > 0)
+            {
+                page = query.From / query.Size;
+            }
+            if (page == 0)
+            {
+                page = 1;
+            }
+            
+            query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
+
+            var results = await GetNestResults(query);
+            query.Total = results.Total;
+
+            if (query.ChosenOptions.Contains("3_2"))
+            {
+                Models.SearchResults sr = new Models.SearchResults();
+                sr.Pager = new Models.Pager(query.Total, page, query.Size.Value);
+                sr.Items = GetQueryResults(results);
+                query.SearchResults = sr;
+            }
+
+            ViewBag.QueryTerm = query.QueryTerm;
+            ViewBag.ChosenOptions = query.ChosenOptions;
+            return View(query);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(Models.Query query)
+        public async Task<IActionResult> Index(Models.Query query)
         {
             if (string.IsNullOrEmpty(query.QueryTerm) && !string.IsNullOrEmpty(Request.Query["term"]))
             {
-                query.QueryTerm = Request.Query["term"]; // ~/query/create/?q=term
+                query.QueryTerm = Request.Query["term"];
             }
-
             if (string.IsNullOrEmpty(query.ChosenOptions) && !string.IsNullOrEmpty(Request.Query["options"]))
             {
-                query.ChosenOptions = Request.Query["options"]; // ~/query/create/?o=1,2,3
+                query.ChosenOptions = Request.Query["options"];
             }
             if (query.ChosenOptions == null)
             {
@@ -41,13 +94,10 @@ namespace Search.Core.Windows.Controllers
             {
                 query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
             }
-            ViewBag.QueryTerm = query.QueryTerm;
-            ViewBag.ChosenOptions = query.ChosenOptions;
-            var results = await GetSearchResults(query);
-            query.Total = results.Total;
-            return View(query);
+            return RedirectToAction("Index", new { term = query.QueryTerm, options = query.ChosenOptions, from = query.From, size = query.Size });
         }
 
+        [HttpGet]
         public async Task<IActionResult> Scroll(int? from, int? size, string term, string options)
         {
             if (string.IsNullOrEmpty(term))
@@ -63,53 +113,22 @@ namespace Search.Core.Windows.Controllers
             query.From = (from.HasValue ? from.Value : 0);
             query.QueryTerm = term;
             query.ChosenOptions = options;
-            query.QueryOptions = await GetQueryOptions(options);
+            query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
             if (size.HasValue)
                 query.Size = size.Value;
 
-            var results = await GetSearchResults(query);
+            var results = await GetNestResults(query);
             if (query.From > results.Total)
                 return View(new EmptyResult());
 
             ViewBag.From = query.From + query.Size;
-            ViewBag.QueryTerm = term;
-            ViewBag.ChosenOptions = options;
+            ViewBag.QueryTerm = query.QueryTerm;
+            ViewBag.ChosenOptions = query.ChosenOptions;
             return PartialView(GetQueryResults(results));
         }
 
-        [HttpGet]
-        //public ActionResult Index(int? page)
-        //{
-        //    var dummyItems = Enumerable.Range(1, 150).Select(x => "Item " + x);
-        //    var pager = new Pager(dummyItems.Count(), page);
 
-        //    var viewModel = new SearchResults
-        //    {
-        //        Items = dummyItems.Skip((pager.CurrentPage - 1) * pager.PageSize).Take(pager.PageSize),
-        //        Pager = pager
-        //    };
-
-        //    return View(viewModel);
-        //}
-        // GET: /<controller>/
-        public async Task<IActionResult> Page(int? page, string term, string options)
-        {
-            ViewBag.Page = (page.HasValue ? page.Value : 0);
-            Models.Query query = new Models.Query()
-            {
-                ChosenOptions = options,
-                QueryTerm = term,
-            };
-            query.QueryOptions = await Controllers.QueryController.GetQueryOptions(options);
-
-            ViewData["Query"] = query;
-
-            return PartialView();
-            //return PartialView();
-            //return ViewComponent("SearchResults", pageNumber);
-        }
-
-        public static async Task<List<Models.QueryOption>> GetQueryOptions(string ChosenOptions)
+        public static async Task<List<Models.QueryOption>> GetQueryOptions(string chosenOptions)
         {
             Nest.CatIndicesRequest cat = new Nest.CatIndicesRequest();
             cat.V = true;
@@ -123,9 +142,9 @@ namespace Search.Core.Windows.Controllers
                     //.Select(rec => new { rec.Index, rec.Status, rec.DocsCount, rec.StoreSize })
                     .OrderBy(rec => rec.Index).ToList();
             }
-            if (ChosenOptions == null)
+            if (chosenOptions == null)
             {
-                ChosenOptions = "";
+                chosenOptions = "";
             }
             var results = new List<Models.QueryOption>();
             foreach (var item in indexes)
@@ -135,27 +154,47 @@ namespace Search.Core.Windows.Controllers
                     OptionGroup = "Scope",
                     Key = "1_" + item.Index,
                     Value = (item.Index.Contains("_") ? item.Index.Split('_')[0] : item.Index)
-                        + "(" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " records, "
-                            + (string.IsNullOrEmpty(item.StoreSize) ? "0" : item.StoreSize) + " bites)",
-                    Selected = (ChosenOptions.Contains("1_" + item.Index + ","))
+                        + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs)"
+                            //+ (string.IsNullOrEmpty(item.StoreSize) ? "0" : item.StoreSize) + " bites)"
+                            ,
+                    Selected = (chosenOptions.Contains("1_" + item.Index + ","))
                 });
 
             }
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_1", Value = "Exact text", Selected = (ChosenOptions.Contains("2_1,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_2", Value = "Fuzzy logic", Selected = (ChosenOptions.Contains("2_2,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_3", Value = "Hierarchy", Selected = (ChosenOptions.Contains("2_3,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_4", Value = "Geo location", Selected = (ChosenOptions.Contains("2_4,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_5", Value = "Highlight", Selected = (ChosenOptions.Contains("2_5,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_1", Value = "Exact text", Selected = (chosenOptions.Contains("2_1,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_2", Value = "Fuzzy logic", Selected = (chosenOptions.Contains("2_2,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_3", Value = "Hierarchy", Selected = (chosenOptions.Contains("2_3,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_4", Value = "Geo location", Selected = (chosenOptions.Contains("2_4,")) });
+            //results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_5", Value = "Highlight", Selected = (ChosenOptions.Contains("2_5,")) });
 
-            results.Add(new Models.QueryOption() { OptionGroup = "Types", Key = "3_1", Value = "File", Selected = (ChosenOptions.Contains("3_1,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Types", Key = "3_2", Value = "Photo", Selected = (ChosenOptions.Contains("3_2,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Types", Key = "3_2", Value = "Acronym", Selected = (ChosenOptions.Contains("3_3,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "3_1", Value = "Scroll", Selected = (chosenOptions.Contains("3_1,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "3_2", Value = "Page", Selected = (chosenOptions.Contains("3_2,")) });
+            //results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "3_3", Value = "Tile", Selected = (ChosenOptions.Contains("3_3,")) });
             return results;
         }
 
         private static Nest.ElasticClient elastic = new Nest.ElasticClient(new Nest.ConnectionSettings(new Uri(Startup.GetElasticSearchUrl())));
-        public static async Task<Nest.ISearchResponse<dynamic>> GetSearchResults(Models.Query query)
+
+        public static async Task<Nest.ISearchResponse<dynamic>> GetNestResults(Models.Query query)
         {
+            //var searchRequest = new SearchRequest
+            //{
+            //    Aggregations = new Dictionary<string, IAggregationContainer>
+            //    {
+            //        { "my_agg", new AggregationContainer
+            //            {
+            //                Terms = new TermsAggregation //TermsAggregator
+            //                {
+                                
+            //                    Field = "content",
+            //                    Size = 10,
+            //                    ExecutionHint = TermsAggregationExecutionHint.Ordinals
+            //                }
+            //            }
+            //        }
+            //    }
+            //};
+
             Nest.ISearchResponse<dynamic> results = null;
             Nest.Indices indices = Nest.Indices.AllIndices;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
@@ -221,10 +260,10 @@ namespace Search.Core.Windows.Controllers
             return results;
         }
 
-        private static List<Models.SearchResult> GetQueryResults(Nest.ISearchResponse<dynamic> NestResults)
+        private static List<Models.SearchResult> GetQueryResults(Nest.ISearchResponse<dynamic> nestResults)
         {
             var results = new List<Models.SearchResult>();
-            foreach (var hit in NestResults.Hits)
+            foreach (var hit in nestResults.Hits)
             {
                 results.Add(new Models.SearchResult()
                 {
@@ -236,7 +275,9 @@ namespace Search.Core.Windows.Controllers
                     Path = (string)hit.Source["Path"]
                     //Hihglights = hit.Highlights.Select(hl => new { Key = hl.Key, Value = hl.Value.ToString() })
                 });
-                
+
+                var myAgg = nestResults.Aggs.Terms("my_agg");
+
                 //foreach (var highlight in hit.Highlights)
                 //{
                 //    highlight.
@@ -244,6 +285,17 @@ namespace Search.Core.Windows.Controllers
             }
             return results;
         }
+
+        //private static List<Models.SearchResult> GetQueryAggregations(Nest.ISearchResponse<dynamic> nestResults)
+        //{
+        //    var myAgg = nestResults.Aggs.Terms("my_agg");
+        //    //var results = new Dictionary<string, string>();
+        //    //foreach (var agg in NestResults.Aggregations)
+        //    //{
+        //    //    results.Add(agg.Key, agg.Value.Meta);
+        //    //}
+        //    //return results;
+        //}
 
         /// <summary>
         /// simple helper for direct access to any REST APIs
