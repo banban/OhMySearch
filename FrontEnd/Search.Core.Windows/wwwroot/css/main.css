@@ -1,0 +1,38 @@
+body {
+  background-color: rgba(128, 128, 128, 0.3);
+  background-image: url(../wwwroot/images/gsa-universal.png);
+}
+.baseColor {
+  color: rgba(128, 128, 128, 0.3);
+}
+.bgLight {
+  color: rgba(154, 154, 154, 0.3);
+}
+.bgLight2 {
+  color: rgba(179, 179, 179, 0.3);
+}
+.bgDark {
+  color: rgba(103, 103, 103, 0.3);
+}
+.bgDark2 {
+  color: rgba(77, 77, 77, 0.3);
+}
+.chosen-container {
+  margin: 10px;
+  padding-left: 3em;
+}
+button.findBtn {
+  margin-top: 10px;
+  margin-left: 2px;
+  border-radius: 5px;
+}
+.searchbox {
+  margin-top: 10px;
+  float: left;
+  max-width: 70%;
+  min-width: 50%;
+  /*min-width: 200px;*/
+  color: #000000;
+  border-radius: 5px;
+  /*background-color: transparent;resize:both;*/
+}

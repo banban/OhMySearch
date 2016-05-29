@@ -30,23 +30,3 @@ textarea {
   }
 }
 
-
-
-.options-container {
-    margin: 10px;
-    padding-left:1em;
-}
-#findBtn {
-    margin-top: 10px;
-    margin-left: 2px;
-}
-.searchbox{
-    margin-top: 10px;
-    float: left; 
-    max-width: 70%;
-    min-width: 50%;
-    /*min-width: 200px;*/
-    color: rgb(0, 0, 0);
-    border-radius:5px; 
-    /*background-color: transparent;resize:both;*/
-}

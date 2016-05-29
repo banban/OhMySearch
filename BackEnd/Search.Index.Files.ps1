@@ -39,7 +39,8 @@ Param(
 
     [string]$indexName = "",
     [string]$aliasName = "",
-    [int]$MaxFileBiteSize = 20000000,  #~20 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.
+    [Parameter(HelpMessage = '~20 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.')]
+    [int]$batchMaxSize = 20000000,
 
     #[parameter(parametersetname="indexSwitches")]
     [switch]$NewIndex,
@@ -402,7 +403,7 @@ function LoadFile() {
     #the fully qualified file name must be less than 260 characters
     if ($fileInfo.FullName.Length -gt 255 -or $fileInfo.Name.StartsWith("~")) {return}
     #skip files bigger than 20 MB
-    if ($fileInfo.Length -gt $MaxFileBiteSize) {return}
+    if ($fileInfo.Length -gt $batchMaxSize) {return}
     #exclude irrelevant folders
     if (($FilePathExceptions | where { $fileInfo.DirectoryName.ToLower() -like "$_"}).Count -gt 0 ) {return}
 
@@ -499,10 +500,10 @@ function LoadFile() {
     }
 
     if ($BulkDocuments.IsPresent){
-        $percent = [decimal]::round(($global:BulkBody.Length / $MaxFileBiteSize)*100)
+        $percent = [decimal]::round(($global:BulkBody.Length / $batchMaxSize)*100)
         if ($percent -gt 100) {$percent = 100}
         Write-Progress -Activity "Batching in progress: $fullPath" -status "$percent% complete" -percentcomplete $percent;
-        if ($global:BulkBody.Length -ge $MaxFileBiteSize){
+        if ($global:BulkBody.Length -ge $batchMaxSize){
             $result = &$post "$indexName/_bulk" $global:BulkBody
             #validate bulk errors
             $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}

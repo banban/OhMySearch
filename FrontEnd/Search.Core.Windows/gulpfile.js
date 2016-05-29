@@ -1,13 +1,16 @@
-﻿/// <binding Clean='clean' />
+﻿/// <binding BeforeBuild='less' Clean='clean' />
 "use strict";
 
 var gulp = require("gulp"),
     rimraf = require("rimraf"),
     concat = require("gulp-concat"),
     cssmin = require("gulp-cssmin"),
-    uglify = require("gulp-uglify");
+    uglify = require("gulp-uglify"),
+    less = require("gulp-less");
 
 var webroot = "./wwwroot/";
+
+var project = require('./project.json');
 
 var paths = {
     js: webroot + "js/**/*.js",
@@ -43,3 +46,9 @@ gulp.task("min:css", function () {
 });
 
 gulp.task("min", ["min:js", "min:css"]);
+
+gulp.task("less", function () {
+    return gulp.src('Styles/main.less')
+      .pipe(less())
+      .pipe(gulp.dest(webroot + '/css'));
+});

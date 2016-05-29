@@ -5,8 +5,7 @@
         #this command has some unicode fields which are not acepted by ES. Please read this: https://www.elastic.co/guide/en/elasticsearch/guide/master/unicode-normalization.html
         
 
-    &$cat | select index, health, status, docs.count, store.size |  ft
-    (ConvertFrom-Json (&$cat)) | select index, health, status, docs.count, store.size |  ft
+    &$cat
     &$get "/adworks/_mapping"
     &$get "/adworks/person/2"
     &$get "/adworks/person/_query?q=*"
@@ -46,7 +45,7 @@ big tables:
         FROM [dbo].[t_AusTenderContractNotice] ORDER BY [Id]"
 #>
 
-[CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
+[CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] 
 Param(
     #[Parameter(Mandatory=$true, Position = 0, ValueFromRemainingArguments=$true , HelpMessage = 'Target server')]
     [string]$SQL_ServerName = ".\SQL2014",
@@ -57,16 +56,15 @@ Param(
 
     [string]$indexName = "",
     [string]$aliasName = "",
-    [int]$BatchMaxSize = 1000000,  #~1 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.
-    [int]$BatchRowSize = 100000,
-    [int]$MaxSearchBiteSize = 4194304,  #~4MB should be enough. They allow up to 4 MB in the RRS request.
-
-    #[string]$EventLogSource = "Search",
-    #[string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.SQL.log",
-
+    [Parameter(HelpMessage = '~1 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.')]
+    [int]$batchMaxSize = 1000000,  #
+    [Parameter(HelpMessage = '~4MB should be enough. They allow up to 4 MB in the RRS request.')]
+    [int]$searchMaxBiteSize = 4194304,
     [switch]$NewIndex,
     [switch]$NewType
-    #[switch]$DeleteAllDocuments # v2 delete all plugin
+
+    #[string]$EventLogSource = "Search",
+    #[string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.SQL.log"
 )
 
 function Main(){
@@ -313,8 +311,8 @@ function Main(){
                 #$val = $val -replace '(\w)\1{3,}', '$1' #replace repeating symbols more than 3 times with 1: "aaaassssssssssseeeee111112222223334" -replace '(\w)\1{3,}', '$1'
                 $val = $val.Trim()
                 #Watch the size of the data you are posting to API!
-                if ($val.Length -gt $MaxSearchBiteSize ){
-                    $val = $val.Substring(0,$MaxSearchBiteSize)
+                if ($val.Length -gt $searchMaxBiteSize ){
+                    $val = $val.Substring(0,$searchMaxBiteSize)
                 }
             }
             else { $val = $reader1[$i].ToString() }
@@ -339,20 +337,18 @@ function Main(){
         $entry = '{"index": {"_type": "'+$typeName+'"'+$id+'}'+ "`n" +($properties | ConvertTo-Json -Compress| Out-String)  + "`n"
 #$entry
         $BulkBody += $entry
-        $batchPercent = [decimal]::round(($BulkBody.Length / $BatchMaxSize)*100)
+        $batchPercent = [decimal]::round(($BulkBody.Length / $batchMaxSize)*100)
         if ($batchPercent -gt 100) {$batchPercent = 100}
         Write-Progress -Activity "Loading $typeName $rows rows" -status "Batching $batchPercent%" -percentcomplete $batchPercent;
 
-        if ($BulkBody.Length -ge $BatchMaxSize){
+        if ($BulkBody.Length -ge $batchMaxSize){
             $result = &$post "$indexName/_bulk" $BulkBody
             #validate bulk errors
             $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
             if ($errors -ne $null -and $errors.Count -gt 0){
                 $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
             }
-
             $BulkBody = ""
-            #(ConvertFrom-Json (&$cat)) | Where-Object {$_.index -EQ $indexName} | select health, status, docs.count, store.size |  fl
         }
     }
     $reader1.Close()
@@ -372,8 +368,6 @@ function Main(){
     }
 
     Start-Sleep 1
-    #get storage status summary after index
-    #(ConvertFrom-Json (&$cat)) | Where-Object {$_.index -EQ $indexName} | select health, status, docs.count, store.size |  fl
     #Write-Event "$(Get-Date) End session 'Search.Index.SQL'."
 }
 

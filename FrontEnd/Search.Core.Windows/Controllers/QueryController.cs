@@ -44,12 +44,12 @@ namespace Search.Core.Windows.Controllers
             }
             else if (page.HasValue)
             {
-                query.From = (page.HasValue ? page.Value : 0) * query.Size;
+                query.From = (page.HasValue && page.Value > 0 ? page.Value -1 : 0) * query.Size;
             }
 
             if (!page.HasValue && query.Size > 0)
             {
-                page = query.From / query.Size;
+                page = query.From / query.Size + 1;
             }
             if (page == 0)
             {
@@ -60,6 +60,10 @@ namespace Search.Core.Windows.Controllers
 
             var results = await GetNestResults(query);
             query.Total = results.Total;
+            if (query.From > results.Total)
+            {
+                return View(new EmptyResult());
+            }
 
             if (query.ChosenOptions.Contains("3_2"))
             {
