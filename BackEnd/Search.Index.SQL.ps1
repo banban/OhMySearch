@@ -1,46 +1,78 @@
 ﻿<#Unit tests: 
  cd C:\Search\Scripts
 
- 1.test tables. Has some unicode fields which are not acepted by ES. Please read this: https://www.elastic.co/guide/en/elasticsearch/guide/master/unicode-normalization.html
+ 1.test person table. Has some unicode fields which are not acepted by ES. Please read this: https://www.elastic.co/guide/en/elasticsearch/guide/master/unicode-normalization.html
+   Do not index [AdditionalContactInfo],[Demographics],[rowguid] fields. XML should be converted to text first.
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex `
-        -SQL_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -SQL_Query "SELECT * FROM [Person].[Person]"
+        -SQL_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -SQL_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]"
 
-       -typeMapping '{"adworks_v1":{"mappings":{"person":{"properties":{"AdditionalContactInfo":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},
-"Demographics":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"EmailPromotion":{"type":"long"},
-"FirstName":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"LastName":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},
-"MiddleName":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"ModifiedDate":{"type":"date"},
-"PersonType":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"Suffix":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},
-"Title":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"rowguid":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}}}}}}}'
+   100 records rejected (some unicode symbols are not accepted by standard analyzer in First or Last name). That is accepteble now. Will investegate later
+    
+   The same test but with explicit mapping:
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex `
+        -SQL_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -SQL_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]" `
+        -typeMapping '{"adworks_v1":{"mappings":{"person":{"dynamic":"true","properties":{"BusinessEntityID":{"type":"integer"},"EmailPromotion":{"type":"integer"},"FirstName":{"type":"text"},"LastName":{"type":"text"},"MiddleName":{"type":"text"},"ModifiedDate":{"type":"date","format":"YYYY-MM-DD"},"NameStyle":{"type":"text"},"PersonType":{"type":"text"},"Suffix":{"type":"text"},"Title":{"type":"text"},}}}}}'
 
+    &$cat
 
- 2.test hierarchies:
+ 2.test hierarchies. Check current index status
+    &$cat
+    &$get "adworks_v1/_settings"
+    &$get "adworks_v1/_mapping"
+   For SQL hierarchy we will use standard path_hierarchy tokenizer
+        &$post "_analyze" '{"tokenizer": "path_hierarchy", "text": "/one/two/three"}'
+   Check that our hierarchy_analyzer works
+        &$post "/adworks_v1/_analyze" '{"analyzer": "hierarchy_analyzer", "text": "/one/two/three"}'
+   Add new type to existing index. 
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -NewType `
         -SQL_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -SQL_Query "select * from [HumanResources].[Employee]"
 
+    #2 of 290 records rejected with unicode issue in LoginID field. that is ok for now
+
+    We can try extended unicode support https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis-icu.html
+        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install analysis-icu"
+    Also, you can use query wihout rowguid and hierarchy like : -SQL_Query "SELECT [BusinessEntityID],[NationalIDNumber],[LoginID],[OrganizationLevel],[JobTitle],[BirthDate],[MaritalStatus],[Gender],[HireDate],[SalariedFlag],[VacationHours],[SickLeaveHours],[CurrentFlag],[ModifiedDate] FROM [HumanResources].[Employee]"
+
+    &$cat
+
+ 3. Test documents with binary content. Not sure if that makes sense :)
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -NewType `
         -SQL_DbName "AdventureWorks" -keyFieldName "DocumentNode" -SQL_Query "select * from [Production].[Document]"
 
     #failed for OrganizationNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -SQL_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -SQL_Query "select * from [HumanResources].[Employee]"
     #failed for DocumentNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -SQL_DbName "AdventureWorks" -keyFieldName "DocumentNode" -SQL_Query "select * from [Production].[Document]"
 
- 3.test geography:
+    &$cat
+ 4.Test geography. Convert SqlGeography to GeoPoint for other shapes use poligons https://www.elastic.co/guide/en/elasticsearch/reference/master/geo-shape.html
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "address" -NewType `
         -SQL_DbName "AdventureWorks" -keyFieldName "AddressID" -SQL_Query "select * from [Person].[Address]"
 
- 4.test views:
-    multi language test:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "candidate" -NewType `
-        -SQL_DbName "AdventureWorks" -keyFieldName "JobCandidateID" -SQL_Query "SELECT * FROM [HumanResources].[vJobCandidate]"
+    971 of 19614 records with unicode were rejected by analyzer: _type: address; _id: 552; error: mapper_parsing_exception; reason: failed to parse [AddressLine1]; status: 400
+    &$cat
 
+ 5.test views. multi language test:
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "candidate" -NewType `
+        -SQL_DbName "AdventureWorks" -keyFieldName "JobCandidateID" -SQL_Query "SELECT  * FROM [HumanResources].[vJobCandidate]"
+
+    3 of 13 records with unicode were rejected by analyzer: 
+        _type: candidate; _id: 5; error: mapper_parsing_exception; reason: failed to parse [Skills]; status: 400
+        _type: candidate; _id: 6; error: mapper_parsing_exception; reason: failed to parse [Skills]; status: 400
+        _type: candidate; _id: 7; error: mapper_parsing_exception; reason: failed to parse [Skills]; status: 400
+
+
+    &$cat
  5.test big tables:
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "sales" -NewType `
         -SQL_DbName "AdventureWorks" -keyFieldName "SalesOrderDetailID" -SQL_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] FROM [Sales].[SalesOrderDetail]"
+    &$cat
 
+ 6. Another database (index)
     .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewIndex -aliasName "bms" `
         -SQL_ServerName ".\SQL2014" -SQL_DbName "Nova_Search" -typeName "acronym" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
+    &$cat
 
     .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewType `
-        -SQL_DbName "Integration" -typeName "austender" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
+        -SQL_DbName "Integrations_NOVA" -typeName "austender" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
             ,[Value],[Description],[Agency_Ref_ID],[Category],[Procurement_Method],[ATM_ID],[SON_ID],[Confidentiality_Contract]
             ,[Confidentiality_Contract_Reasons],[Confidentiality_Outputs],[Confidentiality_Outputs_Reasons],[Consultancy],[Consultancy_Reasons],[Amendment_Reason]
             ,[Supplier_Name],[Supplier_Address],[Supplier_City],[Supplier_Postcode],[Supplier_Latitude],[Supplier_Longitude]
@@ -48,12 +80,91 @@
             ,[Agency],[Agency_Branch],[Agency_Divison],[Agency_Postcode],[Agency_State],[Agency_Latitude],[Agency_Longitude]
         FROM [dbo].[t_AusTenderContractNotice] ORDER BY [Id]"
 
- 6.test API:
+ 7.Just test API calls:
+    $global:Debug = $false
+    $global:Debug = $true #verbose tracing 
+    Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
+
     &$cat
     &$get "/adworks_v1/_mapping"
+    &$get "/adworks_v1/person/_mapping"
+    &$get "/adworks_v1/employee/_mapping"
+    &$get "/adworks_v1/address/_mapping"
+    &$get "/adworks_v1/address"
     &$get "/adworks_v1/person/2"
     &$get "/adworks_v1/person/_query?q=*"
     &$delete "adworks_v1"
+    &$createIndex "adworks_v1"
+
+Test unicode analizers https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis.html
+    &$post "adworks_v1/_analyze" '{"keyword": "quotes_analyzer", "text": "You\'re my ‘favorite’ M‛Coy"}'
+    
+    &$post "/adworks_v1/_analyze" -obj @{
+      analyzer = "autocomplete"
+      text = "quick brown"
+    }
+
+    &$post "/adworks_v1/person/_search" -obj @{
+        query = @{
+            match = @{
+                Job_Title = "Senio"
+            }
+        }
+    }
+
+    &$post "adworks_v1/_analyze" '{"tokenizer": "standard", "text": "Sánchez"}'
+    &$post "adworks_v1/_analyze" '{"tokenizer": "icu_tokenizer", "text": "Sánchez"}'
+    &$post "adworks_v1/_analyze" '{"tokenizer": "icu_tokenizer", "text": "Reátegui Alayo"}'
+    &$post "adworks_v1/_analyze" '{"tokenizer": "icu_tokenizer", "text": "François"}'
+
+
+    &$put "adworks_v1/_mapping/employee" -obj @{
+        dynamic = $true #will create new fields dynamically.
+        date_detection = $true #avoid “malformed date” exception
+        properties = @{
+            FirstName = @{
+                type = "string"
+            }
+            LoginID = @{
+            type = "keyword"
+            }
+        }
+    }
+
+    &$put "adworks_v1/_mapping/person?update_all_types" -obj @{
+        dynamic = $true #will create new fields dynamically.
+        date_detection = $true #avoid “malformed date” exception
+        properties= @{
+            FirstName = @{
+                type = "string"
+            }
+        }
+    }
+
+    &$get "/adworks_v1/_mapping"
+
+Fields in the same index with the same name in two different types must have the same mapping, as they are backed by the same field internally. 
+Trying to update a mapping parameter for a field which exists in more than one type will throw an exception, unless you specify the update_all_types parameter, 
+in which case it will update that parameter across all fields with the same name in the same index.
+    &$put "adworks_v1/_mapping/employee?update_all_types" -obj @{
+      properties = @{
+        FirstName = @{
+            type = "string"
+        }
+        LoginID = @{
+          type = "keyword"
+        }
+      }
+    }
+
+    &$put "adworks_v1/_mapping/employee" -body '{"properties":{"BusinessEntityID":{"type":"integer"},"NationalIDNumber":{"type":"text"},"LoginID":{"type":"text"},"OrganizationNode":{"fields":{"tree":{"type":"string","analyzer":"hierarchy_analyzer"}},"type":"text","index":"not_analyzed"},"OrganizationLevel":{"type":"short"},"JobTitle":{"type":"text"},"BirthDate":{"type":"date","format":"YYYY-MM-DD"},"MaritalStatus":{"type":"text"},"Gender":{"type":"text"},"HireDate":{"type":"date","format":"YYYY-MM-DD"},"SalariedFlag":{"type":"text"},"VacationHours":{"type":"short"},"SickLeaveHours":{"type":"short"},"CurrentFlag":{"type":"text"},"ModifiedDate":{"type":"date","format":"YYYY-MM-DD"}}}'
+
+    &$get "/adworks_v1/_mapping"
+    &$get "/adworks_v1/_settings"
+    &$get "/adworks_v1/_mapping/person"
+    &$get "/adworks_v1/_mapping/employee"
+    &$cat
+
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] 
@@ -101,7 +212,7 @@ function Main(){
     #>
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force #-Verbose
     
-    $nameTypes = @{} #cached mapping between field name and data type
+    $fieldTypeMapping = @{} #cached mapping between field name and data type
     if ($typeMapping -ne $null -and $typeMapping -ne ""){
         $meatadata = ConvertFrom-Json $typeMapping
     }
@@ -114,15 +225,15 @@ function Main(){
         catch{}
     }
     
-    $mappingProperties = New-Object PSObject
+    $typeMapping = New-Object PSObject
     if ($meatadata -ne $null){
         $index_mt = $meatadata.psobject.properties | Where {$_.Name -eq "$indexName"} 
         if ($index_mt -ne $null){
             $type_mt = $index_mt.Value.mappings.psobject.properties | Where {$_.Name -eq "$typeName"}
             if ($type_mt -ne $null){
-                $mappingProperties = $type_mt.Value.properties
-                $mappingProperties.psobject.properties | %{
-                    $nameTypes.Set_Item($_.Name, $_.Value.type)
+                $typeMapping = $type_mt.Value.properties
+                $typeMapping.psobject.properties | %{
+                    $fieldTypeMapping.Set_Item($_.Name, $_.Value.type)
                 }
             }
         }
@@ -173,142 +284,113 @@ function Main(){
     $cols = $reader1.FieldCount
     while ($reader1.Read()){
         $rows++
-        if ($rows -eq 1){ #let's map fields' data types
+        if ($rows -eq 1){ #first record foud, let's map data types
             for ($i=0; $i -lt $cols; $i++){
                 $fieldType = $reader1.GetFieldType($i).Name
                 $name = $reader1.GetName($i)
+                #clean name. ES field naming convention is pretty restrictive
+                $name = $name.TrimStart('=').Trim('"').Trim()
+                $name = $name -replace '\\u0027|\\u0091|\\u0092|\\u2018|\\u2019|\\u201B', '''' #convert quotes
+                $name = $name -replace '\\u\d{3}[0-9a-zA-Z]', '?' # remove encodded special symbols like '\u0026' '\u003c'
+                $name = $name -replace '[\-\,\.\\/''~?!*“"%&•â€¢©ø\[\]{}\(\)]', ' ' #special symbols and punctuation
+                $name = $name.Trim() -replace '\s+', '_' #remove extra spaces and raplace with _
 
-                #existing mapping has a priority - user can change it and it should be more accurate than dynamic mapping below
-                $existingMapping = ($mappingProperties.psobject.properties | Where {$_.Name -eq $name})
-                if (($NewIndex.IsPresent -or $NewType.IsPresent) -and $existingMapping -eq $null){
-                    $mappingProperties | Add-Member Noteproperty $name (Get-ElasticMappingByDataType -DataTypeName $fieldType)
-                    <#
-                    if ($fieldType -eq "SqlGeography"){ #This field should be typed in mapping explicitly
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "geo_point"
-                            #geohash_prefix = "true" #tells Elasticsearch to index all geohash prefixes, up to the specified precision.
-                            #geohash_precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
-                        }
-                    }
-                    elseif ($fieldType -eq "SqlHierarchyId"){ #This field should be typed in mapping explicitly
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "text"
-                            index = "not_analyzed"
-                            fields = @{
-                                tree = @{
-                                    type = "string"
-                                    analyzer = "hierarchy_analyzer"
+                #existing mapping has a priority - user can change which is more accurate than dynamic mapping
+                if ( ($NewIndex.IsPresent -or $NewType.IsPresent) -and ($typeMapping.psobject.properties.Item($name) -eq $null) ){
+                    $typeMapping | Add-Member Noteproperty $name (Get-ElasticMappingByDataType -DataTypeName $fieldType)
+                }
+                #cache names and types to use it in bulk process
+                $names += $name
+                $types += $fieldType
+            }
+
+            if ($NewIndex.IsPresent) { #create new index
+                try{
+                    &$delete $indexName 
+                }
+                catch{}
+
+                &$createIndex $indexName -obj @{
+                    settings = @{
+                        analysis = @{
+                            char_filter = @{ 
+                                quotes = @{
+                                    type = "mapping"
+                                    mappings = @( "\\u0091=>\\u0027", "\\u0092=>\\u0027", "\\u2018=>\\u0027","\\u2019=>\\u0027","\\u201B=>\\u0027" )
+                                }
+                            }
+                            filter = @{
+                                <#nfc_normalizer = @{
+                                  type = "icu_normalizer"
+                                  name = "nfc"
+                                }#>
+                                autocomplete_filter = @{ 
+                                    type = "edge_ngram"
+                                    min_gram = 1
+                                    max_gram = 20
+                                }
+                                postcode_filter = @{
+                                    type = "edge_ngram"
+                                    min_gram = 1
+                                    max_gram = 8
+                                }
+                            }
+                            analyzer = @{
+                                hierarchy_analyzer = @{ 
+                                    tokenizer = "hierarchy_tokenizer"
+                                }
+                                postcode_index = @{ # The postcode_index analyzer would use the postcode_filter to turn postcodes into edge n-grams.
+                                    tokenizer = "keyword"
+                                    filter = @("postcode_filter")
+                                }
+                                postcode_search = @{ #The postcode_search analyzer would treat search terms as if they were not_analyzed.
+                                    tokenizer = "keyword"
+                                }
+                                <# #When using the standard tokenizer or icu_tokenizer, this doesn’t really matter. 
+                                #These tokenizers know how to deal with all forms of Unicode correctly.
+                                nfkc_cf_normalized = @{ 
+                                    tokenizer = "icu_tokenizer"
+                                    filter = @("icu_normalizer")
+                                }
+                                nfc_normalized = @{ 
+                                    tokenizer = "icu_tokenizer"
+                                    filter = @("nfc_normalizer")
+                                }#>
+                                autocomplete = @{
+                                    type = "custom"
+                                    tokenizer = "standard"
+                                    filter = @("lowercase","autocomplete_filter")
+                                }
+                            }
+                            tokenizer = @{
+                                hierarchy_tokenizer = @{
+                                    type = "path_hierarchy"
+                                    delimiter = "/"
                                 }
                             }
                         }
                     }
-                    elseif ($fieldType -in "Decimal"){
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "double"
-                        }
-                    }
-                    elseif ($fieldType -in "Float", "Single", "Double"){
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "float"
-                        }
-                    }
-                    elseif ($fieldType -in "Int64", "UInt64"){
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "long"
-                        }
-                    }
-                    elseif ($fieldType -in "Int32", "UInt32"){
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "integer"
-                        }
-                    }
-                    elseif ($fieldType -eq "Int16", "UInt16","Byte"){
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "short"
-                        }
-                    }
-                    <elseif ($fieldType -in "Byte[]","Object"){ #? not sure if we need it
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "binary"
-                        }
-                    }
-                    elseif ($fieldType -eq "DateTime"){ # "DateTimeOffset","TimeSpan" ?
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "date"
-                            format = "YYYY-MM-DD"  
-                        }
-                    }
-                    else{ #$fieldType -in "String","Guid","Char[]","Xml"
-                        $mappingProperties | Add-Member Noteproperty $name @{
-                            type = "text"
-                        }
-                    }#>
-                }
-
-                $names += $name
-                $types += $fieldType
-            }
-                
-            try{
-                &$delete $indexName 
-            }
-            catch{}
-
-            &$createIndex $indexName -obj @{
-                settings = @{
-                    analysis = @{
-                        char_filter = @{ 
-                        quotes = @{
-                            type = "mapping"
-                            mappings = @( "\\u0091=>\\u0027", "\\u0092=>\\u0027", "\\u2018=>\\u0027","\\u2019=>\\u0027","\\u201B=>\\u0027" )
-                        }
-                        }
-                        analyzer = @{
-                            hierarchy_analyzer = @{ 
-                                tokenizer= "path_hierarchy"
-                            }
-                            quotes_analyzer= @{
-                                tokenizer = "standard"
-                                char_filter = @( "quotes" )
-                            }
-                            <#
-                            #When using the standard tokenizer or icu_tokenizer, this doesn’t really matter. These tokenizers know how to deal with all forms of Unicode correctly.
-                            nfkc_cf_normalized = @{ 
-                                tokenizer = "icu_tokenizer"
-                                filter = @("icu_normalizer")
-                            }
-                            nfc_normalized = @{ 
-                                tokenizer = "icu_tokenizer"
-                                filter = @("nfc_normalizer")
-                            }#>
-                        }
-                        <#
-                        filter = @{
-                            nfkc_normalizer = @{ #Normalize all tokens into the nfkc normalization form
-                                #The icu_tokenizer uses the same Unicode Text Segmentation algorithm as the standard tokenizer, 
-                                #  but adds better support for some Asian languages by using a dictionary-based approach to identify words in Thai, Lao, Chinese, Japanese, and Korean, 
-                                #  and using custom rules to break Myanmar and Khmer text into syllables.
-                                type = "icu_normalizer"
-                                name = "nfkc"
-                            }
-                        }#>
-                    }
                 } #| ConvertTo-Json -Depth 
-                mappings = @{
-                    "$typeName"  = @{
-                            dynamic = $true #will not create new fields dynamically.
-                            date_detection = $true #avoid “malformed date” exception
-                            properties = $mappingProperties
-                    } #type
-                } #mappings
-            }#obj
+            }
 
-            if ($aliasName -ne ""){
+            if ($NewIndex.IsPresent -or $NewType.IsPresent){ #add new type mapping to existing index with settings
+                #When another type is added to exsting index it could have the same field names as other types, but different data type. 
+                #ES generate exception. I think this is wrong. 
+                #As a workaround, we need to use parameter update_all_types to avoid missmatched field types exception
+                &$put "$($indexName)/_mapping/$($typeName)?update_all_types" -obj @{
+                    dynamic = $true #will create new fields dynamically.
+                    date_detection = $true #avoid “malformed date” exception
+                    properties = $typeMapping
+                }
+            }
+
+            if ($aliasName -ne $null -and $aliasName -ne ""){
                 &$put "$indexName/_alias/$aliasName"
             }
         } #1st record
 
-        $properties = @{}
+        #&$get "_cluster/health?wait_for_status=yellow"
+        $entryProperties = @{}
         for ($i=0; $i -lt $cols; $i++){
             $fieldType = $types[$i]
             if ($reader1[$i] -ne [DBNull]::Value -and $reader1[$i] -ne $null -and $reader1[$i] -ne ""){
@@ -327,8 +409,14 @@ function Main(){
                     $val = $reader1[$i].ToString()
                     if ($val -ne "/"){ $val = $val.TrimEnd('/') } #remove ending / with except of root
                 }#
-                elseif ($fieldType -eq "SqlGeography"){ #$names[$i] -eq "Location" -and 
-                    $val = "[""lat"" = $($reader1[$i].Lat) ""lon"" = $($reader1[$i].Long)]"#GeoJSON format
+                elseif ($fieldType -eq "SqlGeography" -and $reader1[$i].Lat -ne [DBNull]::Value -and $reader1[$i].Long -ne [DBNull]::Value){ 
+                    <#$val = @{ #GeoJSON Geo-point as an object
+                        lat = $($reader1[$i].Lat.Value) 
+                        lon = $($reader1[$i].Long.Value)
+                    }#>
+                    $val = "$($reader1[$i].Lat.Value),$($reader1[$i].Long.Value)"#GeoJSON Geo-point as a string
+                    #$val = "drm3btev3e86" Geo-point as a geohash 
+                    #$val = @($($reader1[$i].Lat.Value),$($reader1[$i].Long.Value))#Geo-point as an array
                 }
                 elseif ($fieldType -eq "Guid"){
                     $val = $reader1[$i].ToString().TrimStart('{').TrimEnd('}') #json_parse_exception: Unexpected character ('}' (code 125))
@@ -371,13 +459,12 @@ function Main(){
                         }
 
                     }
-                    else{ $properties += @{"$($names[$i])" = $val} }
+                    else{ $entryProperties += @{"$($names[$i])" = $val} }
                 }
             }
-
         }
 
-        $entry = '{"index": {"_type": "'+$typeName+'"'+$id+'}'+ "`n" +($properties | ConvertTo-Json -Compress| Out-String) + "`n"
+        $entry = '{"index": {"_type": "'+$typeName+'"'+$id+'}'+ "`n" +($entryProperties | ConvertTo-Json -Compress| Out-String) + "`n"
 #$entry
         $BulkBody += $entry
         $batchPercent = [decimal]::round(($BulkBody.Length / $batchMaxSize)*100)
@@ -421,24 +508,24 @@ function Get-ElasticMappingByDataType
     switch ($DataTypeName.ToLower())  
     { 
         'sqlgeography' {@{
-                            type = "geo_point"
-                            #geohash_prefix = "true" #tells Elasticsearch to index all geohash prefixes, up to the specified precision.
-                            #geohash_precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
-                        }}
+                type = "geo_point"
+                #geohash_prefix = "true" #tells Elasticsearch to index all geohash prefixes, up to the specified precision.
+                #geohash_precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
+            }}
         { @("date", "datetime") -contains $_ } {@{
-                        type = "date"
-                        format = "YYYY-MM-DD"  
-                   }} 
+                type = "date"
+                format = "YYYY-MM-DD"  
+            }} 
         'sqlhierarchyId' {@{
-                            type = "text"
-                            index = "not_analyzed"
-                            fields = @{
-                                tree = @{
-                                    type = "string"
-                                    analyzer = "hierarchy_analyzer"
-                                }
-                            }
-                        }} 
+                type = "string"
+                index = "not_analyzed"
+                fields = @{
+                    tree = @{
+                        type = "string"
+                        analyzer = "hierarchy_analyzer"
+                    }
+                }
+            }} 
         { @("float", "single", "double") -contains $_ } {@{ type = "float" }}
         { @("int", "int32", "uInt32") -contains $_ } {@{ type = "integer" }}
         { @("byte", "int16", "uint32") -contains $_ }  {@{ type = "short" }}

@@ -1,18 +1,18 @@
 <#
     #dev with daily snapshot
     cd C:\Search
-    .\Setup.ps1 -ESVersion "5.0.0-alpha2" -ClusterName "OhMySearch-Dev" -SearchFolder "C:\Search" -LogFolder "C:\Logs" -UseSnapshot
+    .\Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev" -SearchFolder "C:\Search" -LogFolder "C:\Logs" #-UseSnapshot
 
     #prod cluster
     cd E:\Search
-    .\setup.ps1 -ESVersion "5.0.0-alpha2" -ClusterName "OhMySearch-Prod" -SearchFolder "E:\Search" -LogFolder "F:\Logs" `
+    .\setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Prod" -SearchFolder "E:\Search" -LogFolder "F:\Logs" `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-287161d3-a6db-4e47-a8b3-5e62df55586f.json"
 
     Debugging:
-        cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha2\bin\elasticsearch.bat"
+        cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha3\bin\elasticsearch.bat"
         $SearchFolder =  "C:\Search"
-        $ESVersion = "5.0.0-alpha2"
+        $ESVersion = "5.0.0-alpha3"
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
 Param(
@@ -40,7 +40,7 @@ function Main(){
         DownLoadAndExtract -Url "https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/zip/elasticsearch/$($ESVersion)/elasticsearch-$($ESVersion).zip"
         DownLoadAndExtract -Url "https://download.elastic.co/logstash/logstash/logstash-$($ESVersion).zip"
         DownLoadAndExtract -Url "https://download.elastic.co/kibana/kibana/kibana-$($ESVersion)-windows.zip"
-        DownLoadAndExtract -Url "https://download.elastic.co/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-64.zip"
+        DownLoadAndExtract -Url "https://download.elastic.co/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-x64.zip"
     }
 
     #configure elastice settings 
@@ -164,6 +164,10 @@ function Main(){
     <#configure plugins. 
     Many v2 plugings are moved or depricated in v5, see https://download.elastic.co/kibana/x-pack/x-pack-5.0.0-alpha2.zip
         cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat list"
+        #extended unicode support https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis-icu.html
+        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install analysis-icu"
+                
+
         cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install x-pack"
         cmd.exe /C "$SearchFolder\kibana-$ESVersion\bin\kibana-plugin.bat install x-pack"
 

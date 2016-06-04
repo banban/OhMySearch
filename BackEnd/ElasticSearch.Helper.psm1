@@ -24,79 +24,96 @@ if ($global:ElasticUri -eq $null){
 }
 
 $call = {
-        param($verb, $params, $body)
-        $headers = @{ 
-            'Authorization' = 'Basic fVmBDcxgYWpndYXJj3RpY3NlkZzY3awcmxhcN2Rj'
-        }
+    param($verb, $params, $body)
+    $headers = @{ 
+        'Authorization' = 'Basic fVmBDcxgYWpndYXJj3RpY3NlkZzY3awcmxhcN2Rj'
+    }
+    $params = $params.Replace("//","/").Trim('/')
 
-        if ($global:Debug -eq $true){
-            Write-Host "`nCalling [$global:ElasticUri/$params]" -f Green
+    if ($global:Debug -eq $true){
+        Write-Host "`nCalling [$global:ElasticUri/$params]" -f Green
+        if($body) {
             if($body) {
-                if($body) {
-                    Write-Host "BODY`n--------------------------------------------`n$body`n--------------------------------------------`n" -f Green
-                }
+                Write-Host "BODY`n--------------------------------------------`n$body`n--------------------------------------------`n" -f Green
             }
         }
-
-        $response = wget -Uri "$global:ElasticUri/$params" -method $verb -Headers $headers -ContentType 'application/json' -Body $body
-        $response.Content #  | Select StatusCode, StatusDescription, Headers, Content | Write-Output #
     }
+
+    $response = wget -Uri "$global:ElasticUri/$params" -method $verb -Headers $headers -ContentType 'application/json' -Body $body
+    $response.Content #  | Select StatusCode, StatusDescription, Headers, Content | Write-Output #
+}
 
 $get = {
-        param($params)
-        &$call "Get" $params
-    }
+    param($params)
+    &$call "Get" $params
+}
 #&$get
 #ConvertFrom-Json (&$get) | ft
 $delete = {
-        param($params)
-        &$call "Delete" $params
-    }
+    param($params)
+    &$call "Delete" $params
+}
 #&$delete /shared_v1/file,photo/_query?q=* #https://www.elastic.co/guide/en/elasticsearch/plugins/2.0/delete-by-query-usage.html
 
 $put = {
-        param($params, $body)
-        &$call "Put" $params $body
+    param($params, $body, $obj)
+    if($obj) {
+        $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
+    &$call "Put" $params $body
+}
 
 $post = {
-    param($params,  $body)
+    param($params,  $body, $obj)
+    if($obj) {
+        $body = ConvertTo-Json -Depth 10 $obj -Compress
+    }
     &$call "Post" $params $body
 }
 
 $add = {
-    param($index, $type, $json, $obj)
+    param($index, $type, $body, $obj)
     if($obj) {
-        $json = ConvertTo-Json -Depth 10 $obj
+        $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
-    &$post "$index/$type" $json
+    &$post "$index/$type" $body
+}
+
+$search = {
+    param($index, $body, $obj)
+    if($obj) {
+        &$post "$index/_search" -obj $obj
+    }
+    elseif ($body) {
+        &$get "$index/_search?pretty&source=$body"
+    }
 }
 
 #The update action allows to directly update a specific document based on a script. https://github.com/elastic/elasticsearch/issues/1583
 $update = {
-    param($index, $type, $id, $json, $obj)
+    param($index, $type, $id, $body, $obj)
     if($obj) {
-        $json = ConvertTo-Json -Depth 10 $obj
+        $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
-    &$post "$index/$type/$id/_update" $json
+    &$post "$index/$type/$id/_update" $body
 }
 
 #But I preffer replace instead of update
 $replace = {
-    param($index, $type, $id, $json, $obj)
+    param($index, $type, $id, $body, $obj)
     if($obj) {
-        $json = ConvertTo-Json -Depth 10 $obj
+        $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
-    &$post "$index/$type/$id" $json
+    &$post "$index/$type/$id" $body
 }
 
 $createIndex = {
-        param($index, $json, $obj)
-        if($obj) {
-            $json = ConvertTo-Json -Depth 10 $obj
-        }
-        &$post $index $json
+    param($index, $body, $obj)
+    if($obj) {
+        $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
+    &$post $index $body
+}
 
 $mapping = {
     param($index)
@@ -107,9 +124,8 @@ $mapping = {
 $search = {
     param($index, $type, $json, $obj)
     if($obj) {
-        $json = ConvertTo-Json -Depth 10 $obj
+        $json = ConvertTo-Json -Depth 10 $obj -Compress
     }
-
     &$get "$index/$type/_search?pretty&source=$json"
 }
 

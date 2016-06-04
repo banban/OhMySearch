@@ -2,12 +2,7 @@
 #one by one: 6hours , 12200 documents, 789mb.  Batch processing: 25 minutes 12238 documents 709.7mb (\\svrsa1fs03\library\)
 powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svrsa1fs03\library\" -RecreateIndex 1
 #one by one: ???.                              Batch processing: 13 hours 245761 documents 7.2gb (\\svrsa1fs03\fs\bus\  !do not use \\nova\files\Business Units\ it will multiply content by numberof projections == \\nova\nova-dfs\group\ )
-powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svrsa1fs03\fs\bus\"
-powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svradldb02\Exchange Integration Attachments\Travel_Invoices\Archive\"
-powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svrsa1fs03\catalyst\Catalyst HRM\Fasttrack CVs 2016\"
-powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svrsa1fs03\catalyst\Catalyst HRM\Fasttrack CVs 2015\"
-powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svrsa1fs03\catalyst\Catalyst HRM\Fasttrack CVs 2014\"
-powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svrsa1fs03\catalyst\Catalyst HRM\Fasttrack CVs 2013\"
+powershell -ExecutionPolicy ByPass -command "C:\Search\Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\shared\folder1"
 #>
 
 
@@ -339,7 +334,7 @@ $global:ElasticUri = $ElasticUri
 #&$call "Get" "/_cluster/state"
 #&$cat
 #test attachments
-$fullPath = "C:\Search\Nova.Search\Fredrick Lafon THALES.pdf"
+$fullPath = "C:\Search\_artefacts\Fredrick Lafon THALES.pdf"
 $fileContentBytes = [System.IO.File]::ReadAllBytes($fullPath);
 $fileContentEncoded = [System.Convert]::ToBase64String($fileContentBytes)
 &$createIndex "test" -obj @{
@@ -966,7 +961,7 @@ GET /my_index/groups/_search
 
 
     $setupTracking = {
-        Add-Type -Path 'C:\Git\AB\IT\Apps\Nova.Search\packages\StackExchange.Redis.1.1.572-alpha\lib\net45\StackExchange.Redis.dll'
+        Add-Type -Path 'C:\Search\packages\StackExchange.Redis.1.1.572-alpha\lib\net45\StackExchange.Redis.dll'
         $cs = '10.1.60.2'
         $config = [StackExchange.Redis.ConfigurationOptions]::Parse($cs)
         $connection = [StackExchange.Redis.ConnectionMultiplexer]::Connect($config)
@@ -1401,7 +1396,7 @@ PUT /my_index
 }
 
 #to find all distinct values strat from bucketing
-GET /nova_v1/austender/_search
+GET /web_v1/austender/_search
 {
     "size" : 0,
     "aggs" : {

@@ -1,13 +1,18 @@
-﻿[IO.FileInfo]$file = "C:\Users\andrew.butenko\Pictures\Idontneed Google.png"
+﻿<#
+ 1. Install PowerShell Image module from here: https://gallery.technet.microsoft.com/scriptcenter/PowerShell-Image-module-caa4405a 
+      to here: $env:PSModulePath -> C:\Program Files\WindowsPowerShell\Modules\Image
+
+#>
+Import-Module Image
+
+
+[IO.FileInfo]$file = "C:\Users\andrew.butenko\Pictures\Idontneed Google.png"
 [IO.FileInfo]$file = "C:\Users\andrew.butenko\Pictures\20150819_144945.jpg"
-[IO.FileInfo]$file = "\\nova\fs\bus\aa\ea\c\2931\02931.0001 stretcher system\photos\production photos\2014-04-01 16.24.36.jpg"
-[IO.FileInfo]$file = "\\nova\fs\bus\ba\bc\c\4453\work\j453 data\hood.jpg"
 &"C:\Program Files\Inkscape\inkscape.exe" --file=$file --export-png
 &"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe" "C:\Temp\ImageCompare\Idontneed_Google_cc.png" "Idontneed_Google" -l eng -psm 1 | Out-Null
 inkscape --file="C:\Temp\ImageCompare\WP_20140314_002.svg" --export-plain-svg="C:\Temp\ImageCompare\WP_20140314_002_ink2.svg"
 "C:\Temp\potrace-1.12.win64\potrace.exe" --svg --output "C:\Temp\ImageCompare\WP_20140314_002_potrace.svg" "C:\Temp\ImageCompare\WP_20140314_002.svg"
 
-Import-Module Image
 $image  = New-Object -ComObject Wia.ImageFile
 $image.LoadFile($file.FullName)
 $exif = Get-Exif($image)
@@ -48,24 +53,3 @@ foreach ($name in $names){
 ConvertTo-Xml -InputObject (Get-Exif($image))
 
 
-
-$word = New-Object -comobject word.application
-$word.visible = $true
-$doc = $word.documents.open("C:\Tests\SpellCheck.docx")
-$doc.checkSpelling()
-$doc.checkGrammar()
-#$doc.save()
-$doc.printOut()
-$doc.close()
-$doc = $null
-
-$dictionary = New-Object -COM Scripting.Dictionary
-$dic = New-Object -COM Scripting.Dictionary #credits to MickyB
-$w = New-Object -COM Word.Application
-$w.Languages | % {if($_.Name -eq "English (AUS)"){$dic=$_.ActiveSpellingDictionary}}
-$a = $null
-$b = $null
-$w.checkSpelling("Color", [ref]$a, [ref]$b, [ref]$dic)
-$a
-$b
-$w = $null

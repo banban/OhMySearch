@@ -16,7 +16,7 @@ Unit tests:
 "Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"text"},"Supplier_Country":{"type":"text"},"Supplier_Name":{"type":"text"},
 "Supplier_Postcode":{"type":"keyword"},"Value":{"type":"double"}}}}}}'
 
-    Test 3. Full load type mapping:
+    Test 3. Full load test with type mapping:
     .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex `
        -typeMapping '{"web_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
 "Agency_Divison":{"type":"text"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
@@ -50,11 +50,28 @@ Unit tests:
     Which means - kill existing jruby process conflicting with your request :(
 
  test API:
+    $global:Debug = $true
+    Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
     &$cat
     &$get "/web_v1/_mapping"
     &$get "/web_v1/austender"
     &$get "/web_v1/austender/_query?q=*"
-    &$delete "web_v1"
+    &$get "web_v1"
+    &$get "web_v1/austender/AVUQ7SGd4sw0coEpumpQ"
+
+    &$post "web_v1/austender/_search" -obj @{
+        size = 0
+        aggs = @{
+            Agencies = @{
+                terms = @{
+                    field = "Agency"
+                }
+            }
+        }
+    }
+
+    &$delete "web_v1" 
+
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -110,7 +127,7 @@ function Main(){
     [int]$rowcount = 0
     [string]$BulkBody = ""
     $headers = @{} #cached mapping between original and clean names
-    $nameTypes = @{} #cached mapping between field name and data type
+    $fieldTypeMapping = @{} #cached mapping between field name and data type
     
     if ($typeMapping -ne $null -and $typeMapping -ne ""){
         $meatadata = ConvertFrom-Json $typeMapping
@@ -131,7 +148,7 @@ function Main(){
             if ($type_mt -ne $null){
                 $mappingProperties = $type_mt.Value.properties
                 $mappingProperties.psobject.properties | %{
-                    $nameTypes.Set_Item($_.Name, $_.Value.type)
+                    $fieldTypeMapping.Set_Item($_.Name, $_.Value.type)
                 }
             }
         }
@@ -141,7 +158,7 @@ function Main(){
         Where-Object {$_ -is [IO.FileInfo]} |
         % {
             $filePath = $_.FullName.ToLower()
-            #remove "empty" rows
+            #remove empty and useless short rows
             (Get-Content $filePath | Select-Object | Where-Object {$_.Length -gt $rowMinLength}) | Set-Content $filePath -Force
             #load file content
             $content = Import-Csv -LiteralPath $filePath -Delimiter $delimeter
@@ -168,7 +185,7 @@ function Main(){
                     #let's try to guess missed data type based on first 1 (or more, some fields in 1st row might be empty!) record(s)
                     $content[0].psobject.properties | % {
                         $name = $headers.Get_Item($_.Name)
-                        if ($_.Value -ne $null -and $_.Value -ne "" -and $nameTypes.Get_Item($name) -eq $null){
+                        if ($_.Value -ne $null -and $_.Value -ne "" -and $fieldTypeMapping.Get_Item($name) -eq $null){
                             $value = $_.Value
                             $value = $($value.TrimStart('=').Trim('"').Trim())
                             $value = $value  -replace '\\u0027|\\u0091|\\u0092|\\u2018|\\u2019|\\u201B', '''' #convert quotes
@@ -176,16 +193,16 @@ function Main(){
                             $value = $value -replace '[\\/''~?!*“"%&•â€¢©ø\[\]{}]', ' ' #special symbols and punctuation
                             $value = $value -replace '\s+', ' ' #remove extra spaces
                             if (($value -as [DateTime]) -ne $null){ #check value is a date
-                                $nameTypes.Set_Item("$name", "date")
+                                $fieldTypeMapping.Set_Item("$name", "date")
                             }
                             else{
-                                $nameTypes.Set_Item("$name", "text")
+                                $fieldTypeMapping.Set_Item("$name", "text")
                             }
                         }
                     }
 
-                    $nameTypes.GetEnumerator() | %{
-                        if (($mappingProperties.psobject.properties | Where {$_.Name -eq $_.Key}) -eq $null ){
+                    $fieldTypeMapping.GetEnumerator() | %{
+                        if ( $mappingProperties.psobject.properties.Item($_.Key) -eq $null ){
                             $mappingProperties | Add-Member Noteproperty $_.Key @{
                                 type = "$($_.Value)"
                             }
@@ -217,7 +234,7 @@ function Main(){
 
                         mappings = @{
                             "$typeName" = @{
-                                 dynamic = $true #will additional fields dynamically.
+                                 dynamic = $true #will create additional fields dynamically.
                                  #date_detection = $true #avoid “malformed date” exception
                                  properties = $mappingProperties
                             }
@@ -235,12 +252,12 @@ function Main(){
 
             #mutate data
             for($i=0; $i -lt $content.count;$i++){
-                $properties = @{}
+                $entryProperties = @{}
                 $id = ""
                 $content[$i].psobject.properties | % {
                     $value = $null
                     $name = $headers.Get_Item($_.Name)
-                    $type = $nameTypes.Get_Item($name)
+                    $type = $fieldTypeMapping.Get_Item($name)
                     if ($type -in "string","text","keyword"){
                         $value = $_.Value
                         if ($value -ne $null){
@@ -332,14 +349,14 @@ function Main(){
                             $id = ", ""_id"": ""$value""" 
                         }
                         else{
-                           $properties += @{"$name" = $value}
+                           $entryProperties += @{"$name" = $value}
                         }
                     }
                 }
 
-                $entry = '{"index": {"_type": "'+$typeName+'"'+$id+'}'+ "`n" +($properties | ConvertTo-Json -Compress| Out-String)  + "`n"
+                $entry = '{"index": {"_type": "'+$typeName+'"'+$id+'}'+ "`n" +($entryProperties | ConvertTo-Json -Compress| Out-String)  + "`n"
                 $rowcount++
-$entry
+#$entry
                 $BulkBody += $entry
                 $percent = [decimal]::round(($BulkBody.Length / $batchMaxSize)*100)
                 if ($percent -gt 100) {$percent = 100}
