@@ -3,11 +3,11 @@ Unit tests:
     cd C:\Search\Scripts
     
     Test 1. Do not download new files, just process existings:
-    .\Search.Index.Web.ps1 -rootPath "C:\Search\Import\Test" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex
+    .\Search.Index.Web.ps1 -rootPath "C:\Search\Import\Test" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex
 
     Test 2. Adjust type mapping:
-    .\Search.Index.Web.ps1 -rootPath "C:\Search\Import\Test" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex `
-       -typeMapping '{"web_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
+    .\Search.Index.Web.ps1 -rootPath "C:\Search\Import\Test" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex `
+       -typeMapping '{"tender_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
 "Agency_Divison":{"type":"text"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
 "Amendment_Reason":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"CN_ID":{"type":"keyword"},"Category":{"type":"text"},
 "Confidentiality_Contract":{"type":"text"},"Confidentiality_Contract_Reason_s":{"type":"text"},"Confidentiality_Outputs":{"type":"text"},"Confidentiality_Outputs_Reason_s":{"type":"text"},
@@ -17,8 +17,8 @@ Unit tests:
 "Supplier_Postcode":{"type":"keyword"},"Value":{"type":"double"}}}}}}'
 
     Test 3. Full load test with type mapping:
-    .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex `
-       -typeMapping '{"web_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
+    .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex `
+       -typeMapping '{"tender_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
 "Agency_Divison":{"type":"text"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
 "Amendment_Reason":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"CN_ID":{"type":"keyword"},"Category":{"type":"text"},
 "Confidentiality_Contract":{"type":"text"},"Confidentiality_Contract_Reason_s":{"type":"text"},"Confidentiality_Outputs":{"type":"text"},"Confidentiality_Outputs_Reason_s":{"type":"text"},
@@ -27,11 +27,16 @@ Unit tests:
 "Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"text"},"Supplier_Country":{"type":"text"},"Supplier_Name":{"type":"text"},
 "Supplier_Postcode":{"type":"keyword"},"Value":{"type":"double"}}}}}}'
 
+ 2 records were rejected: 
+    path: c:\search\import\austender\08-nov-15 to 14-nov-15.csv; _type: austender; _id: AVUer-1TRN9q28PbTZhH; error: mapper_parsing_exception; reason: failed to parse [Description]; status: 400
+    path: c:\search\import\austender\08-nov-15 to 14-nov-15.csv; _type: austender; _id: AVUer-1TRN9q28PbTZif; error: mapper_parsing_exception; reason: failed to parse [Supplier_Name]; status: 400
+
+
     prod
-    .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex
+    .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex
 
     using "CN ID" as PK generates circuit_breaking_exception. You can use internal _id by ignoring the fueild
-    .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -indexName "web_v1" -aliasName "web" -typeName "austender" -NewIndex
+    .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex
 
 
     Alternative approach is logstash. To test logstash in interactive mode use command: 
@@ -44,7 +49,7 @@ Unit tests:
         logstash -e 'input { stdin {} } output { stdout { codec => rubydebug } }'
 
     Test your configuration use this command:
-        C:\Search\logstash-5.0.0-alpha2\bin\logstash.bat -f "C:\Search\Import\AusTender\logstash-austender.conf" --configtest
+        C:\Search\logstash-5.0.0-alpha3\bin\logstash.bat -f "C:\Search\Import\logstash-austender.conf" --config.test_and_exit
     Expected result: Configuration OK
     Unexpected error: The signal HUP is in use by the JVM and will not work correctly on this platform
     Which means - kill existing jruby process conflicting with your request :(
@@ -53,13 +58,13 @@ Unit tests:
     $global:Debug = $true
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
     &$cat
-    &$get "/web_v1/_mapping"
-    &$get "/web_v1/austender"
-    &$get "/web_v1/austender/_query?q=*"
-    &$get "web_v1"
-    &$get "web_v1/austender/AVUQ7SGd4sw0coEpumpQ"
+    &$get "/tender_v1/_mapping"
+    &$get "/tender_v1/austender"
+    &$get "/tender_v1/austender/_query?q=*"
+    &$get "tender_v1"
+    &$get "tender_v1/austender/AVUQ7SGd4sw0coEpumpQ"
 
-    &$post "web_v1/austender/_search" -obj @{
+    &$post "tender_v1/austender/_search" -obj @{
         size = 0
         aggs = @{
             Agencies = @{
@@ -70,7 +75,7 @@ Unit tests:
         }
     }
 
-    &$delete "web_v1" 
+    &$delete "tender_v1" 
 
 #>
 
@@ -135,7 +140,7 @@ function Main(){
     else{
         #read existing index mapping metadata
         try{
-            #$indexName = "web_v1"; $typeName = "austender"; 
+            #$indexName = "tender_v1"; $typeName = "austender"; 
             $meatadata = ConvertFrom-Json (&$get "$indexName/_mapping")
         }
         catch{}
@@ -163,13 +168,38 @@ function Main(){
             #load file content
             $content = Import-Csv -LiteralPath $filePath -Delimiter $delimeter
 
-            if ($firstRecord -eq $true -and $NewIndex.IsPresent){
-                if ($content.Count -gt 0){
+            if ($firstRecord -eq $true -and $content.Count -gt 0){
+                if ($newIndex.IsPresent){
                     try{
                         &$delete $indexName 
                     }
                     catch{}
 
+                    <#Some types of analysis are extremely unfriendly with regards to memory.
+                    There is a reason to avoid aggregating analyzed fields: high-cardinality fields consume a large amount of memory when loaded into fielddata. 
+                    The analysis process often (although not always) generates a large number of tokens, many of which are unique. 
+                    This increases the overall cardinality of the field and contributes to more memory pressure.
+                     use index = "not_analyzed" for strings where possible#>
+                    &$createIndex "$indexName" -obj @{
+                        settings = @{
+                            analysis = @{
+                              char_filter = @{ 
+                                quotes = @{
+                                  type = "mapping"
+                                  mappings = @( "\\u0091=>\\u0027", "\\u0092=>\\u0027", "\\u2018=>\\u0027","\\u2019=>\\u0027","\\u201B=>\\u0027" )
+                                }
+                              }
+                              analyzer = @{
+                                quotes_analyzer= @{
+                                  tokenizer = "standard"
+                                  char_filter = @( "quotes" )
+                                }
+                              }#analyzer
+                            } #analysis
+                        } #| ConvertTo-Json -Depth 4
+                    }
+                }
+                if ($newIndex.IsPresent -or $newType.IsPresent){
                     $fields = $content | Get-Member -MemberType NoteProperty -force | %{$_.Name}
 
                     #clean field names
@@ -197,57 +227,50 @@ function Main(){
                             }
                             else{
                                 $fieldTypeMapping.Set_Item("$name", "text")
+                                # if you do not need to aggregate by this field - do not set doc_values = true
+                                $fieldTypeMapping.Set_Item("$doc_values", $true) 
                             }
                         }
                     }
 
                     $fieldTypeMapping.GetEnumerator() | %{
-                        if ( $mappingProperties.psobject.properties.Item($_.Key) -eq $null ){
-                            $mappingProperties | Add-Member Noteproperty $_.Key @{
-                                type = "$($_.Value)"
+                        [bool]$isNewProp = $false
+                        try{
+                            if ($mappingProperties.psobject.properties.Item($_.Key) -eq $null){
+                                $isNewProp = $true
+                            }
+                        }
+                        catch{
+                            $isNewProp = $true
+                        }
+
+                        if ($isNewProp){ #add new field mapping
+                            if ($_.Value -eq "text"){
+                                $mappingProperties | Add-Member Noteproperty $_.Key @{
+                                    type = "$($_.Value)"
+                                    fielddata = $true
+                                }
+                            }
+                            else{
+                                $mappingProperties | Add-Member Noteproperty $_.Key @{
+                                    type = "$($_.Value)"
+                                }
                             }
                         }
                     }
 
-                    <#Some types of analysis are extremely unfriendly with regards to memory.
-                    There is a reason to avoid aggregating analyzed fields: high-cardinality fields consume a large amount of memory when loaded into fielddata. 
-                    The analysis process often (although not always) generates a large number of tokens, many of which are unique. 
-                    This increases the overall cardinality of the field and contributes to more memory pressure.
-                     use index = "not_analyzed" for strings where possible#>
-                    &$createIndex "$indexName" -obj @{
-                        settings = @{
-                            analysis = @{
-                              char_filter = @{ 
-                                quotes = @{
-                                  type = "mapping"
-                                  mappings = @( "\\u0091=>\\u0027", "\\u0092=>\\u0027", "\\u2018=>\\u0027","\\u2019=>\\u0027","\\u201B=>\\u0027" )
-                                }
-                              }
-                              analyzer = @{
-                                quotes_analyzer= @{
-                                  tokenizer = "standard"
-                                  char_filter = @( "quotes" )
-                                }
-                              }#analyzer
-                            } #analysis
-                        } #| ConvertTo-Json -Depth 4
-
-                        mappings = @{
-                            "$typeName" = @{
-                                 dynamic = $true #will create additional fields dynamically.
-                                 #date_detection = $true #avoid “malformed date” exception
-                                 properties = $mappingProperties
-                            }
-                        }
+                    &$put "$($indexName)/_mapping/$($typeName)?update_all_types" -obj @{
+                        dynamic = $true #will create new fields dynamically.
+                        date_detection = $true #avoid “malformed date” exception
+                        properties = $mappingProperties
                     }
-
-                    if ($aliasName -ne ""){
-                        &$put "$indexName/_alias/$aliasName"
-                    }
-
-                    $firstRecord = $false
-
                 }
+
+                if ($aliasName -ne ""){
+                    &$put "$indexName/_alias/$aliasName"
+                }
+
+                $firstRecord = $false
             }
 
             #mutate data
@@ -255,9 +278,18 @@ function Main(){
                 $entryProperties = @{}
                 $id = ""
                 $content[$i].psobject.properties | % {
-                    $value = $null
                     $name = $headers.Get_Item($_.Name)
-                    $type = $fieldTypeMapping.Get_Item($name)
+                    if ($_.Value -eq $null -or $_.Value -eq ""){
+                        $value = $null
+                    }
+
+                    if ($fieldTypeMapping.Get_Item($name) -ne $null){
+                        $type = $fieldTypeMapping.Get_Item($name)
+                    }
+                    else{
+                        $type = "keyword"
+                    }
+
                     if ($type -in "string","text","keyword"){
                         $value = $_.Value
                         if ($value -ne $null){

@@ -17,7 +17,6 @@ namespace Search.Core.Windows.Controllers
                 return;
             }
             /*not implemented in ASP.Net Core yet :(
-             
             DirectoryInfo di = new DirectoryInfo(path);
             if (di.Exists)//If system account do not have at a minimum read-only permission to the directory, the Exists method will return false.
             {

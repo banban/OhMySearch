@@ -3,14 +3,14 @@
 
  1.test person table. Has some unicode fields which are not acepted by ES. Please read this: https://www.elastic.co/guide/en/elasticsearch/guide/master/unicode-normalization.html
    Do not index [AdditionalContactInfo],[Demographics],[rowguid] fields. XML should be converted to text first.
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex `
-        -SQL_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -SQL_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]"
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -newIndex `
+        -sql_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]"
 
    100 records rejected (some unicode symbols are not accepted by standard analyzer in First or Last name). That is accepteble now. Will investegate later
     
    The same test but with explicit mapping:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -NewIndex `
-        -SQL_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -SQL_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]" `
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -newIndex `
+        -sql_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]" `
         -typeMapping '{"adworks_v1":{"mappings":{"person":{"dynamic":"true","properties":{"BusinessEntityID":{"type":"integer"},"EmailPromotion":{"type":"integer"},"FirstName":{"type":"text"},"LastName":{"type":"text"},"MiddleName":{"type":"text"},"ModifiedDate":{"type":"date","format":"YYYY-MM-DD"},"NameStyle":{"type":"text"},"PersonType":{"type":"text"},"Suffix":{"type":"text"},"Title":{"type":"text"},}}}}}'
 
     &$cat
@@ -24,35 +24,35 @@
    Check that our hierarchy_analyzer works
         &$post "/adworks_v1/_analyze" '{"analyzer": "hierarchy_analyzer", "text": "/one/two/three"}'
    Add new type to existing index. 
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -NewType `
-        -SQL_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -SQL_Query "select * from [HumanResources].[Employee]"
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -newType `
+        -sql_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -sql_Query "select * from [HumanResources].[Employee]"
 
     #2 of 290 records rejected with unicode issue in LoginID field. that is ok for now
 
     We can try extended unicode support https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis-icu.html
         cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install analysis-icu"
-    Also, you can use query wihout rowguid and hierarchy like : -SQL_Query "SELECT [BusinessEntityID],[NationalIDNumber],[LoginID],[OrganizationLevel],[JobTitle],[BirthDate],[MaritalStatus],[Gender],[HireDate],[SalariedFlag],[VacationHours],[SickLeaveHours],[CurrentFlag],[ModifiedDate] FROM [HumanResources].[Employee]"
+    Also, you can use query wihout rowguid and hierarchy like : -sql_Query "SELECT [BusinessEntityID],[NationalIDNumber],[LoginID],[OrganizationLevel],[JobTitle],[BirthDate],[MaritalStatus],[Gender],[HireDate],[SalariedFlag],[VacationHours],[SickLeaveHours],[CurrentFlag],[ModifiedDate] FROM [HumanResources].[Employee]"
 
     &$cat
 
  3. Test documents with binary content. Not sure if that makes sense :)
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -NewType `
-        -SQL_DbName "AdventureWorks" -keyFieldName "DocumentNode" -SQL_Query "select * from [Production].[Document]"
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -newType `
+        -sql_DbName "AdventureWorks" -keyFieldName "DocumentNode" -sql_Query "select * from [Production].[Document]"
 
-    #failed for OrganizationNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -SQL_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -SQL_Query "select * from [HumanResources].[Employee]"
-    #failed for DocumentNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -SQL_DbName "AdventureWorks" -keyFieldName "DocumentNode" -SQL_Query "select * from [Production].[Document]"
+    #failed for OrganizationNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -sql_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -sql_Query "select * from [HumanResources].[Employee]"
+    #failed for DocumentNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -sql_DbName "AdventureWorks" -keyFieldName "DocumentNode" -sql_Query "select * from [Production].[Document]"
 
     &$cat
  4.Test geography. Convert SqlGeography to GeoPoint for other shapes use poligons https://www.elastic.co/guide/en/elasticsearch/reference/master/geo-shape.html
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "address" -NewType `
-        -SQL_DbName "AdventureWorks" -keyFieldName "AddressID" -SQL_Query "select * from [Person].[Address]"
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "address" -newType `
+        -sql_DbName "AdventureWorks" -keyFieldName "AddressID" -sql_Query "select * from [Person].[Address]"
 
     971 of 19614 records with unicode were rejected by analyzer: _type: address; _id: 552; error: mapper_parsing_exception; reason: failed to parse [AddressLine1]; status: 400
     &$cat
 
  5.test views. multi language test:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "candidate" -NewType `
-        -SQL_DbName "AdventureWorks" -keyFieldName "JobCandidateID" -SQL_Query "SELECT  * FROM [HumanResources].[vJobCandidate]"
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "candidate" -newType `
+        -sql_DbName "AdventureWorks" -keyFieldName "JobCandidateID" -sql_Query "SELECT  * FROM [HumanResources].[vJobCandidate]"
 
     3 of 13 records with unicode were rejected by analyzer: 
         _type: candidate; _id: 5; error: mapper_parsing_exception; reason: failed to parse [Skills]; status: 400
@@ -62,17 +62,22 @@
 
     &$cat
  5.test big tables:
-    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "sales" -NewType `
-        -SQL_DbName "AdventureWorks" -keyFieldName "SalesOrderDetailID" -SQL_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] FROM [Sales].[SalesOrderDetail]"
+    .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "sales" -newType `
+        -sql_DbName "AdventureWorks" -keyFieldName "SalesOrderDetailID" -sql_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] FROM [Sales].[SalesOrderDetail]"
     &$cat
 
  6. Another database (index)
-    .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewIndex -aliasName "bms" `
-        -SQL_ServerName ".\SQL2014" -SQL_DbName "Nova_Search" -typeName "acronym" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
+    .\Search.Index.SQL.ps1 -indexName "bms_v1" -newIndex -aliasName "bms" `
+        -sql_ServerName ".\SQL2014" -sql_DbName "Nova_Search" -typeName "acronym" -keyFieldName "Id" -sql_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
+    4 records rejected:
+            _type: acronym; _id: 700; error: mapper_parsing_exception; reason: failed to parse [Definition]; status: 400
+            _type: acronym; _id: 3722; error: mapper_parsing_exception; reason: failed to parse [Definition]; status: 400
+            _type: acronym; _id: 3737; error: mapper_parsing_exception; reason: failed to parse [Definition]; status: 400
+            _type: acronym; _id: 3877; error: mapper_parsing_exception; reason: failed to parse [Definition]; status: 400
     &$cat
 
-    .\Search.Index.SQL.ps1 -indexName "bms_v1" -NewType `
-        -SQL_DbName "Integrations_NOVA" -typeName "austender" -keyFieldName "Id" -SQL_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
+    .\Search.Index.SQL.ps1 -indexName "bms_v1" -newType `
+        -sql_DbName "Integrations_NOVA" -typeName "austender" -keyFieldName "Id" -sql_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
             ,[Value],[Description],[Agency_Ref_ID],[Category],[Procurement_Method],[ATM_ID],[SON_ID],[Confidentiality_Contract]
             ,[Confidentiality_Contract_Reasons],[Confidentiality_Outputs],[Confidentiality_Outputs_Reasons],[Consultancy],[Consultancy_Reasons],[Amendment_Reason]
             ,[Supplier_Name],[Supplier_Address],[Supplier_City],[Supplier_Postcode],[Supplier_Latitude],[Supplier_Longitude]
@@ -170,9 +175,9 @@ in which case it will update that parameter across all fields with the same name
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] 
 Param(
     #[Parameter(Mandatory=$true, Position = 0, ValueFromRemainingArguments=$true , HelpMessage = 'Target server')]
-    [string]$SQL_ServerName = ".\SQL2014",
-    [string]$SQL_DbName,
-    [string]$SQL_Query,
+    [string]$sql_ServerName = ".\SQL2014",
+    [string]$sql_DbName,
+    [string]$sql_Query,
 
     [string]$indexName,
     [string]$aliasName,
@@ -186,8 +191,8 @@ Param(
     [Parameter(HelpMessage = '~4MB should be enough. They allow up to 4 MB in the RRS request.')]
     [int]$searchMaxBiteSize = 4194304,
 
-    [switch]$NewIndex,
-    [switch]$NewType
+    [switch]$newIndex,
+    [switch]$newType
 
     #[string]$EventLogSource = "Search",
     #[string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.SQL.log"
@@ -195,8 +200,8 @@ Param(
 
 function Main(){
     Clear-Host
-    if ($SQL_DbName -eq "" -or $SQL_Query -eq ""){
-        Echo "Please specify SQL_DbName and SQL_Query parameter value"
+    if ($sql_DbName -eq "" -or $sql_Query -eq ""){
+        Echo "Please specify sql_DbName and sql_Query parameter value"
         break;
     }
     
@@ -239,7 +244,7 @@ function Main(){
         }
     }
 
-   if ($NewIndex.IsPresent){
+   if ($newIndex.IsPresent){
         try{
             &$delete $indexName 
         }
@@ -261,14 +266,14 @@ function Main(){
 
     #Write-Event "$(Get-Date) Start session 'Search.Index.SQL'."
     $SqlConnection = New-Object System.Data.SqlClient.SqlConnection
-    $SqlConnection.ConnectionString = "Server=$SQL_ServerName;Database=$SQL_DbName;Integrated Security=True"
+    $SqlConnection.ConnectionString = "Server=$sql_ServerName;Database=$sql_DbName;Integrated Security=True"
     $SqlConnection.Open()
 
     $sqlCmd = New-Object System.Data.SqlClient.SqlCommand
     $sqlCmd.Connection = $SqlConnection
     $sqlCmd.CommandTimeout = 600
     $sqlCmd.CommandType = [System.Data.CommandType]::Text
-    $sqlCmd.CommandText = $SQL_Query
+    $sqlCmd.CommandText = $sql_Query
 
     #very slow and RAM consuming approach
     #$dt1 = new-object system.data.datatable
@@ -296,7 +301,7 @@ function Main(){
                 $name = $name.Trim() -replace '\s+', '_' #remove extra spaces and raplace with _
 
                 #existing mapping has a priority - user can change which is more accurate than dynamic mapping
-                if ( ($NewIndex.IsPresent -or $NewType.IsPresent) -and ($typeMapping.psobject.properties.Item($name) -eq $null) ){
+                if ( ($newIndex.IsPresent -or $newType.IsPresent) -and ($typeMapping.psobject.properties.Item($name) -eq $null) ){
                     $typeMapping | Add-Member Noteproperty $name (Get-ElasticMappingByDataType -DataTypeName $fieldType)
                 }
                 #cache names and types to use it in bulk process
@@ -304,7 +309,7 @@ function Main(){
                 $types += $fieldType
             }
 
-            if ($NewIndex.IsPresent) { #create new index
+            if ($newIndex.IsPresent) { #create new index
                 try{
                     &$delete $indexName 
                 }
@@ -373,7 +378,7 @@ function Main(){
                 } #| ConvertTo-Json -Depth 
             }
 
-            if ($NewIndex.IsPresent -or $NewType.IsPresent){ #add new type mapping to existing index with settings
+            if ($newIndex.IsPresent -or $newType.IsPresent){ #add new type mapping to existing index with settings
                 #When another type is added to exsting index it could have the same field names as other types, but different data type. 
                 #ES generate exception. I think this is wrong. 
                 #As a workaround, we need to use parameter update_all_types to avoid missmatched field types exception
@@ -514,7 +519,7 @@ function Get-ElasticMappingByDataType
             }}
         { @("date", "datetime") -contains $_ } {@{
                 type = "date"
-                format = "YYYY-MM-DD"  
+                format = "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"  
             }} 
         'sqlhierarchyId' {@{
                 type = "string"

@@ -141,7 +141,8 @@ namespace Search.Core.Windows.Controllers
             if (catResponse.IsValid)
             {
                 indexes = catResponse.Records
-                    .Where(rec => rec.Index != ".kibana" && !rec.Index.StartsWith(".marvel") && (string.IsNullOrEmpty(rec.DocsCount) ? "0" : rec.DocsCount) != "0")
+                    .Where(rec => !rec.Index.StartsWith(".")  //exclude .kibana, .marvel, .logstash
+                        && (string.IsNullOrEmpty(rec.DocsCount) ? "0" : rec.DocsCount) != "0")
                     // && rec.Status == "open"
                     //.Select(rec => new { rec.Index, rec.Status, rec.DocsCount, rec.StoreSize })
                     .OrderBy(rec => rec.Index).ToList();
@@ -181,23 +182,21 @@ namespace Search.Core.Windows.Controllers
 
         public static async Task<Nest.ISearchResponse<dynamic>> GetNestResults(Models.Query query)
         {
-            //var searchRequest = new SearchRequest
-            //{
-            //    Aggregations = new Dictionary<string, IAggregationContainer>
-            //    {
-            //        { "my_agg", new AggregationContainer
-            //            {
-            //                Terms = new TermsAggregation //TermsAggregator
-            //                {
-                                
-            //                    Field = "content",
-            //                    Size = 10,
-            //                    ExecutionHint = TermsAggregationExecutionHint.Ordinals
-            //                }
-            //            }
-            //        }
-            //    }
-            //};
+            SearchDescriptor<dynamic> sd = new SearchDescriptor<dynamic>();
+            /*sd.Aggregations(new Dictionary<string, IAggregationContainer>()
+                {
+                    { "my_agg", new AggregationContainer
+                        {
+                            Terms = new TermsAggregation //TermsAggregator
+                            {
+
+                                Field = "content",
+                                Size = 10,
+                                ExecutionHint = TermsAggregationExecutionHint.Ordinals
+                            }
+                        }
+                    }
+                });*/
 
             Nest.ISearchResponse<dynamic> results = null;
             Nest.Indices indices = Nest.Indices.AllIndices;
