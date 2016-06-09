@@ -9,6 +9,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using Nest;
+using Elasticsearch.Net;
+using Newtonsoft.Json.Linq;
 
 // For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -16,6 +18,29 @@ namespace Search.Core.Windows.Controllers
 {
     public class QueryController : Controller
     {
+        private static Nest.ElasticClient _elclient = new Nest.ElasticClient(new Nest.ConnectionSettings(new Uri(Startup.GetElasticSearchUrl())));
+        //private static readonly ElasticClient _elclient = CreateClient();
+        //public QueryController()
+        //{
+            
+        //}
+        //public static ElasticClient CreateClient(
+        //            int maxRetries = 3,
+        //            int timeoutInMilliseconds = 1000
+        //            )
+        //{
+        //    var pool = new SniffingConnectionPool(
+        //        new List<Uri> { new Uri(Startup.GetElasticSearchUrl()) }
+        //        );
+
+        //    ConnectionSettings config = new ConnectionSettings(pool); //.MaxRetryTimeout(timeoutInMilliseconds);
+
+        //    config.MaximumRetries(maxRetries);
+
+        //    return new ElasticClient(config);
+        //}
+
+
         public IActionResult History()
         {
             List<Models.Query> history = new List<Models.Query>();
@@ -65,7 +90,7 @@ namespace Search.Core.Windows.Controllers
                 return View(new EmptyResult());
             }
 
-            if (query.ChosenOptions.Contains("3_2"))
+            if (query.ChosenOptions.Contains("4_2"))
             {
                 Models.SearchResults sr = new Models.SearchResults();
                 sr.Pager = new Models.Pager(query.Total, page, query.Size.Value);
@@ -136,27 +161,64 @@ namespace Search.Core.Windows.Controllers
         {
             Nest.CatIndicesRequest cat = new Nest.CatIndicesRequest();
             cat.V = true;
-            var catResponse = await elastic.CatIndicesAsync(cat);
+            var catIndices = await _elclient.CatIndicesAsync(cat);
+            //var mappings = await _elclient.GetMappingAsync(new GetMappingRequest() { IgnoreUnavailable = true });
             var indexes = new List<Nest.CatIndicesRecord>();
-            if (catResponse.IsValid)
+            if (catIndices.IsValid)
             {
-                indexes = catResponse.Records
+                indexes = catIndices.Records
                     .Where(rec => !rec.Index.StartsWith(".")  //exclude .kibana, .marvel, .logstash
                         && (string.IsNullOrEmpty(rec.DocsCount) ? "0" : rec.DocsCount) != "0")
                     // && rec.Status == "open"
-                    //.Select(rec => new { rec.Index, rec.Status, rec.DocsCount, rec.StoreSize })
+                    //.Select(rec => new { rec.Index, rec.Status, rec.DocsCount, rec.StoreSize }
                     .OrderBy(rec => rec.Index).ToList();
             }
+
             if (chosenOptions == null)
             {
                 chosenOptions = "";
             }
             var results = new List<Models.QueryOption>();
+            //elastic.ConnectionSettings.MaxRetries = 3;
+            //_elclient.GetMapping(new GetMappingRequest { Index = "myindex", Type = "mytype" });
+            //var response = _elclient.IndicesGetMapping("_all", "_all");
+            var _mappings = await CURL("GET", "_mapping", null);
+            //var categories = from c in _mappings["channel"]["item"].SelectMany(i => i["categories"]).Values<string>()
+            //    group c by c
+            //    into g
+            //    orderby g.Count() descending
+            //    select new { Category = g.Key, Count = g.Count() };
+
+            //string itemTitle = (string)_mappings["channel"]["item"][0]["title"];
+            Dictionary<string, List<string>> indexTypes = new Dictionary<string, List<string>>();
+            foreach (var _index in _mappings)
+            {
+                if (!indexTypes.ContainsKey(_index.Key))
+                {
+                    indexTypes.Add(_index.Key, new List<string>());
+                }
+                var _types = indexTypes[_index.Key];
+                foreach (var _indexMappings in _index.Value)
+                {
+                    foreach (var _indexMapping in _indexMappings)
+                    {
+                        foreach (var _type in _indexMapping.Values())
+                        {
+                            var typeName = _type.Path.Replace(_indexMapping.Path, "").Trim('.');
+                            if (!_types.Contains(typeName))
+                            {
+                                _types.Add(typeName);
+                            }
+                        }
+                    }
+                }
+            }
             foreach (var item in indexes)
             {
+                //var mapping = _elclient.GetMapping<item>();
                 results.Add(new Models.QueryOption()
                 {
-                    OptionGroup = "Scope",
+                    OptionGroup = "Indices",
                     Key = "1_" + item.Index,
                     Value = (item.Index.Contains("_") ? item.Index.Split('_')[0] : item.Index)
                         + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs)"
@@ -165,22 +227,65 @@ namespace Search.Core.Windows.Controllers
                     Selected = (chosenOptions.Contains("1_" + item.Index + ","))
                 });
 
-            }
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_1", Value = "Exact text", Selected = (chosenOptions.Contains("2_1,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_2", Value = "Fuzzy logic", Selected = (chosenOptions.Contains("2_2,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_3", Value = "Hierarchy", Selected = (chosenOptions.Contains("2_3,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_4", Value = "Geo location", Selected = (chosenOptions.Contains("2_4,")) });
-            //results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "2_5", Value = "Highlight", Selected = (ChosenOptions.Contains("2_5,")) });
+                var indTypes = indexTypes[item.Index];
+                if (chosenOptions.Contains("1_" + item.Index + ","))
+                {
+                    foreach (var indType in indTypes)
+                    {
+                        results.Add(new Models.QueryOption()
+                        {
+                            OptionGroup = "Types",
+                            Key = "2_" + indType, //item.Index + "_" + 
+                            Value = indType, //item.Index + "_" + indType, 
+                            Selected = (chosenOptions.Contains("2_" + indType + ",")) //item.Index + "_" + 
+                        });
+                    }
+                }
 
-            results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "3_1", Value = "Scroll", Selected = (chosenOptions.Contains("3_1,")) });
-            results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "3_2", Value = "Page", Selected = (chosenOptions.Contains("3_2,")) });
-            //results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "3_3", Value = "Tile", Selected = (ChosenOptions.Contains("3_3,")) });
+                //var keys = mappings.Mappings.Keys;
+                /*if (chosenOptions.Contains("1_" + item.Index + ",") && mappings.IsValid)
+                {
+                    //var props = mappings.CallDetails;
+                    foreach (var indType in mappings.Mappings[item.Index])
+                    {
+                        var tmp = indType as TypeMapping;
+                        results.Add(new Models.QueryOption()
+                        {
+                            OptionGroup = "Types",
+                            Key = "2_" + indType.ToString(),
+                            Value = (item.Index.Contains("_") ? item.Index.Split('_')[0] : item.Index)
+                                + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs)"
+                                    //+ (string.IsNullOrEmpty(item.StoreSize) ? "0" : item.StoreSize) + " bites)"
+                                    ,
+                            Selected = (chosenOptions.Contains("1_" + item.Index + ","))
+                        });
+                    }
+                }*/
+
+                //Nest.IndexFieldMappings ifm = new IndexFieldMappings() { };
+                //var indName = new Nest.IndexName() { Name = item.Index };
+                //var ind = Nest.Indices.Index(indName).;
+
+            }
+
+
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_1", Value = "Exact text", Selected = (chosenOptions.Contains("3_1,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_2", Value = "Fuzzy logic", Selected = (chosenOptions.Contains("3_2,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_3", Value = "Hierarchy", Selected = (chosenOptions.Contains("3_3,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_4", Value = "Location", Selected = (chosenOptions.Contains("3_4,")) });
+            //results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_5", Value = "Highlight", Selected = (chosenOptions.Contains("3_5,")) });
+
+
+
+            results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_1", Value = "Scroll", Selected = (chosenOptions.Contains("4_1,")) });
+            results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_2", Value = "Page", Selected = (chosenOptions.Contains("4_2,")) });
+            //results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_3", Value = "Map", Selected = (chosenOptions.Contains("4_3,")) });
             return results;
         }
 
-        private static Nest.ElasticClient elastic = new Nest.ElasticClient(new Nest.ConnectionSettings(new Uri(Startup.GetElasticSearchUrl())));
 
-        public static async Task<Nest.ISearchResponse<dynamic>> GetNestResults(Models.Query query)
+
+        public async Task<Nest.ISearchResponse<dynamic>> GetNestResults(Models.Query query)
         {
             SearchDescriptor<dynamic> sd = new SearchDescriptor<dynamic>();
             /*sd.Aggregations(new Dictionary<string, IAggregationContainer>()
@@ -197,7 +302,6 @@ namespace Search.Core.Windows.Controllers
                         }
                     }
                 });*/
-
             Nest.ISearchResponse<dynamic> results = null;
             Nest.Indices indices = Nest.Indices.AllIndices;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
@@ -206,20 +310,28 @@ namespace Search.Core.Windows.Controllers
                     .Where(qo => qo.StartsWith("1_"))
                     .Select(qo => new Nest.IndexName() { Name = qo.Replace("1_", "") }));
             }
-            else if (query.QueryOptions.Count() > 0)
+            if (query.QueryOptions.Count() > 0)
             {
                 indices = Nest.Indices.Index(query.QueryOptions
                     .Where(qo => qo.Key.StartsWith("1_"))
                     .Select(qo => new Nest.IndexName() { Name = qo.Key.Replace("1_", "") }));
             }
 
-            if (query.ChosenOptions != null && query.ChosenOptions.Contains("2_2"))
+            Nest.Types types = Nest.Types.AllTypes;
+            if (query.ChosenOptions != null && query.ChosenOptions.Contains("2_"))
             {
-                results = await elastic.SearchAsync<dynamic>(d => d
+                types = Nest.Types.Type(query.ChosenOptions.Trim(',').Split(',').AsEnumerable()
+                    .Where(qo => qo.StartsWith("2_"))
+                    .Select(qo => new Nest.TypeName() { Name = qo.Replace("2_", "") }));
+            }
+
+            if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_2"))
+            {
+                results = await _elclient.SearchAsync<dynamic>(d => d
                     .Index(indices)
-                    .AllTypes()
+                    .Type(types)
                     .From(query.From ?? 0) //.Skip()
-                    .Size(query.Size ?? 10) //.Take()
+                        .Size(query.Size ?? 10) //.Take()
                     .Query(q => q.Fuzzy(f => f.Value(query.QueryTerm)))
                     .Highlight(h => h
                         .Fields(f => f
@@ -230,9 +342,9 @@ namespace Search.Core.Windows.Controllers
             }
             else
             {
-                results = await elastic.SearchAsync<dynamic>(body => body
+                results = await _elclient.SearchAsync<dynamic>(body => body
                     .Index(indices)
-                    .AllTypes()
+                    .Type(types)
                     .From(query.From ?? 0)
                     .Size(query.Size ?? 10)
                     .Query(q => q.QueryString(qs => qs.Query(query.QueryTerm)))
@@ -308,13 +420,13 @@ namespace Search.Core.Windows.Controllers
         /// <param name="url"></param>
         /// <param name="body"></param>
         /// <returns></returns>
-        private async Task<dynamic> CURL(string action, string url, string body)
+        private static async Task<JObject> CURL(string action, string url, string body)
         {
             string responseBody = string.Empty;
             using (var client = new HttpClient())
             {
                 client.BaseAddress = new Uri(Startup.GetElasticSearchUrl().TrimEnd('/'));
-                Uri uri = new Uri(client.BaseAddress + "/" + url.TrimStart('/'));
+                Uri uri = new Uri(client.BaseAddress + url.TrimStart('/'));
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 StringContent queryString = null;
@@ -348,6 +460,8 @@ namespace Search.Core.Windows.Controllers
                 }
             }
             var resultObj = JsonConvert.DeserializeObject<dynamic>(responseBody);
+            //JsonNodes resultObj = JsonConvert.DeserializeObject<JsonNodes>(responseBody);
+            //var resultObj = JObject.Parse(responseBody);
             return resultObj;
         }
     }

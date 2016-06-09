@@ -4,26 +4,52 @@
 }
 
 @await Component.InvokeAsync("QueryOptions")
-<span>Found @Model.Total record(s)</span>
-<hr />
 
-@if (!Model.ChosenOptions.Contains("3_2"))
-{
-    <div class="scroll col-md-12">
-            <ul id="ulllist">
-                <li><a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)">...</a></li>
-            </ul>
+<div class="row col-lg-12 col-md-12 file-results" data-role="content" data-position="fixed">
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="active"><a href="#Search-Results" role="tab" data-toggle="tab" aria-expanded="true" class="glyphicon glyphicon-search">Results <span class="badge">@Model.Total</span></a></li>
+        <li><a href="#Search-Summary" role="tab" data-toggle="tab" class="glyphicon glyphicon-align-left">Summary</a></li>
+        <li><a href="#Search-Charts" role="tab" data-toggle="tab" class="glyphicon glyphicon-adjust">Charts</a></li>
+        <li><a id="MapsTab" href="#Search-Maps" role="tab" data-toggle="tab" class="glyphicon glyphicon-map-marker">Maps</a></li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane active" id="Search-Results">
+            @if ((Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2"))
+                || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2")) )
+            {
+                <div class="scroll col-md-12">
+                    <ul id="ulllist">
+                        <li><a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))">...</a></li>
+                    </ul>
+                </div>
+            }
+            else if (!Model.ChosenOptions.Contains("4_1") && Model.ChosenOptions.Contains("4_2"))
+            {
+                <div class="page col-md-12">
+                    @await Html.PartialAsync("Page")
+                </div>
+            }
+        </div>
+        <div class="tab-pane" id="Search-Summary">
+            <div id="searchSummary">
+                @*@Html.EditorFor(model => model.Properties, "Properties")*@
+            </div>
+        </div>
+        <div class="tab-pane" id="Search-Charts">
+            <div id="chartSummary"></div>
+        </div>
+        <div class="tab-pane" id="Search-Maps">
+            <div id="googleMap"></div>
+        </div>
     </div>
-}
-else
-{
-    <div class="page col-md-12">
-            @await Html.PartialAsync("Page")
-    </div>
-}
+</div>
+
+
 
 @section Scripts {
     <script src="~/lib/jquery.jscroll/jquery.jscroll.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(Startup.GetGoogleMapKey())&sensor=false&language=en" type="text/javascript"></script>
+    <script src="~/js/map.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
             $('.scroll').jscroll({
@@ -34,6 +60,7 @@ else
                 nextSelector: 'a.jscroll-next:last',
                 contentSelector: 'li'
             });
+
         });
     </script>
 }

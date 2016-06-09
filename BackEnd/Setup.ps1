@@ -1,17 +1,18 @@
 <#
+
     #dev with daily snapshot
     cd C:\Search
-    .\Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev" -SearchFolder "C:\Search" -LogFolder "C:\Logs" #-UseSnapshot
+    .\Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev" #-SetEnvironment
+        $s = ["a":"1", "b":"2"]
 
     #prod cluster
     cd E:\Search
-    .\setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Prod" -SearchFolder "E:\Search" -LogFolder "F:\Logs" `
+    .\setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-287161d3-a6db-4e47-a8b3-5e62df55586f.json"
 
     Debugging:
         cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha3\bin\elasticsearch.bat"
-        $SearchFolder =  "C:\Search"
         $ESVersion = "5.0.0-alpha3"
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -19,16 +20,40 @@ Param(
     [Parameter(Mandatory=$false, Position = 0, ValueFromRemainingArguments=$true , HelpMessage = 'current version of Elastic Search products is the same starting from 5.0')]
     [string]$ESVersion,
     [string]$ClusterName,
-    [string]$SearchFolder,
-    [string]$LogFolder,
     [string[]]$DiscoveryHosts = @(),
     [switch]$AsService,
     [switch]$UseSnapshot,
-    [string]$LicenceFilePath
+    [string]$LicenceFilePath,
+    [switch]$SetEnvironment
 )
 
 function Main(){
     Clear-Host
+
+    if ($env:JAVA_HOME -eq $null)
+    {
+        Echo "Please install last version of Java and configure working catalog"
+    }
+    if ($SetEnvironment.IsPresent){
+        #Configure environment variables. Run this scrip as administrator to set up environment variables permanently. Machine or User - up to you
+        [Environment]::SetEnvironmentVariable("ElasticUri", "http://localhost:9200", "User")
+        [Environment]::SetEnvironmentVariable("TESSERACT_HOME", "C:\Program Files (x86)\Tesseract-OCR", "User") 
+        [Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-6.9.3-Q16", "User")
+        [Environment]::SetEnvironmentVariable("SEARCH_HOME", "C:\Search", "User")
+        [Environment]::SetEnvironmentVariable("LOG_DIR", "C:\Logs", "User")
+        [Environment]::SetEnvironmentVariable("MAGICK_TMPDIR", "C:\Temp\MAGICK_TMPDIR", "User")
+        [Environment]::SetEnvironmentVariable("GHOSTSCRIPT_HOME", "C:\Program Files\gs\gs9.18", "User")
+
+        [Environment]::SetEnvironmentVariable("Google_MapApiKey", "<your value>", "User")
+        [Environment]::SetEnvironmentVariable("Bing_MapApiKey", "<your value>", "User") 
+        [Environment]::SetEnvironmentVariable("Flickr_ApiKey", "<your value>", "User")
+        [Environment]::SetEnvironmentVariable("Flickr_ApiSecret", "<your value>", "User")
+        [Environment]::SetEnvironmentVariable("EntityRecognizerURI", "https://ussouthcentral.services.azureml.net/workspaces/<your guid>/services/<your guid>/execute?api-version=2.0&details=true", "User")
+        [Environment]::SetEnvironmentVariable("EntityRecognizerApiKey", "<your value>", "User")
+
+        Get-ChildItem Env:
+    }
+
     
     if ($UseSnapshot.IsPresent){#daily builds works for kibana only :(
         #DownLoadAndExtract -Url "http://download.elastic.co/elasticsearch/elasticsearch-snapshot/elasticsearch-5.0.0-snapshot.zip"
@@ -45,17 +70,17 @@ function Main(){
 
     #configure elastice settings 
     #For settings that you do not wish to store in the configuration file, you can use the value ${prompt.text} or ${prompt.secret} 
-    $config = Get-Content "$SearchFolder\elasticsearch-$ESVersion\config\elasticsearch.yml" -Raw
+    $config = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\elasticsearch.yml" -Raw
     $config = $config.Replace("# cluster.name: my-application", " cluster.name: $ClusterName")
     #Environment variables referenced with the ${...} notation within the configuration file will be replaced with the value of the environment variable, for instance:
     $config = $config.Replace("# node.name: node-1", " node.name: `${HOSTNAME}") #$env:COMPUTERNAME
-    $config = $config.Replace("# path.data: /path/to/data", " path.data: $SearchFolder\Data")
-    $config = $config.Replace("# path.logs: /path/to/logs", " path.logs: $LogFolder")
+    $config = $config.Replace("# path.data: /path/to/data", " path.data: $env:SEARCH_HOME\Data")
+    $config = $config.Replace("# path.logs: /path/to/logs", " path.logs: $env:LOG_DIR")
 
     #default is localhost:9200, otherwise use cluster
     #command line configuration
     #configure settings from command line:
-    #cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch.bat" -Enode.name=node_1 -Ecluster.name=my_cluster 
+    #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch.bat" -Enode.name=node_1 -Ecluster.name=my_cluster 
 
     if($DiscoveryHosts.Length -gt 0){
         #The network.host setting also understands some special values such as _local_, _site_, _global_ and modifiers like :ip4 and :ip6, details of which can be found in the section called “Special values for network.hostedit”.
@@ -85,96 +110,82 @@ function Main(){
         $config += "`r`n repositories.url.allowed_urls: [""http://download.elastic.co/*""]"
     }
 
-    Set-Content "$SearchFolder\elasticsearch-$ESVersion\config\elasticsearch.yml" $config
+    Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\elasticsearch.yml" $config
 
     #configure logging setting. 
-    $logging = Get-Content "$SearchFolder\elasticsearch-$ESVersion\config\logging.yml" -Raw
+    $logging = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml" -Raw
     #$logging = $logging.Replace("es.logger.level: INFO", "es.logger.level: DEBUG")
     #For example, this will create a daily rolling deprecation log file in your log directory. Check this file regularly, especially when you intend to upgrade to a new major version.:
     $logging = $logging.Replace("deprecation: INFO, deprecation_log_file", "deprecation: DEBUG, deprecation_log_file")
-    Set-Content "$SearchFolder\elasticsearch-$ESVersion\config\logging.yml" $logging
+    Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml" $logging
 
     <#The service installer requires that the thread stack size setting be configured in jvm.options before you install the service. 
         On 32-bit Windows, you should add -Xss320k to the jvm.options file, 
         and on 64-bit Windows you should add -Xss1m to the jvm.options file.#>
-    $jvmoptoins = Get-Content "$SearchFolder\elasticsearch-$ESVersion\config\jvm.options" -Raw
+    $jvmoptoins = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\jvm.options" -Raw
     if ([Environment]::Is64BitProcess -eq $true -and $jvmoptoins.Contains("-Xss1m") -eq $false){
         $jvmoptoins += "`r`n-Xss1m"
-        Set-Content "$SearchFolder\elasticsearch-$ESVersion\config\jvm.options" $jvmoptoins
+        Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\jvm.options" $jvmoptoins
     }
     elseif (([Environment]::Is64BitProcess -eq $null -or [Environment]::Is64BitProcess -eq $false) -and $jvmoptoins.Contains("-Xss320k") -eq $false){
         $jvmoptoins += "`r`n-Xss320k"
-        Set-Content "$SearchFolder\elasticsearch-$ESVersion\config\jvm.options" $jvmoptoins
+        Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\jvm.options" $jvmoptoins
     }
 
     #check current versions
-    cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch.bat" -V
-    cmd.exe /C "$SearchFolder\kibana-$ESVersion-windows\bin\kibana.bat" -V
-    if ($env:JAVA_HOME -eq $null)
-    {
-        Echo "Please install last version of Java" and configure working catalog
-    }
+    cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch.bat" -V
+    cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana.bat" -V
 
-    #configure environment variables
-    if ($env:ElasticUri -eq $null){
-        $env:ElasticUri = "http://$ipV4:9200"
-    }
-    if ($env:SEARCH_HOME -eq $null){
-        $env:SEARCH_HOME = $SearchFolder
-    }
-    if ($env:LOG_DIR -eq $null){
-        $env:LOG_DIR = $LogFolder
-    }
 
     #configure windows services
     if ($AsService.IsPresent){
         #uninstall service
         try{
-            cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\service.bat" stop Elastic-Search
-            cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\service.bat" remove Elastic-Search
+            cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" stop Elastic-Search
+            cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" remove Elastic-Search
             #"Waiting 5 seconds to allow service to be uninstalled."
             Start-Sleep -s 5  
         }
         catch{}
 
         #install service
-        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\service.bat" install #Elastic-Search
-        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\service.bat" start #Elastic-Search
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" install #Elastic-Search
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" start #Elastic-Search
         #or run it manually in command line deamon mode. To stop use Cntrl+C
-        #cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\service.bat" -d
+        #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" -d
 
         <#unfortunately kibana as a service is not available yet in v5
-            cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\kibana.bat" install Kibana
+            cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\kibana.bat" install Kibana
 
         but we can simulate that service. run the following command in admin mode:
-            cmd.exe /C sc create "ElasticSearch Kibana" binPath= "$SearchFolder\kibana-$ESVersion-windows\bin\kibana.bat" depend= "Elastic-Search" 
+            cmd.exe /C sc create "ElasticSearch Kibana" binPath= "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana.bat" depend= "Elastic-Search" 
             sc start "ElasticSearch Kibana"
         ignore messages that service is not accesable. it is already running, just check http://localhost:5601
         to uninstall run:
             sc stop "ElasticSearch Kibana"
             sc delete "ElasticSearch Kibana"
         Or use our script function provided below:
-            Setup-Service -serviceName "ElasticSearch Kibana" -exePath "$SearchFolder\kibana-$ESVersion-windows\bin\kibana.bat" -uninstall -install -start #-cred $cred
+            Setup-Service -serviceName "ElasticSearch Kibana" -exePath "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana.bat" -uninstall -install -start #-cred $cred
         #>
     }
     else{
-        Echo "To run elastic service use this command in separate window: cmd.exe /C '$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch.bat'"
+        Echo "To run elastic service use this command in separate window: cmd.exe /C '$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch.bat'"
     }
 
     <#configure plugins. 
     Many v2 plugings are moved or depricated in v5, see https://download.elastic.co/kibana/x-pack/x-pack-5.0.0-alpha2.zip
-        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat list"
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat list"
         #extended unicode support https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis-icu.html
-        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install analysis-icu"
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install analysis-icu"
                 
 
-        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install x-pack"
-        cmd.exe /C "$SearchFolder\kibana-$ESVersion\bin\kibana-plugin.bat install x-pack"
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install x-pack"
+        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion\bin\kibana-plugin.bat install x-pack"
 
     Managing your licence https://www.elastic.co/guide/en/marvel/current/license-management.html#listing-licenses
     Marvel trial licence:
-        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install license"
-        cmd.exe /C "$SearchFolder\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install marvel-agent"
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install license"
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install marvel-agent"
 
     check the license from our scripts
         &$get '_license'
@@ -197,12 +208,12 @@ function DownLoadAndExtract(){
         [string]$Url
     )
     $fileName = split-path $Url -Leaf
-    [IO.FileInfo]$archiveFileInfo = "$SearchFolder\$fileName"
+    [IO.FileInfo]$archiveFileInfo = "$env:SEARCH_HOME\$fileName"
     if ((Test-Path $archiveFileInfo.FullName) -eq $false){
         Echo "Downloading archive  $Url ..."
         (New-Object Net.WebClient).DownloadFile($Url,$archiveFileInfo.FullName);
         Unblock-File -Path $archiveFileInfo.FullName
-        (new-object -com shell.application).namespace($SearchFolder).CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
+        (new-object -com shell.application).namespace($env:SEARCH_HOME).CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
         #Remove-Item $archiveFileInfo.FullName -Confirm:$false
     }
 }

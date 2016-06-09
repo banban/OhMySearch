@@ -4,30 +4,13 @@
     3.Install Tesseract-OCR-3.02, GHostScript gs9.18 or latest versions
     4.Install DocumentFormat.OpenXml, OfficeFileConverter, b2xtranslator, itextsharp
     5.Configure temp folders:
-        1. configure Nova.Search\Binn\OfficeFileConverter\Tools\ofc.ini
+        1. configure C:\Search\_artefacts\Binn\OfficeFileConverter\Tools\ofc.ini
             LogDestinationPath= <<<$env:LOG_DIR>>>
-            fldr=C:\Temp\OfficeFileConverter\Input
+            fldr=C:\Search\_artefacts\Temp\OfficeFileConverter\Input
             SourcePathTemplate=*\*\*\*\*\
-            DestinationPathTemplate=C:\Temp\OfficeFileConverter\Output
+            DestinationPathTemplate=C:\Search\_artefacts\Temp\OfficeFileConverter\Output
 
         2.setup environment variables:
-        $env:TESSERACT_HOME = "C:\Program Files (x86)\Tesseract-OCR"
-        $env:MAGICK_HOME = "C:\Program Files\ImageMagick-6.9.3-Q16"
-        $env:SEARCH_HOME = "E:\Search"
-        $env:LOG_DIR = "C:\Logs"
-        $env:MAGICK_TMPDIR = "C:\Temp\MAGICK_TMPDIR"
-        $env:GHOSTSCRIPT_HOME = "C:\Program Files\gs\gs9.18"
-        $env:EntityRecognizerURI = "https://ussouthcentral.services.azureml.net/workspaces/<your guid>/services/<your guid>/execute?api-version=2.0&details=true"
-        $env:EntityRecognizerApiKey = "<your key>"
-
-        More durable approach is. Please run as admin:
-        [Environment]::SetEnvironmentVariable("SEARCH_HOME", "C:\Search", "User")
-        [Environment]::SetEnvironmentVariable("LOG_DIR", "C:\Logs", "User")
-        [Environment]::SetEnvironmentVariable("ElasticUri", "10.1.0.179", "User")
-        $env:ElasticUri
-
-        3.Check variables
-        Get-ChildItem Env:
 
     6.Configure Azure (optional):
         Entity Recognition web services and keys
@@ -73,12 +56,12 @@ Param(
     [string]$ImageMagickPath = $env:MAGICK_HOME,
     [string]$ImageMagickTempFiles = "$([environment]::getfolderpath(“mydocuments”))".Trim("Documents") + "magick-*",
     [string]$ImageMagickTempPath = $env:MAGICK_TMPDIR,
-    [string]$OfficeFileConverterExecPath = "$($env:SEARCH_HOME)\Nova.Search\Binn\OfficeFileConverter\Tools\ofc.exe",
-    [string]$b2xtranslatorExecPath = "$($env:SEARCH_HOME)\Binn\b2xtranslator\", 
-    [string]$OfficeFileConverterTempPath = "$($env:SEARCH_HOME)\Nova.Search\Binn\OfficeFileConverter\",
+    [string]$OfficeFileConverterExecPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\Tools\ofc.exe",
+    [string]$b2xtranslatorExecPath = "$($env:SEARCH_HOME)\_artefacts\Binn\b2xtranslator\", 
+    [string]$OfficeFileConverterTempPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\",
     [string]$GHostScriptDllPath = "$($env:GHOSTSCRIPT_HOME)\bin\gsdll64.dll",
-    [string]$iTextSharpDllPath = "$($env:SEARCH_HOME)\Nova.Search\Binn\itextsharp.dll",
-    [string]$DocFormatOpenXmlDllPath = "$($env:SEARCH_HOME)\Nova.Search\Binn\DocumentFormat.OpenXml.dll",
+    [string]$iTextSharpDllPath = "$($env:SEARCH_HOME)\_artefacts\Binn\itextsharp.dll",
+    [string]$DocFormatOpenXmlDllPath = "$($env:SEARCH_HOME)\_artefacts\Binn\DocumentFormat.OpenXml.dll",
 
     #General settings
     [int]$MaxFileBiteSize = 20000000,  #<=20 Mb
@@ -414,7 +397,7 @@ Echo $fullPath
     }
 
     try{
-        #$searchFilePath = "C:\Temp\Nova.Search\test.search.json"
+        #$searchFilePath = "$($env:SEARCH_HOME)\_artefacts\Temp\test.search.json"
         #not sure what is returned by Out-File
         $fileObj | ConvertTo-Json -Compress| Out-File -Force $searchFilePath # -ErrorAction Continue
         $fileJson = Get-Item -Force $searchFilePath
@@ -424,14 +407,14 @@ Echo $fullPath
 
         #Set-ItemProperty -Path $fullPath -Name attributes -Value ((Get-ItemProperty $fullPath).attributes -BXOR $compressAttr)
         #Invoke-WmiMethod -Path "Win32_Directory.Name='$($fullPath)'" -Name compress
-        #$file = Get-WmiObject -Query "SELECT * FROM CIM_DataFile WHERE Name='C:\Temp\approval letter.docx'"
+        #$file = Get-WmiObject -Query "SELECT * FROM CIM_DataFile WHERE Name='$($env:SEARCH_HOME)\_artefacts\Temp\approval letter.docx'"
         #$file.Compress()
         #$computer = "svrsa1fs03"
         #$compressedPath = "C:\Library\mchardie.pps.search.json"
-        #([wmi]"\\$computer\root\cimv2:win32_DataFile.name='C:\Temp\approval letter.docx'").compress()
-        #([wmi]"\\$computer\root\cimv2:win32_Directory.name='C:\\Temp\\potrace-1.12.win64'").compress()
+        #([wmi]"\\$computer\root\cimv2:win32_DataFile.name='$($env:SEARCH_HOME)\_artefacts\Temp\approval letter.docx'").compress()
+        #([wmi]"\\$computer\root\cimv2:win32_Directory.name='$($env:SEARCH_HOME)\\_artefacts\\Temp\\potrace-1.12.win64'").compress()
 
-        #$file = Get-WmiObject -Query "SELECT * FROM CIM_DataFile WHERE Name='C:\\Temp\\approval letter.docx'"
+        #$file = Get-WmiObject -Query "SELECT * FROM CIM_DataFile WHERE Name='$($env:SEARCH_HOME)\\_artefacts\\Temp\\approval letter.docx'"
         #$file = Get-WmiObject -Query "SELECT * FROM CIM_DataFile WHERE Name='\\\\shares\\library\\stein.pps.search.json'"
         #$file.Compress()
     }

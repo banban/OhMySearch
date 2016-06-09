@@ -18,6 +18,22 @@ namespace Search.Core.Windows.Models
         public string Type { get; set; }
         public string Path { get; set; }
         public long? Version { get; set; }
+        public string Tootip {
+            get
+            {
+                string tooltipSource = string.Empty;
+                if (string.IsNullOrEmpty(this.Source))
+                {
+                    tooltipSource = this.Source.ToString();
+                    if (tooltipSource?.Length > 256)
+                    {
+                        tooltipSource = tooltipSource.Substring(0, 256);
+                    }
+                    tooltipSource = tooltipSource.TrimStart('{').TrimEnd('}').Trim();
+                }
+                return tooltipSource;
+            }
+        }
 
         //public IEnumarable<KeyValuePair<string, string>> Hihglights { get; set; }
     }

@@ -59,10 +59,21 @@ namespace Search.Core.Windows
 
         public static string GetElasticSearchUrl()
         {
-            string result = Environment.GetEnvironmentVariable("ElasticUri");
+            string result = Configuration["Data:ElasticSearch:Url"];
             if (string.IsNullOrEmpty(result))
             {
-                result = Configuration["Data:ElasticSearch:Url"];
+                result = Environment.GetEnvironmentVariable("ElasticUri");
+            }
+
+            return result;
+        }
+
+        public static string GetGoogleMapKey()
+        {
+            string result = Configuration["Data:Google:MapApiKey"];
+            if (string.IsNullOrEmpty(result))
+            {
+                result = Environment.GetEnvironmentVariable("Google_MapApiKey");
             }
 
             return result;

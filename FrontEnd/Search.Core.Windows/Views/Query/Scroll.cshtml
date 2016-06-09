@@ -4,12 +4,7 @@
 {
     @foreach (var item in Model)
     {
-        string tooltipSource = item.Source.ToString();
-        if (tooltipSource?.Length > 256)
-        {
-            tooltipSource = tooltipSource.Substring(0, 256);
-        }
-        <li title="@tooltipSource">
+        <li class="search-item" title="@item.Tootip">
             <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index"></button>
             Index: @item.Index; Type: @item.Type; Score: @item.Score;
             @if(item.Type == "file")
@@ -20,7 +15,6 @@
             {
                 <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-picture" href='file:///@item.Path.Replace("\\", "/")'></a><br />
             }
-
 
             @*@if (item.Highlights.Count > 0)
                 {
@@ -33,5 +27,5 @@
                 }*@
         </li>
     }
-    <li><a class="jscroll-next" hidden href="../Query/Scroll?from=@(ViewBag.From)&term=@(ViewBag.QueryTerm)&options=@(ViewBag.ChosenOptions)">End of page...</a></li>
+    <li><a class="jscroll-next" hidden href="../Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))">End of page...</a></li>
 }

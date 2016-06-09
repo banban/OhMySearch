@@ -22,8 +22,7 @@
     "Microsoft.Extensions.Logging.Console": "1.0.0-rc2-final",
     "Microsoft.Extensions.Logging.Debug": "1.0.0-rc2-final",
     "Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.0.0-rc2-final",
-    "NEST": "5.0.0-alpha1"
-  },
+    "NEST": "5.0.0-alpha1"  },
 
   "tools": {
     "Microsoft.AspNetCore.Razor.Tools": {

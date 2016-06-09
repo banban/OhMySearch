@@ -1,5 +1,4 @@
 ﻿// Write your Javascript code.
-//https://www.sitepoint.com/jquery-infinite-scrolling-demos/
 $(document).ready(function () {
     $(".chosen-select").chosen({
         include_group_label_in_selected: true,
@@ -9,23 +8,23 @@ $(document).ready(function () {
     }).change(function (event, params) {
         if (params.selected) {
             $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + ",");
-            if (params.selected == "2_1") {
+            if (params.selected == "3_1") {
                 $("#QueryTerm").val("The quick brown fox");
             }
-            else if (params.selected == "2_2") {
+            else if (params.selected == "3_2") {
                 $("#QueryTerm").val("The qick broon foox");
             }
-            else if (params.selected == "2_3") {
+            else if (params.selected == "3_3") {
                 $("#QueryTerm").val("/1/2/3");
             }
-            else if (params.selected == "2_4") {
+            else if (params.selected == "3_4") {
                 $("#QueryTerm").val("Perth");
             }
             ///some options can conflict with others
-            //else if (params.selected == "3_1") { 
+            //else if (params.selected == "4_1") { 
             //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("3_2,", ""));
             //}
-            //else if (params.selected == "3_2") {
+            //else if (params.selected == "4_2") {
             //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("3_1,", ""));
             //}
         }
@@ -37,7 +36,7 @@ $(document).ready(function () {
 
     var themes = {
         "default": "~/Content/bootstrap.min.css",
-        "amelia": "//bootswatch.com/2/amelia/bootstrap.min.css",
+        "amelia": "../lib/bootswatch/amelia/bootstrap.min.css",
         "cerulean": "../lib/bootswatch/cerulean/bootstrap.min.css",
         "cosmo": "../lib/bootswatch/cosmo/bootstrap.min.css",
         "cyborg": "../lib/bootswatch/cyborg/bootstrap.min.css",

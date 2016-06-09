@@ -5,7 +5,7 @@
     <ul>
         @foreach (var item in Model.SearchResults.Items)
         {
-            <li>
+            <li class="search-item" title="@item.Tootip">
                 <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index"></button>
                 Index: @item.Index; Type: @item.Type; Score: @item.Score;
                 @if (item.Type == "file")
@@ -27,7 +27,7 @@
             @if (Model.SearchResults.Pager.CurrentPage > 1)
             {
                 <li>
-                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)">First</a>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)">First</a>
                 </li>
                 <li>
                     <a href="../Query/Index?page=@(Model.SearchResults.Pager.CurrentPage - 1)">Previous</a>
@@ -37,17 +37,17 @@
             @for (var page = Model.SearchResults.Pager.StartPage; page <= Model.SearchResults.Pager.EndPage; page++)
             {
                 <li class="@(page == Model.SearchResults.Pager.CurrentPage ? "active" : "")">
-                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)&page=@page">@page</a>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@page">@page</a>
                 </li>
             }
 
             @if (Model.SearchResults.Pager.CurrentPage < Model.SearchResults.Pager.TotalPages)
             {
                 <li>
-                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage + 1)">Next</a>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage + 1)">Next</a>
                 </li>
                 <li>
-                    <a href="../Query/Index?term=@(Model.QueryTerm)&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.TotalPages)">Last</a>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.TotalPages)">Last</a>
                 </li>
             }
         </ul>
