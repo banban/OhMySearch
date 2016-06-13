@@ -77,6 +77,7 @@ Unit tests:
 
     &$delete "tender_v1" 
 
+    check foursquare search in Search.Index.Files.Test.ps1
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 

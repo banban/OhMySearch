@@ -1,13 +1,4 @@
-﻿<#End to End Test
-#one by one: 6hours , 12200 documents, 789mb.  Batch processing: 25 minutes 12238 documents 709.7mb (\\svrsa1fs03\library\)
-powershell -ExecutionPolicy ByPass -command "C:\_AdminTools\Nova_Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\svrsa1fs03\library\" -RecreateIndex 1
-#one by one: ???.                              Batch processing: 13 hours 245761 documents 7.2gb (\\svrsa1fs03\fs\bus\  !do not use \\nova\files\Business Units\ it will multiply content by numberof projections == \\nova\nova-dfs\group\ )
-powershell -ExecutionPolicy ByPass -command "C:\Search\Scripts\Search.Index.Elastic.ps1" -SharedFolders "\\shared\folder1"
-#>
-
-
-<#
-
+﻿<#
 System Fields
 -------------
 _type
@@ -1856,3 +1847,10 @@ PUT /fs
     }
   }
 }
+
+#find coffee
+$uri = "https://api.foursquare.com/v2/venues/search?client_id=$env:Foursquare_ClientId&client_secret=$env:Foursquare_ClientSecret&v=20140806&ll=-34.93727%2C138.57384&query=coffee"
+#find sushi 
+$uri = "https://api.foursquare.com/v2/venues/search?client_id=$env:Foursquare_ClientId&client_secret=$env:Foursquare_ClientSecret&v=20140806&ll=40.7,-74&query=sushi"
+$response = wget -Uri $uri -method "Get" -ContentType 'application/json' 
+ConvertFrom-Json $response.Content
