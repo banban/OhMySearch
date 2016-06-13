@@ -1,0 +1,74 @@
+﻿@model Search.Core.Windows.Models.SearchResult
+@{
+    ViewData["Title"] = "Result Details";
+}
+
+<div class="form-horizontal">
+    <h4>Document: @Model.Index/@Model.Type/@Model.Id</h4>
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="active"><a href="#General" role="tab" data-toggle="tab">General</a></li>
+        <li><a href="#MLT" role="tab" data-toggle="tab">More like this</a></li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane active" id="General">
+            <div class="col-lg-12 col-md-12">
+                @if (Model.Type == "file" || Model.Type == "photo")
+                {
+                    <div class="form-group">
+                        <div class="col-lg-2">
+                            <label asp-for="Path"></label>
+                            @if (Model.Extension.ToLower() == "pdf")
+                            {
+                                <img id="Content" src="~/images/pdf.gif" alt="Image" />
+                            }
+                            else
+                            {
+                                <label class="@Model.Extension">@Model.Extension</label>
+                            }
+                        </div>
+                        <div class="col-lg-10">
+                            <a href='file:///@Model.Path.Replace("\\", "/")'>@Model.Path.Replace("/", "\\")</a>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-lg-2" asp-for="LastModified"></label>
+                        <div class="col-lg-10">
+                            @Model.LastModified
+                        </div>
+                    </div>
+                    if (Model.Type == "photo")
+                    {
+                        <div class="form-group">
+                            <label class="col-lg-2">Photo</label>
+                            <div class="col-lg-10">
+                                <img id="Content" class="file-image" title="@Model.Path" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
+                            </div>
+                        </div>
+                    }
+                }
+                <div class="form-group">
+                    <label class="col-lg-2" asp-for="Summary"></label>
+                    <div class="col-lg-10">
+                        <span>@Model.Summary</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane" id="MLT">
+            <div class="col-lg-12 col-md-12">
+                @*<div class="form-group">
+                        @Html.LabelFor(model => model.Id, null, htmlAttributes: new { @class = "control-label col-md-2 required" })
+                        <div class="col-md-10">
+                            model.Id
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        @Html.LabelFor(model => model.Source, null, htmlAttributes: new { @class = "control-label col-md-2 required" })
+                        <div class="col-md-10">
+                            model.Source
+                        </div>
+                    </div>*@
+            </div>
+        </div>
+    </div>
+</div>
