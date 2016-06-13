@@ -68,7 +68,7 @@ function Main(){
 
     #index helper functions
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force #-Verbose
-    #&$get
+    #&$cat
     #&$call "Get" "/_cluster/state"
 
     #get storage status summary before index

@@ -4,27 +4,22 @@
 {
     @foreach (var item in Model)
     {
-        <li class="search-item" title="@item.Tootip">
-            <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index"></button>
+        <li class="search-item">
+            <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." />
             Index: @item.Index; Type: @item.Type; Score: @item.Score;
-            @if(item.Type == "file")
+            @if (item.Extension.ToLower() == "pdf")
             {
-                <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-file" href='file:///@item.Path.Replace("\\", "/")' ></a><br />
+                <img id="Content" src="~/images/pdf.gif" alt="Image" />
             }
-            else if (item.Type == "photo")
+            else
             {
-                <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-picture" href='file:///@item.Path.Replace("\\", "/")'></a><br />
+                <label class="@item.Extension">@item.Extension</label>
             }
-
-            @*@if (item.Highlights.Count > 0)
-                {
-                    <ul>
-                        @foreach (var highlight in item.Highlights)
-                        {
-                            <li>Key: @highlight.Key; Value: @highlight.Value </li>
-                        }
-                    </ul>
-                }*@
+            @if (!string.IsNullOrEmpty(item.Path))
+            {
+                <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
+            }
+            <br /><span class="small">@Html.Raw(item.Summary)</span>
         </li>
     }
     <li><a class="jscroll-next" hidden href="../Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))">End of page...</a></li>

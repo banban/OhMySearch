@@ -5,16 +5,20 @@
     <ul>
         @foreach (var item in Model.SearchResults.Items)
         {
-            <li class="search-item" title="@item.Tootip">
-                <button title="details" class="details glyphicon glyphicon-pencil" asp-controller="SearchResults" asp-action="Details" asp-route-id="@item.Id" asp-route-index="@item.Index"></button>
+            <li class="search-item">
+                <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." />
                 Index: @item.Index; Type: @item.Type; Score: @item.Score;
-                @if (item.Type == "file")
+                @if (item.Extension.ToLower() == "pdf")
                 {
-                    <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-file" href='file:///@item.Path.Replace("\\", "/")'></a><br />
+                    <img id="Content" src="~/images/pdf.gif" alt="Image" />
                 }
-                else if (item.Type == "photo")
+                else
                 {
-                    <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-picture" href='file:///@item.Path.Replace("\\", "/")'></a><br />
+                    <label class="@item.Extension">@item.Extension</label>
+                }
+                @if (!string.IsNullOrEmpty(item.Path))
+                {
+                    <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
                 }
             </li>
         }

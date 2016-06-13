@@ -25,9 +25,18 @@ if ($global:ElasticUri -eq $null){
 
 $call = {
     param($verb, $params, $body)
-    $headers = @{ 
-        'Authorization' = 'Basic fVmBDcxgYWpndYXJj3RpY3NlkZzY3awcmxhcN2Rj'
+
+    $basicAuthValue = 'Basic fVmBDcxgYWpndYXJj3RpY3NlkZzY3awcmxhcN2Rj'
+    #if x-pack is installed, use user:password pair
+    if ($env:ElasticUser -ne $null -and $env:ElasticPassword -ne $null) {
+        $pair = $env:ElasticUser+":"+$env:ElasticPassword
+        $encodedCreds = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($pair))
+        $basicAuthValue = "Basic $encodedCreds"
     }
+    $headers = @{ 
+        'Authorization' = $basicAuthValue
+    }
+
     $params = $params.Replace("//","/").Trim('/')
 
     if ($global:Debug -eq $true){

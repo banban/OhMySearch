@@ -7,94 +7,6 @@ powershell -ExecutionPolicy ByPass -command "C:\Search\Scripts\Search.Index.Elas
 
 
 <#
-Sphinx: craigslist.org
-Solr: Cnet, Netflix, digg.com
-Elasticsearch: Foursquare, Github, Amazone, Netsuite, AzureSearch
-
-Phrases
--------
-1.Sometimes the fastest way of searching is not to search at all. https://www.elastic.co/guide/en/elasticsearch/guide/current/_index_time_search_as_you_type.html
-2.This particular cat may be skinned in myriad ways.
-3.Updating Elasticsearch objects ("documents") is interesting for two reasons, a good one and a weird one:
-    Good reason: documents are immutable. Updates involve marking the existing item as deleted and inserting a new document. 
-        This is exactly how SQL Server 2014 IMOLTP works. It's one secret of extreme efficiency. It's an excellent practice to follow.
-    Weird reason: you have to update to know the integer ID to update a document. It's highly efficient, which makes it, at worst, "weird"; not "bad". 
-    It is allowed updates based on custom fields, you'd have a potential perf hit. Key lookups are the fastest.
-4.If you have to deal with only a single language, count yourself lucky. Finding the right strategy for handling documents written in several languages can be challenging.
-5.Full-text search is a battle between precision and recall.
-6.The more frequently a term appears in a collection of documents, the less weight that term has
-7.All languages, except Esperanto, are irregular. While more-formal words tend to follow a regular pattern, the most commonly used words often have irregular rules. 
-8.Out-of-the-box stemming solutions are never perfect. 
-9.Elasticsearch is a different kind of beast, especially if you come from the world of SQL.
-
-Links:
-1. Learning Elasticsearch with PowerShell https://netfxharmonics.com/2015/11/learningelasticps 
-2. NEST - https://nest.azurewebsites.net/
-3. Forum https://discuss.elastic.co/
-4. ELASTICSEARCH CRUD .NET PROVIDER http://damienbod.com/2014/09/22/elasticsearch-crud-net-provider/
-5. Network Settings - https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html
-6. Azure Templates - azure.microsoft.com/en-us/documentation/templates
-7. http://solr-vs-elasticsearch.com/
-8. cheatsheet http://elasticsearch-cheatsheet.jolicode.com/
-
-The Elastic Stack — that's Elasticsearch, Logstash, Kibana, and Beats — are open source projects that help you take data from any source, any format and search, analyze
- and visualize it in real time. Products like Shield (security), Watcher (alerting), and Marvel (monitoring) extend what's possible with the Stack. And you can deploy it
- all as a service or on premise using Elastic Cloud.
-
-Free and Open Source Products (Elastic Stack)
--------------
-Lucene - low level search engine used by ElasticeSearch, Solr, and others. http://lucene.apache.org/
-ElasticeSearch - Distributed, scalable, and highly available. Real-time search and analytics capabilities. Sophisticated RESTful API. https://www.elastic.co/products/elasticsearch
-Kibana - Flexible analytics and visualization platform. Real-time summary and charting of streaming data. Intuitive interface for a variety of users. 
-         Instant sharing and embedding of dashboards.
-Logstash - Data pipeline (input->filter->output). Parsing framework. Centralize data processing of all types. Normalize varying schema and formats. Quickly extend to custom log formats. 
-           Easily add plugins for custom data sources.
-Beats - is the platform for building lightweight, open source data shippers for many types of operational data you want to enrich with Logstash, 
-         search and analyze in Elasticsearch, and visualize in Kibana.
-Marvel - Marvel enables you to easily monitor Elasticsearch through Kibana. Take the guesswork out of keeping Elasticsearch running at top speed. 
-         Marvel keeps a pulse on the status of your deployment, helps you anticipate issues, troubleshoot problems quickly, and scale faster.
-
-Comercial Products
------------------
-Shield - Authentication and encryption for Elasticsearch. Validated client, Separation of Duites, Authorization/Authentication, Least Priviledges Rule
-          , Control of Application Accounts
-Watcher - Alerting and notification product for Elasticsearch that lets you take action based on changes in your data. 
-          It is designed around the principle that if you can query something in Elasticsearch, you can alert on it. 
-          Simply define a query, condition, schedule, and the actions to take, and Watcher will do the rest. 
-Elasticsearch Cloud - Elasticsearch from the Source Hosted and managed Elasticsearch in the Cloud. Free trial, free Kibana instance
-        , and no credit card required. Nobody hosts Elasticsearch better.
-Elasticsearch for Apache Hadoop (ES-Hadoop) - is the two-way connector that solves a top wishlist item for any Hadoop user out there: real-time search. 
-         While the Hadoop ecosystem offers a multitude of analytics capabilities, it falls short with fast search. 
-         ES-Hadoop bridges that gap, letting you leverage the best of both worlds: Hadoop's big data analytics and the real-time search of Elasticsearch.
-
-
-Compare terminology.
-Elastic   <=> DBMS
---------     --------
-Cluster    =  Instance
-Index      =  Database
-Type       =  Table
-Document   =  Row
-Field      =  Column
-Mapping    =  Schema
-Cardinality=  Distinct values
-Stemming   =  FORMOF, word breaker
-ES Similarity != FTS Semantic Similarity
-More Like This = FTS Semantic Similarity
-Elasticsearch does not support ACID transactions. 
-
-In terms of holly war/religion: Solr - like Oracle, ElasticSearch - like SQL Server. You need PHD to configure Oracle :)
-
-Four common techniques are used to manage relational data in Elasticsearch:
--Application-side joins
--Data denormalization
--Nested objects
--Parent/child relationships
-Data types: https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
-    -core: long, integer, short, byte, double, float, binary, boolean, date, string
-    -complex: array, object, nested, geo_point, geo_shape, ip, completion, token_count, murmur3, attachment
-
-Field could be indexed as an analyzed field for full-text search, and as a not_analyzed field for sorting or aggregations.
 
 System Fields
 -------------
@@ -108,7 +20,7 @@ _timestamp  is deprecated. Instead, use a normal date field and set its value ex
 _ttl        time to live number (in milliseconds), current version implementation is deprecated and will be replaced with a different implementation in a future version.
 _mlt        More Like This
 
-Glossary https://www.elastic.co/guide/en/elasticsearch/reference/2.2/glossary.html
+Glossary 
 ---------    
 Precision — returning as few irrelevant documents as possible.
 
@@ -176,70 +88,11 @@ Date Math:
     now+1h/d = The current time plus one hour, rounded down to the nearest day.
     2015-01-01||+1M/d  = 2015-01-01 plus one month, rounded down to the nearest day.
 
-Plugins
----------
-[string]$esPath = "C:\Search\elasticsearch-2.3.1"
-cd "$esPath"
-
-Usage instructions:
-    cmd.exe /C "$esBinPath\bin\plugin.bat -h"
-cls
-
-List
-    cmd.exe /C "$esBinPath\bin\elasticsearch-plugin.bat list"
-Restore local Copy of configuration:
-    Copy-Item ..\config\elasticsearch.yml -Destination .\bin -Force
-
-Plugin can be installed using the plugin manager: 
-    #https://www.elastic.co/guide/en/elasticsearch/plugins/2.0/delete-by-query-usage.html
-    cmd.exe /C "$esPath\bin\plugin.bat install delete-by-query"
-
-    cmd.exe /C ".\bin\plugin.bat install license"
-    cmd.exe /C ".\bin\plugin.bat install marvel-agent"
-    cmd.exe /C "C:\Search\kibana-4.5.0-windows\bin\kibana.bat plugin --install elasticsearch/marvel/latest"
-
-    #https://www.elastic.co/guide/en/elasticsearch/plugins/master/mapper-attachments.html
-    cmd.exe /C ".\bin\plugin.bat install mapper-attachments" 
-
-    #The Azure Cloud plugin uses the Azure API for unicast discovery, and adds support for using Azure as a repository for Snapshot/Restore. https://www.elastic.co/guide/en/elasticsearch/reference/2.2/modules-snapshots.html
-    cmd.exe /C ".\bin\plugin.bat install cloud-azure"
-
-    cmd.exe /C "$esBinPath\plugin.bat install elasticsearch/elasticsearch-analysis-icu/$VERSION  
-            #The current $VERSION can be found at https://github.com/elasticsearch/elasticsearch-analysis-icu.
-            #https://www.elastic.co/guide/en/elasticsearch/guide/current/icu-plugin.html
-        #Once installed, restart Elasticsearch, and you should see a line similar to the following in the startup logs:
-        #[INFO][plugins] [Mysterio] loaded [marvel, analysis-icu], sites [marvel]
-        #If you are running a cluster with multiple nodes, you will need to install the plug-in on every node in the cluster.
-
-Plugin can be removed with the following command:
-    cmd.exe /C ".\bin\plugin.bat remove delete-by-query"
-    cmd.exe /C ".\bin\plugin.bat remove cloud-azure"
-
-
-#Logstash
-[string]$esPath = "C:\Search\elasticsearch-2.3.1"
-cd "$esPath"
-
-Usage instructions:
-    cmd.exe /C "$esBinPath\bin\plugin.bat -h"
-List
-    cmd.exe /C "$esBinPath\bin\plugin.bat list"
-
-    cmd.exe /C "$esBinPath\plugin.bat list"
-    cmd.exe /C "$lsBinPath\plugin.bat list"
-    cmd.exe /C "$lsBinPath\logstash agent -f C://Search//logstash-2.2.0//first-pipeline.conf"
-
-
-
-ETL:
-    cmd.exe /C "$lsBinPath\logstash -f logstash-simple.conf"
-    cd $lsBinPath
-    bin/logstash -f logstash-simple.conf
 #>
 
 [string]$uri = "http://localhost:9200"
 [string]$indexName = "shared_v1"
-[string]$esBinPath = "C:\Search\elasticsearch-5.0.0-alpha1"
+[string]$esBinPath = "C:\Search\elasticsearch-5.0.0-alpha3"
 [string]$lsBinPath = "C:\Search\logstash-2.3.0"
 [string]$kbBinPath = "C:\Search\kibana-4.5.0-windows"
 

@@ -15,8 +15,34 @@ namespace Search.Core.Windows.Models
             QueryOptions = new List<QueryOption>();
             SearchResults = new SearchResults();
         }
-        public string QueryTerm { get; set; }
-        public string ChosenOptions { get; set; }
+
+        private string myQueryTerm = string.Empty;
+        public string QueryTerm
+        {
+            get {
+                return myQueryTerm;
+            }
+            set {
+                if (value == null)
+                    value = string.Empty;
+                myQueryTerm = value;
+            }
+        }
+
+        private string myChosenOptions = string.Empty;
+        public string ChosenOptions
+        {
+            get
+            {
+                return myChosenOptions;
+            }
+            set {
+                if (value == null)
+                    value = string.Empty;
+                myChosenOptions = value;
+            }
+        }
+
         public long Total { get; set; }
         public int? From { get; set; }
         public int? Size { get; set; }
@@ -44,5 +70,6 @@ namespace Search.Core.Windows.Models
         public IEnumerable<SearchResult> Items { get; set; }
         public Pager Pager { get; set; }
     }
+
 
 }

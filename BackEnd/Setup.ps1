@@ -1,19 +1,23 @@
 <#
+1. Navigate to your working folder:
+    cd C:\Search 
 
-    #dev with daily snapshot
-    cd C:\Search
-    .\Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev" #-SetEnvironment
-        $s = ["a":"1", "b":"2"]
+2. Configure environment variables. Run this script as administrator (!!!) to set up environment variables permanently. Machine or User - up to you        
+    .\Search.Environment.ps1
 
-    #prod cluster
+3. Set up dev (with daily snapshot ??)
+    .\Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev"
+
+4. Configure production cluster:
     cd E:\Search
     .\setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-287161d3-a6db-4e47-a8b3-5e62df55586f.json"
 
-    Debugging:
-        cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha3\bin\elasticsearch.bat"
-        $ESVersion = "5.0.0-alpha3"
+5. Debug locally:
+    cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha3\bin\elasticsearch.bat"
+    $ESVersion = "5.0.0-alpha3"
+
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
 Param(
@@ -34,26 +38,6 @@ function Main(){
     {
         Echo "Please install last version of Java and configure working catalog"
     }
-    if ($SetEnvironment.IsPresent){
-        #Configure environment variables. Run this scrip as administrator to set up environment variables permanently. Machine or User - up to you
-        [Environment]::SetEnvironmentVariable("ElasticUri", "http://localhost:9200", "User")
-        [Environment]::SetEnvironmentVariable("TESSERACT_HOME", "C:\Program Files (x86)\Tesseract-OCR", "User") 
-        [Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-6.9.3-Q16", "User")
-        [Environment]::SetEnvironmentVariable("SEARCH_HOME", "C:\Search", "User")
-        [Environment]::SetEnvironmentVariable("LOG_DIR", "C:\Logs", "User")
-        [Environment]::SetEnvironmentVariable("MAGICK_TMPDIR", "C:\Temp\MAGICK_TMPDIR", "User")
-        [Environment]::SetEnvironmentVariable("GHOSTSCRIPT_HOME", "C:\Program Files\gs\gs9.18", "User")
-
-        [Environment]::SetEnvironmentVariable("Google_MapApiKey", "<your value>", "User")
-        [Environment]::SetEnvironmentVariable("Bing_MapApiKey", "<your value>", "User") 
-        [Environment]::SetEnvironmentVariable("Flickr_ApiKey", "<your value>", "User")
-        [Environment]::SetEnvironmentVariable("Flickr_ApiSecret", "<your value>", "User")
-        [Environment]::SetEnvironmentVariable("EntityRecognizerURI", "https://ussouthcentral.services.azureml.net/workspaces/<your guid>/services/<your guid>/execute?api-version=2.0&details=true", "User")
-        [Environment]::SetEnvironmentVariable("EntityRecognizerApiKey", "<your value>", "User")
-
-        Get-ChildItem Env:
-    }
-
     
     if ($UseSnapshot.IsPresent){#daily builds works for kibana only :(
         #DownLoadAndExtract -Url "http://download.elastic.co/elasticsearch/elasticsearch-snapshot/elasticsearch-5.0.0-snapshot.zip"
@@ -136,7 +120,6 @@ function Main(){
     cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch.bat" -V
     cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana.bat" -V
 
-
     #configure windows services
     if ($AsService.IsPresent){
         #uninstall service
@@ -173,33 +156,34 @@ function Main(){
     }
 
     <#configure plugins. 
-    Many v2 plugings are moved or depricated in v5, see https://download.elastic.co/kibana/x-pack/x-pack-5.0.0-alpha2.zip
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat list"
         #extended unicode support https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis-icu.html
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install analysis-icu"
                 
-
+        #https://www.elastic.co/guide/en/x-pack/current/security-getting-started.html
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install x-pack"
-        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion\bin\kibana-plugin.bat install x-pack"
+        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana-plugin.bat install x-pack"
 
-    Managing your licence https://www.elastic.co/guide/en/marvel/current/license-management.html#listing-licenses
-    Marvel trial licence:
+        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana-plugin.bat install timelion"
+
+
+    Do not use examples below in v5!!!
+    Many v2 plugings are moved or depricated in v5. For example, v2 marvel. 
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install license"
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install marvel-agent"
+        #check the license from our scripts
+            &$get '_license'
 
-    check the license from our scripts
-        &$get '_license'
+        install license from file:
+            if (Test-Path $LicenceFilePath){
+                [string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
+                if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
+                Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force #-Verbose
 
-    install license from file:
-        if (Test-Path $LicenceFilePath){
-            [string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
-            if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
-            Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force #-Verbose
-
-            $license = Get-Content -Raw -Path $LicenceFilePath #| ConvertFrom-Json
-            Echo "Installing licence from file $LicenceFilePath"
-            &$put "_license?acknowledge=true" $license
-         }
+                $license = Get-Content -Raw -Path $LicenceFilePath #| ConvertFrom-Json
+                Echo "Installing licence from file $LicenceFilePath"
+                &$put "_license?acknowledge=true" $license
+             }
      #>
 }
 

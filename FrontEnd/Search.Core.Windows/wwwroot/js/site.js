@@ -1,5 +1,22 @@
 ﻿// Write your Javascript code.
 $(document).ready(function () {
+
+    $('#editDialog')
+        .on('hide.bs.modal', function () {
+            $('#editDialog')
+                .removeData(); //destroy cached content
+            })
+        .on('show.bs.modal', function () {
+            $('.modal-content').css('height',$( window ).height()*0.9);
+        })
+        //.on('shown.bs.modal', function () { //make it draggable
+        //    $("input[type='submit']").on("click", function () {
+        //        document.body.style.cursor = 'wait';
+        //        $("body").css("cursor", "progress");
+        //    });
+        //})
+    ;
+
     $(".chosen-select").chosen({
         include_group_label_in_selected: true,
         disable_search_threshold: 10,
@@ -9,7 +26,7 @@ $(document).ready(function () {
         if (params.selected) {
             $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + ",");
             if (params.selected == "3_1") {
-                $("#QueryTerm").val("The quick brown fox");
+                $("#QueryTerm").val("file.Name=The quick brown fox");
             }
             else if (params.selected == "3_2") {
                 $("#QueryTerm").val("The qick broon foox");
@@ -22,10 +39,10 @@ $(document).ready(function () {
             }
             ///some options can conflict with others
             //else if (params.selected == "4_1") { 
-            //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("3_2,", ""));
+            //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("4_2,", ""));
             //}
             //else if (params.selected == "4_2") {
-            //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("3_1,", ""));
+            //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("4_1,", ""));
             //}
         }
         else if (params.deselected) {

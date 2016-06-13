@@ -1,40 +1,55 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Search.Core.Windows.Models
 {
-    public class SearchResult
+    public class SearchResult: ISearchResult, IFileResult
     {
         public string Id { get; set; }
         public string Index { get; set; }
-        public string Parent { get; set; }
-        public string Routing { get; set; }
+        public string Type { get; set; }
         public double Score { get; set; }
         public string Source { get; set; }
-        public long? Timestamp { get; set; }
-        public long? Ttl { get; set; }
-        public string Type { get; set; }
+
         public string Path { get; set; }
-        public long? Version { get; set; }
-        public string Tootip {
-            get
-            {
-                string tooltipSource = string.Empty;
-                if (string.IsNullOrEmpty(this.Source))
+        private string myExtension = string.Empty;
+        public string Extension
+        {
+            get { return myExtension; }
+            set {
+                myExtension = value;
+                if (myExtension == null)
+                    myExtension = string.Empty;
+                myExtension = myExtension.ToUpper().Trim().TrimStart('.');
+                if (myExtension.Length > 5)
                 {
-                    tooltipSource = this.Source.ToString();
-                    if (tooltipSource?.Length > 256)
-                    {
-                        tooltipSource = tooltipSource.Substring(0, 256);
-                    }
-                    tooltipSource = tooltipSource.TrimStart('{').TrimEnd('}').Trim();
+                    myExtension = mySummary.Substring(0, 5);
                 }
-                return tooltipSource;
             }
         }
 
-        //public IEnumarable<KeyValuePair<string, string>> Hihglights { get; set; }
+        [Display(Name = "Last Modified"), DisplayFormat(DataFormatString = "{0:G}")] 
+        public DateTime LastModified { get; set; }
+
+        private string mySummary = string.Empty;
+        public string Summary
+        {
+            get { return mySummary; }
+            set {
+                mySummary = value;
+                if (mySummary == null)
+                    mySummary = string.Empty;
+                mySummary = mySummary.Trim('{').Trim('}').Replace("\r\n", " ").Replace("  ", " ").Trim();
+                if (mySummary.Length > 512)
+                {
+                    mySummary = mySummary.Substring(0, 512) + "...";
+                }
+            }
+        }
+
+        public byte[] Content { get; set; }
     }
 }

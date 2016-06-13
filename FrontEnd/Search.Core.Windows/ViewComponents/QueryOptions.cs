@@ -9,9 +9,13 @@ namespace Search.Core.Windows.ViewComponents
 {
     public class QueryOptions : ViewComponent
     {
-        public async Task<IViewComponentResult> InvokeAsync()
+        public async Task<IViewComponentResult> InvokeAsync(Models.Query query)
         {
-            Models.Query query = new Models.Query();
+            if (query == null)
+            {
+                query = new Models.Query();
+            }
+            //Models.Query query = new Models.Query();
             if (string.IsNullOrEmpty(query.QueryTerm) && !string.IsNullOrEmpty(Request.Query["term"]))
             {
                 query.QueryTerm = Request.Query["term"];
@@ -27,6 +31,5 @@ namespace Search.Core.Windows.ViewComponents
 
             return View(query);
         }
-
     }
 }

@@ -29,6 +29,7 @@ namespace Search.Core.Windows
         {
             // Add framework services.
             services.AddMvc();
+            services.AddMemoryCache();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -55,6 +56,7 @@ namespace Search.Core.Windows
                     name: "default",
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
+
         }
 
         public static string GetElasticSearchUrl()
@@ -78,5 +80,22 @@ namespace Search.Core.Windows
 
             return result;
         }
+
+        public static KeyValuePair<string, string> GetElasticCredencials()
+        {
+            string user = Configuration["Data:Elastic:User"];
+            if (string.IsNullOrEmpty(user))
+            {
+                user = Environment.GetEnvironmentVariable("ElasticUser");
+            }
+            string password = Configuration["Data:Elastic:Password"];
+            if (string.IsNullOrEmpty(password))
+            {
+                password = Environment.GetEnvironmentVariable("ElasticPassword");
+            }
+            KeyValuePair<string, string> result = new KeyValuePair<string, string>(user, password);
+            return result;
+        }
+
     }
 }
