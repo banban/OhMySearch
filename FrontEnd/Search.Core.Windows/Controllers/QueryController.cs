@@ -298,6 +298,7 @@ namespace Search.Core.Windows.Controllers
 
         public static async Task<Nest.ISearchResponse<dynamic>> GetSearchResponse(Models.Query query)
         {
+            //indices to search
             Nest.Indices indices = Nest.Indices.AllIndices;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
             {
@@ -305,7 +306,7 @@ namespace Search.Core.Windows.Controllers
                     .Where(qo => qo.StartsWith("1_"))
                     .Select(qo => new Nest.IndexName() { Name = qo.Replace("1_", "") }));
             }
-
+            //types to search
             Nest.Types types = Nest.Types.AllTypes;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("2_"))
             {
@@ -313,6 +314,8 @@ namespace Search.Core.Windows.Controllers
                     .Where(qo => qo.StartsWith("2_"))
                     .Select(qo => new Nest.TypeName() { Name = qo.Replace("2_", "") }));
             }
+
+            //var options = new List<Models.QueryOption>();
 
             QueryContainer qc = new QueryContainer(); //{q => q.QueryString(qs => qs.Query(query.QueryTerm)};
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_1") && query.QueryTerm.Contains("=")) //term Name=Value
@@ -327,6 +330,8 @@ namespace Search.Core.Windows.Controllers
             {
                 qc = new FuzzyQuery
                 {
+                    //Field
+                    //Fuzziness
                     Value = query.QueryTerm // DSL equivalent => .Query(q => q.Fuzzy(f => f.Value(query.QueryTerm)))
                 };
             }
@@ -349,32 +354,39 @@ namespace Search.Core.Windows.Controllers
                     && query.ChosenOptions != null && query.ChosenOptions.Contains("3_6")) //More Like This
             {
                 string[] fullId = query.QueryTerm.Split('/');
-                var mapping = _elclient.GetMapping(new GetMappingRequest(indices, types));
+                //fields to search
                 List<string> fields = new List<string>();
-                foreach (var index in mapping.Mappings)
+                if (!_memoryCache.TryGetValue("FieldsForMLT:" + fullId[0] + "/" + fullId[1], out fields))
                 {
-                    foreach (var typeMapping in index.Value)
+                    fields = new List<string>();
+                    var mapping = _elclient.GetMapping(new GetMappingRequest(indices, types));
+                    foreach (var index in mapping.Mappings)
                     {
-                        foreach (var fieldMapping in typeMapping.Properties)
+                        foreach (var typeMapping in index.Value)
                         {
-                            if (fieldMapping.Value.Type.Name == "text" || fieldMapping.Value.Type.Name == "keyword" || fieldMapping.Value.Type.Name == "string")
+                            foreach (var fieldMapping in typeMapping.Properties)
                             {
-                                fields.Add(fieldMapping.Key.Name);
+                                if (fieldMapping.Value.Type.Name == "text" || fieldMapping.Value.Type.Name == "keyword" || fieldMapping.Value.Type.Name == "string")
+                                {
+                                    fields.Add(fieldMapping.Key.Name);
+                                }
                             }
                         }
                     }
-
+                    _memoryCache.Set("FieldsForMLT:" + fullId[0] + "/" + fullId[1], fields, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
                 }
+
                 qc = new Nest.MoreLikeThisQuery
                 {
-                    Name = "named_query",
-                    Boost = 1.1,
-                    Fields = fields.ToArray(),
-                    Like = new List<Like>
+                    Name = "mlt_query",
+                    //Fields = fields.ToArray(), //Defaults to the _all field for free text and to all possible fields for document inputs.
+                    Like = new List<Like> 
                     {
+                        //A list of documents following the same syntax as the Multi GET API.
                         new Like(new Models.LikeDocumentGeneral(fullId))
                     },
-                    Analyzer = "some_analyzer",
+                    //Analyzer = "some_analyzer",
+                    Boost = 1.1,
                     BoostTerms = 1.1,
                     Include = true,
                     MaxDocumentFrequency = 12,

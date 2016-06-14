@@ -60,8 +60,8 @@
                     @foreach (var item in Model.MoreLikeThis)
                     {
                         <li class="search-item">
-                            <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." ></a>
-                            Index: @item.Index; Type: @item.Type; Score: @item.Score;
+                            @*<a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." ></a>*@
+                            Index: @item.Index; Type: @item.Type; Id: @item.Id;
                             <label class="@item.Extension">@item.Extension</label>
                             @if (!string.IsNullOrEmpty(item.Path))
                             {

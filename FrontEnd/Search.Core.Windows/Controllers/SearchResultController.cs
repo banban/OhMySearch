@@ -87,7 +87,10 @@ namespace Search.Core.Windows.Controllers
             };
 
             var mltResults = await QueryController.GetSearchResponse(mltQuery);
-            searchResult.MoreLikeThis = QueryController.GetSearchResults(mltResults, mltQuery.QueryTerm);
+            
+            searchResult.MoreLikeThis = QueryController.GetSearchResults(mltResults, mltQuery.QueryTerm)
+                .Where(sr => sr.Id != _id)
+                .Take(5);
             //foreach (var item in searchResult.MoreLikeThis)
             //{
             //    if (item.Id == _id)
