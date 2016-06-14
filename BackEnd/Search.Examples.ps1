@@ -81,92 +81,46 @@ Date Math:
 
 #>
 
-[string]$uri = "http://localhost:9200"
-[string]$indexName = "shared_v1"
-[string]$esBinPath = "C:\Search\elasticsearch-5.0.0-alpha3"
-[string]$lsBinPath = "C:\Search\logstash-2.3.0"
-[string]$kbBinPath = "C:\Search\kibana-4.5.0-windows"
+[string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
+if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
 
-#indices API declaraions
-$call = {
-        param($verb, $params, $body)
-        $headers = @{ 
-            'Authorization' = 'Basic fVmBDcxgYWpndYXJj3RpY3NlkZzY3awcmxhcN2Rj'
-        }
+#index helper functions
+Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
 
-        <#Write-Host "`nCalling [$uri/$params]" -f Green
-        if($body) {
-            if($body) {
-                Write-Host "BODY`n--------------------------------------------`n$body`n--------------------------------------------`n" -f Green
+#see verbouse data
+$global:Debug = $true
+
+
+&$cat
+&$call "Get" "/_cluster/state"
+&$get "tender_v1/_mapping"
+&$get "tender_v1/austender"
+&$get "tender_v1/austender/_query?q=*"
+&$get "tender_v1"
+&$get "tender_v1/austender/AVUQ7SGd4sw0coEpumpQ"
+
+
+&$post "tender_v1/austender/_search" -obj @{
+    size = 0
+    aggs = @{
+        Agencies = @{
+            terms = @{
+                field = "Agency"
             }
-        }#>
-        $response = wget -Uri "$uri/$params" -method $verb -Headers $headers -ContentType 'application/json' -Body $body
-        $response.Content #  | Select StatusCode, StatusDescription, Headers, Content | Write-Output #
-    }
-
-$get = {
-        param($params)
-        &$call "Get" $params
-    }
-
-$delete = {
-        param($params)
-        &$call "Delete" $params
-    }
-#&$delete /shared_v1/file,photo/_query?q=* #https://www.elastic.co/guide/en/elasticsearch/plugins/2.0/delete-by-query-usage.html
-$put = {
-        param($params,  $body)
-        &$call "Put" $params $body
-    }
-
-$post = {
-    param($params,  $body)
-    &$call "Post" $params $body
-}
-
-$add = {
-    param($index, $type, $json, $obj)
-    if($obj) {
-        $json = ConvertTo-Json -Depth 10 $obj
-    }
-    &$post "$index/$type" $json
-}
-
-$replace = {
-    param($index, $type, $id, $json, $obj)
-    if($obj) {
-        $json = ConvertTo-Json -Depth 10 $obj
-    }
-    &$post "$index/$type/$id" $json
-}
-
-$update = {
-    param($index, $type, $id, $json, $obj)
-    if($obj) {
-        $json = ConvertTo-Json -Depth 10 $obj
-    }
-    &$post "$index/$type/$id/_update" $json
-}
-
-$createIndex = {
-        param($index, $json, $obj)
-        if($obj) {
-            $json = ConvertTo-Json -Depth 10 $obj
         }
-        &$post $index $json
     }
-
-$mapping = {
-    param($index)
-    &$get "$index/_mapping?pretty"
 }
-#&$mapping $indexName
 
-$cat = {
-    param($json)
+<#
+    $delete "tender_v1" 
+    &$delete $indexName 
+    &$delete "shared"
+    &$delete "content!staging"
+    &$delete "shared_v1"
+    &$delete 'shared/file' #type deleting is not available since v2.0 :(
+#>
 
-    &$get "_cat/indices?v&pretty"
-}
+
 #get storage status summary before index
 #ConvertFrom-Json (&$cat) | ft
 (ConvertFrom-Json (&$cat)) | select index, docs.count, store.size |  ft
@@ -174,9 +128,8 @@ $cat = {
 
 Import-Module -Name .\ElasticSearch.Helper.psm1 -Force #-Verbose
 $global:ElasticUri = $ElasticUri
-#&$get
-#&$call "Get" "/_cluster/state"
-#&$cat
+
+
 #test attachments
 $fullPath = "C:\Search\_artefacts\Fredrick Lafon THALES.pdf"
 $fileContentBytes = [System.IO.File]::ReadAllBytes($fullPath);
@@ -207,12 +160,6 @@ $fileContentEncoded = [System.Convert]::ToBase64String($fileContentBytes)
 }
 
 Invoke-Elasticsearch -Uri "$uri/$indexName/_cat/indices?v&pretty" -Method Default -Body
-
-#&$delete $indexName 
-#&$delete "shared"
-#&$delete "content!staging"
-#&$delete "shared_v1"
-#&$delete 'shared/file' #type deleting is not available since v2.0 :(
 
 
 #create index with mapped types
@@ -1847,6 +1794,65 @@ PUT /fs
     }
   }
 }
+
+
+
+
+UT my_index
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_analyzer": {
+          "tokenizer": "keyword",
+          "char_filter": ["my_char_filter"]
+        }
+      },
+      "char_filter": {
+        "my_char_filter": {
+          "type": "html_strip",
+          "escaped_tags": ["b"]
+        }
+      }
+    }
+  }
+}
+
+HTML analyser:
+
+PUT my_index
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "my_analyzer": {
+          "tokenizer": "keyword",
+          "char_filter": ["my_char_filter"]
+        }
+      },
+      "char_filter": {
+        "my_char_filter": {
+          "type": "html_strip",
+          "escaped_tags": ["b"]
+        }
+      }
+    }
+  }
+}
+
+GET _cluster/health?wait_for_status=yellow
+POST my_index/_analyze
+{
+  "analyzer": "my_analyzer",
+  "text": "<p>I&apos;m so <b>happy</b>!</p>"
+}
+The above example produces the following term:
+[ \nI'm so <b>happy</b>!\n ]
+
+
+
+
+
 
 #find coffee
 $uri = "https://api.foursquare.com/v2/venues/search?client_id=$env:Foursquare_ClientId&client_secret=$env:Foursquare_ClientSecret&v=20140806&ll=-34.93727%2C138.57384&query=coffee"

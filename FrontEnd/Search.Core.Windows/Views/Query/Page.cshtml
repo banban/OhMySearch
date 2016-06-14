@@ -6,7 +6,7 @@
         @foreach (var item in Model.SearchResults.Items)
         {
             <li class="search-item">
-                <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." />
+                <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
                 Index: @item.Index; Type: @item.Type; Score: @item.Score;
                 @if (item.Extension.ToLower() == "pdf")
                 {
@@ -20,6 +20,7 @@
                 {
                     <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
                 }
+                <br /><span class="small">@Html.Raw(item.Summary)</span>
             </li>
         }
     </ul>

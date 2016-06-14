@@ -35,6 +35,7 @@ namespace Search.Core.Windows.Controllers
                 Type = result.Type,
                 Summary = result.Source.ToString()
             };
+
             if (result.Type == "file" || result.Type == "photo")
             {
                 try
@@ -76,6 +77,24 @@ namespace Search.Core.Windows.Controllers
                     //thumb.Dispose();
                 }
             }
+
+            //More Like This request
+            Models.Query mltQuery = new Models.Query()
+            {
+                QueryTerm = _index +"/"+ _type + "/" +_id,
+                Size = 10,
+                ChosenOptions = "1_" + _index + ","+ "2_" + _type + ",3_6,"
+            };
+
+            var mltResults = await QueryController.GetSearchResponse(mltQuery);
+            searchResult.MoreLikeThis = QueryController.GetSearchResults(mltResults, mltQuery.QueryTerm);
+            //foreach (var item in searchResult.MoreLikeThis)
+            //{
+            //    if (item.Id == _id)
+            //    {
+            //        item.Delete()
+            //    }
+            //}
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")//(Request.IsAjaxRequest())
             {

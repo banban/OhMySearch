@@ -8,6 +8,10 @@ namespace Search.Core.Windows.Models
 {
     public class SearchResult: ISearchResult, IFileResult
     {
+        public SearchResult()
+        {
+            MoreLikeThis = new List<SearchResult>();
+        }
         public string Id { get; set; }
         public string Index { get; set; }
         public string Type { get; set; }
@@ -51,5 +55,12 @@ namespace Search.Core.Windows.Models
         }
 
         public byte[] Content { get; set; }
+        public IEnumerable<SearchResult> MoreLikeThis { get; set; }
+    }
+
+    public class SearchResults
+    {
+        public IEnumerable<SearchResult> Items { get; set; }
+        public Pager Pager { get; set; }
     }
 }

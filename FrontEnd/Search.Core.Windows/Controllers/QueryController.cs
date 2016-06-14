@@ -160,7 +160,6 @@ namespace Search.Core.Windows.Controllers
                 Nest.CatIndicesRequest cat = new Nest.CatIndicesRequest();
                 cat.V = true;
                 var catIndices = await _elclient.CatIndicesAsync(cat);
-                //var mappings = await _elclient.GetMappingAsync(new GetMappingRequest() { IgnoreUnavailable = true });
                 var indexes = new List<Nest.CatIndicesRecord>();
                 if (catIndices.IsValid)
                 {
@@ -175,8 +174,8 @@ namespace Search.Core.Windows.Controllers
                 //elastic.ConnectionSettings.MaxRetries = 3;
                 //_elclient.GetMapping(new GetMappingRequest { Index = "myindex", Type = "mytype" });
                 //var response = _elclient.IndicesGetMapping("_all", "_all");
+                //var mappings = await _elclient.GetMappingAsync(new GetMappingRequest() { IgnoreUnavailable = true });
 
-                ///method IndicesGetMapping does not allow to read type name. So I use workaround with direct request by REST client
                 var _mappings = await CURL("GET", "_mapping", null);
                 Dictionary<string, List<string>> indexTypes = new Dictionary<string, List<string>>();
                 foreach (var _index in _mappings)
@@ -202,6 +201,7 @@ namespace Search.Core.Windows.Controllers
                     }
                 }
 
+                //var mapping = _elclient.GetMapping(new GetMappingRequest(Nest.Indices.AllIndices, Nest.Types.AllTypes) { IgnoreUnavailable = true });
                 foreach (var item in indexes)
                 {
                     //var mapping = _elclient.GetMapping<item>();
@@ -231,28 +231,26 @@ namespace Search.Core.Windows.Controllers
                         }
                     }
 
-                    //var keys = mappings.Mappings.Keys;
-                    /*if (chosenOptions.Contains("1_" + item.Index + ",") && mappings.IsValid)
+                    /*///method IndicesGetMapping does not allow to read type name. So I use workaround with direct request by REST client
+                    var mappings = mapping.Mappings
+                        .Where(ind => ind.Key == item.Index)
+                        .Select(ind => ind.Value);
+                    foreach (var types in mappings)
                     {
-                        //var props = mappings.CallDetails;
-                        foreach (var indType in mappings.Mappings[item.Index])
+                        foreach (var indType in types)
                         {
-                            var tmp = indType as TypeMapping;
-                            results.Add(new Models.QueryOption()
+                            var option = new Models.QueryOption()
                             {
                                 OptionGroup = "Types",
-                                Key = "2_" + indType.ToString(),
-                                Value = (item.Index.Contains("_") ? item.Index.Split('_')[0] : item.Index)
-                                    + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs)"
-                                        //+ (string.IsNullOrEmpty(item.StoreSize) ? "0" : item.StoreSize) + " bites)"
-                            });
+                                Key = "2_" + indType.TypeName.Name, //item.Index + "_" + 
+                                Value = indType.TypeName.Name //item.Index + "_" + indType
+                            };
+                            if (!options.Contains(option))
+                            {
+                                options.Add(option);
+                            }
                         }
                     }*/
-
-                    //Nest.IndexFieldMappings ifm = new IndexFieldMappings() { };
-                    //var indName = new Nest.IndexName() { Name = item.Index };
-                    //var ind = Nest.Indices.Index(indName).;
-
                 }
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_1", Value = "Term" });
@@ -260,6 +258,7 @@ namespace Search.Core.Windows.Controllers
                 options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_3", Value = "Hierarchy" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_4", Value = "Location" });
                 //results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_5", Value = "Highlight" });
+                //results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_6", Value = "More Like This" }); //hidden option used in QueryDetails controller
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_1", Value = "Scroll" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_2", Value = "Page" });
@@ -293,10 +292,11 @@ namespace Search.Core.Windows.Controllers
             //    Extension = (hit.Type == "file" ? ((string)hit.Source["Extension"]).ToUpper().TrimStart('.') : "")
             //    //Hihglights = hit.Highlights.Select(hl => new { Key = hl.Key, Value = hl.Value.ToString() })
             //})
+            
             return result;
         }
 
-        public async Task<Nest.ISearchResponse<dynamic>> GetSearchResponse(Models.Query query)
+        public static async Task<Nest.ISearchResponse<dynamic>> GetSearchResponse(Models.Query query)
         {
             Nest.Indices indices = Nest.Indices.AllIndices;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
@@ -345,6 +345,53 @@ namespace Search.Core.Windows.Controllers
                     OptimizeBoundingBox = GeoOptimizeBBox.Memory
                 };
             }
+            else if (query.QueryTerm != null && query.QueryTerm.Contains("/")
+                    && query.ChosenOptions != null && query.ChosenOptions.Contains("3_6")) //More Like This
+            {
+                string[] fullId = query.QueryTerm.Split('/');
+                var mapping = _elclient.GetMapping(new GetMappingRequest(indices, types));
+                List<string> fields = new List<string>();
+                foreach (var index in mapping.Mappings)
+                {
+                    foreach (var typeMapping in index.Value)
+                    {
+                        foreach (var fieldMapping in typeMapping.Properties)
+                        {
+                            if (fieldMapping.Value.Type.Name == "text" || fieldMapping.Value.Type.Name == "keyword" || fieldMapping.Value.Type.Name == "string")
+                            {
+                                fields.Add(fieldMapping.Key.Name);
+                            }
+                        }
+                    }
+
+                }
+                qc = new Nest.MoreLikeThisQuery
+                {
+                    Name = "named_query",
+                    Boost = 1.1,
+                    Fields = fields.ToArray(),
+                    Like = new List<Like>
+                    {
+                        new Like(new Models.LikeDocumentGeneral(fullId))
+                    },
+                    Analyzer = "some_analyzer",
+                    BoostTerms = 1.1,
+                    Include = true,
+                    MaxDocumentFrequency = 12,
+                    MaxQueryTerms = 12,
+                    MaxWordLength = 300,
+                    MinDocumentFrequency = 1,
+                    MinTermFrequency = 1,
+                    MinWordLength = 10,
+                    MinimumShouldMatch = 1,
+                    StopWords = new[] { "and", "the" },
+                    //Unlike = new List<Like>
+                    //{
+                    //    "not like this text"
+                    //}
+                };
+            }
+            
             else //free text
             {
                 qc = new QueryStringQuery
@@ -521,12 +568,12 @@ namespace Search.Core.Windows.Controllers
             }
             else
             {
-                options = "3_4;";
+                options = "3_4,";
             }
 
-            if (!options.Contains("3_4;"))
+            if (!options.Contains("3_4,"))
             {
-                options += "3_4;";
+                options += "3_4,";
             }
 
             Models.Query query = new Models.Query() {
@@ -538,7 +585,7 @@ namespace Search.Core.Windows.Controllers
             return json;
         }
 
-        private static List<Models.SearchResult> GetSearchResults(Nest.ISearchResponse<dynamic> nestResults, string queryTerm)
+        public static List<Models.SearchResult> GetSearchResults(Nest.ISearchResponse<dynamic> nestResults, string queryTerm)
         {
             var results = new List<Models.SearchResult>();
             foreach (var hit in nestResults.Hits)

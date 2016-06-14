@@ -65,11 +65,4 @@ namespace Search.Core.Windows.Models
         }
     }
 
-    public class SearchResults
-    {
-        public IEnumerable<SearchResult> Items { get; set; }
-        public Pager Pager { get; set; }
-    }
-
-
 }
