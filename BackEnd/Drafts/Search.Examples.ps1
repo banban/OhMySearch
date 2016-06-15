@@ -1852,8 +1852,6 @@ The above example produces the following term:
 
 
 
-
-
 #find coffee
 $uri = "https://api.foursquare.com/v2/venues/search?client_id=$env:Foursquare_ClientId&client_secret=$env:Foursquare_ClientSecret&v=20140806&ll=-34.93727%2C138.57384&query=coffee"
 #find sushi 

@@ -58,9 +58,9 @@ Unit tests:
     $global:Debug = $true
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
     &$cat
-    &$get "/tender_v1/_mapping"
-    &$get "/tender_v1/austender"
-    &$get "/tender_v1/austender/_query?q=*"
+    &$get "tender_v1/_mapping"
+    &$get "tender_v1/austender"
+    &$get "tender_v1/austender/_query?q=*"
     &$get "tender_v1"
     &$get "tender_v1/austender/AVUQ7SGd4sw0coEpumpQ"
 
