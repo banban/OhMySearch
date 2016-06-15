@@ -1,35 +1,11 @@
-﻿<#Preperation list:
-    1.Run PowerShell command Add-WindowsFeature Desktop-Experience
-    2.Install ImageMagick-6.9.3-Q16 or higher version
-    3.Install Tesseract-OCR-3.02, GHostScript gs9.18 or latest versions
-    4.Install DocumentFormat.OpenXml, OfficeFileConverter, b2xtranslator, itextsharp
-    5.Configure temp folders:
-        1. configure C:\Search\_artefacts\Binn\OfficeFileConverter\Tools\ofc.ini
-            LogDestinationPath= <<<$env:LOG_DIR>>>
-            fldr=C:\Search\_artefacts\Temp\OfficeFileConverter\Input
-            SourcePathTemplate=*\*\*\*\*\
-            DestinationPathTemplate=C:\Search\_artefacts\Temp\OfficeFileConverter\Output
-
-        2.setup environment variables:
-
-    6.Configure Azure (optional):
-        Entity Recognition web services and keys
-        Search Services and keys
-    7.To avoid 3rd party tools error dialog, disable Problem Reporting Setting: #http://smallbusiness.chron.com/stop-werfaultexe-56154.html
-        1.Click the "Action Center" icon, which looks like a flag, in the Windows 7 system tray on the taskbar.
-        2.Click "Open Action Center."
-        3.Click "Change Action Center Settings."
-        4.Click "Problem Reporting Settings."
-        5.Select the "Never Check for Solutions" option. This will disable Windows Error Reporting.
-        6.Click the "OK" button.
-        7.Restart your computer to enable the new settings.
-    8.Install PowerShell Image module from here: https://gallery.technet.microsoft.com/scriptcenter/PowerShell-Image-module-caa4405a 
-      to here: $env:PSModulePath -> C:\Program Files\WindowsPowerShell\Modules\Image
+﻿<#
+Preperation check list could be found here https://github.com/banban/OhMySearch/wiki/Preperations
 
 Unit tests:
     cd C:\Search\Scripts
-    .\Search.Index.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\GeoTags"  
-    .\Search.Index.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mydocuments"))"  
+
+    .\Search.Index.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\NGC2015" -FileExtensionsForSearch ".jpg"
+    .\Search.Index.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mydocuments"))" -FileExtensionsForSearch ".pdf"
     .\Search.Index.Json.ps1 -SharedFolders "C:\Search\"
     .\Search.Index.Json.ps1 -SharedFolders "\\shares\library\"
     .\Search.Index.Json.ps1 -SharedFolders "\\shares\files\"
@@ -53,12 +29,12 @@ Param(
 
     #tools
     [string]$TesseractExecPath = "$($env:TESSERACT_HOME)\tesseract.exe",
-    [string]$ImageMagickPath = $env:MAGICK_HOME,
+    [string]$ImageMagickPath = $env:MAGICK_HOME, #"$($ImageMagickPath)\convert.exe"
     [string]$ImageMagickTempFiles = "$([environment]::getfolderpath(“mydocuments”))".Trim("Documents") + "magick-*",
     [string]$ImageMagickTempPath = $env:MAGICK_TMPDIR,
     [string]$OfficeFileConverterExecPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\Tools\ofc.exe",
+    [string]$OfficeFileConverterTempPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\", #!!!create Input and Output folders here
     [string]$b2xtranslatorExecPath = "$($env:SEARCH_HOME)\_artefacts\Binn\b2xtranslator\", 
-    [string]$OfficeFileConverterTempPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\",
     [string]$GHostScriptDllPath = "$($env:GHOSTSCRIPT_HOME)\bin\gsdll64.dll",
     [string]$iTextSharpDllPath = "$($env:SEARCH_HOME)\_artefacts\Binn\itextsharp.dll",
     [string]$DocFormatOpenXmlDllPath = "$($env:SEARCH_HOME)\_artefacts\Binn\DocumentFormat.OpenXml.dll",
