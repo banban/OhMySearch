@@ -19,6 +19,7 @@ namespace Search.Core.Windows.Models
         public string Source { get; set; }
 
         public string Path { get; set; }
+        public string ThumbnailPath { get; set; }
         private string myExtension = string.Empty;
         public string Extension
         {

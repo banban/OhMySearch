@@ -41,7 +41,14 @@
                         <div class="form-group">
                             <label class="col-lg-2">Photo</label>
                             <div class="col-lg-10">
-                                <img id="Content" class="file-image" title="@Model.Path" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
+                                @if (!string.IsNullOrEmpty(Model.ThumbnailPath))
+                                {
+                                    <img id="Content" class="file-image" title="@Model.Path" src="@Model.ThumbnailPath" alt="Image" />
+                                }
+                                else
+                                {
+                                    <img id="Content" class="file-image" title="@Model.Path" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
+                                }
                             </div>
                         </div>
                     }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.IO;
 
 namespace Search.Core.Windows
 {
@@ -20,6 +21,33 @@ namespace Search.Core.Windows
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
+
+            var tempDir = System.IO.Path.Combine(env.WebRootPath, "temp");
+            if (Directory.Exists(tempDir))
+            {
+                try
+                {
+                    DirectoryInfo dir = new DirectoryInfo(tempDir);
+                    foreach (FileInfo fi in dir.GetFiles())
+                    {
+                        fi.IsReadOnly = false;
+                        fi.Delete();
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
+            else
+            {
+                try
+                {
+                    Directory.CreateDirectory(tempDir);
+                }
+                catch (Exception)
+                {
+                }
+            }
         }
 
         public static IConfigurationRoot Configuration { get; set; }

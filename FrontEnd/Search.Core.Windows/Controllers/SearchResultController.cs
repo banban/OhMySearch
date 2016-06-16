@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Search.Core.Windows.Models;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using System.Diagnostics;
 
 // For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -54,23 +55,30 @@ namespace Search.Core.Windows.Controllers
 
                 if (System.IO.File.Exists(searchResult.Path) && result.Type == "photo")
                 {
-                    using (Stream str = System.IO.File.OpenRead(searchResult.Path))
+                    string imageMagicHome = Environment.GetEnvironmentVariable("MAGICK_HOME");
+                    if (!string.IsNullOrEmpty(imageMagicHome))
                     {
-                        using (MemoryStream data = new MemoryStream())
+                        System.IO.FileInfo fi = new System.IO.FileInfo(searchResult.Path);
+                        var localThumbnailPath = Path.Combine(_hostingEnvironment.WebRootPath, "temp", fi.Name.Replace(fi.Extension, ".png"));
+                        var p = Process.Start(Path.Combine(imageMagicHome,"magick.exe"), string.Format("\"{0}\" -resize 300x300 \"{1}\"", fi.FullName, localThumbnailPath));
+                        searchResult.ThumbnailPath = "temp/" + fi.Name.Replace(fi.Extension, ".png");
+                        p.WaitForExit(1000);
+                    }
+                    else {
+                        using (Stream str = System.IO.File.OpenRead(searchResult.Path))
                         {
-                            str.CopyTo(data);
-                            data.Seek(0, SeekOrigin.Begin);
-                            byte[] buf = new byte[data.Length];
-                            data.Read(buf, 0, buf.Length);
-                            searchResult.Content = buf;
+                            using (MemoryStream data = new MemoryStream())
+                            {
+                                str.CopyTo(data);
+                                data.Seek(0, SeekOrigin.Begin);
+                                byte[] buf = new byte[data.Length];
+                                data.Read(buf, 0, buf.Length);
+                                searchResult.Content = buf;
+                            }
                         }
                     }
 
-                    ///SystemDrawing is NotFound implemented in Core 1 RC2 :(
-                    //System.IO.FileInfo fi = new System.IO.FileInfo(searchResult.Path);
-                    //System.IO.File.Copy(fi.FullName, _hostingEnvironment.WebRootPath + "\\temp\\" + fi.Name);
-                    //searchResult.Path = "~/temp/" + fi.Name;
-
+                    ///SystemDrawing is NotFound implemented in Core 1 RC2 yet :(
                     //Image image = Image.FromFile(imagePath, false);
                     //Image thumb = image.GetThumbnailImage(100, 100, () => false, IntPtr.Zero);
                     //thumb.Save(localPath, System.Drawing.Imaging.ImageFormat.Png);
