@@ -1,5 +1,6 @@
 ﻿<#Unit tests: 
  cd C:\Search\Scripts
+ cd C:\GitHub\banban\OhMySearch\BackEnd
 
  1.test person table. Has some unicode fields which are not acepted by ES. Please read this: https://www.elastic.co/guide/en/elasticsearch/guide/master/unicode-normalization.html
    Do not index [AdditionalContactInfo],[Demographics],[rowguid] fields. XML should be converted to text first.

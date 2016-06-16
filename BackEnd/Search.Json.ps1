@@ -1,14 +1,15 @@
 ﻿<#
 Preperation check list could be found here https://github.com/banban/OhMySearch/wiki/Preperations
+Later this script will cover all preperations to avoid manual processing
 
 Unit tests:
     cd C:\Search\Scripts
 
-    .\Search.Index.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\NGC2015" -FileExtensionsForSearch ".jpg"
-    .\Search.Index.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mydocuments"))" -FileExtensionsForSearch ".pdf"
-    .\Search.Index.Json.ps1 -SharedFolders "C:\Search\"
-    .\Search.Index.Json.ps1 -SharedFolders "\\shares\library\"
-    .\Search.Index.Json.ps1 -SharedFolders "\\shares\files\"
+    .\Search.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\NGC2015" -FileExtensionsForSearch ".jpg"
+    .\Search.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mydocuments"))" -FileExtensionsForSearch ".pdf"
+    .\Search.Json.ps1 -SharedFolders "C:\Search\"
+    .\Search.Json.ps1 -SharedFolders "\\shares\library\"
+    .\Search.Json.ps1 -SharedFolders "\\shares\files\"
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -29,7 +30,7 @@ Param(
 
     #tools
     [string]$TesseractExecPath = "$($env:TESSERACT_HOME)\tesseract.exe",
-    [string]$ImageMagickPath = $env:MAGICK_HOME, #"$($ImageMagickPath)\convert.exe"
+    [string]$ImageMagickPath = $env:MAGICK_HOME, #"$($ImageMagickPath)\magic.exe"
     [string]$ImageMagickTempFiles = "$([environment]::getfolderpath(“mydocuments”))".Trim("Documents") + "magick-*",
     [string]$ImageMagickTempPath = $env:MAGICK_TMPDIR,
     [string]$OfficeFileConverterExecPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\Tools\ofc.exe",
@@ -625,7 +626,7 @@ function ParsePdfText ([string]$filePath) {
         Set-ItemProperty $filePathCopy -name IsReadOnly -value $false
         Unblock-File -Path $filePathCopy
 
-        &"$($ImageMagickPath)\convert.exe" -strip -trim -monochrome -limit memory 10GB -limit area 10GB -limit disk 15GB -limit map 10GB -density 200 "$($filePathCopy)" "$($ImageMagickTempPath)\ocr-%04d.png" | Out-Null
+        &"$($ImageMagickPath)\magic.exe" -strip -trim -monochrome -limit memory 10GB -limit area 10GB -limit disk 15GB -limit map 10GB -density 200 "$($filePathCopy)" "$($ImageMagickTempPath)\ocr-%04d.png" | Out-Null
         start-sleep -Milliseconds 1000 #small delay after conversion
 
         Get-ChildItem $ImageMagickTempPath -Filter "*ocr-*.png" -ErrorAction SilentlyContinue -ErrorVariable err | 
@@ -678,7 +679,7 @@ function ParseJpgText ([string]$filePath) {
                 #Add-Content $LogFilePath "$(Get-Date) Error: " $_.Exception.Message
         }
 #Write-Host "converting image..."
-        &"$($ImageMagickPath)\convert.exe" -charcoal 2 -threshold 50% -strip -trim -contrast -density 200 "$($filePath)" "$($temp)" | Out-Null
+        &"$($ImageMagickPath)\magic.exe" -charcoal 2 -threshold 50% -strip -trim -level 50% -density 200 "$($filePath)" "$($temp)" | Out-Null
         if ((Test-Path -LiteralPath $temp) -eq $True) {
 #Write-Host "Get-Content..."
             $fileText = Get-Content $temp

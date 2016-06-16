@@ -6,13 +6,13 @@
     .\Search.Environment.ps1
 
 3. Set up dev (with daily snapshot ??)
-    .\Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev"
+    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev"
 
 4. Configure production cluster:
     cd E:\Search
-    .\setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Prod" -SetEnvironment `
+    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
-        -LicenceFilePath "E:\Search\company-license-287161d3-a6db-4e47-a8b3-5e62df55586f.json"
+        -LicenceFilePath "E:\Search\company-license-<your code>.json"
 
 5. Debug locally:
     cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha3\bin\elasticsearch.bat"
@@ -34,7 +34,7 @@ Param(
 function Main(){
     Clear-Host
 
-    if ($env:JAVA_HOME -eq $null)
+    if ($env:JAVA_HOME -eq $null) # since alpha 3 $env:JAVA_HOME is not the only option. It accepts java.exe path. Not implemented yet
     {
         Echo "Please install last version of Java and configure working catalog"
     }

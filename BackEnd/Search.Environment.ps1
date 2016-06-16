@@ -2,15 +2,17 @@
 1. Configure you environment variables
 2. Run this scrip as administrator to set up environment variables permanently. Machine or User - up to you
 
-   Another approach is to use session variables conguiguration: 
+   Another approach is to use session variables configuration: 
         $env:SEARCH_HOME = "C:\Search"
         $env:LOG_DIR = "C:\Logs"
         $env:ElasticUri = "http://localhost:9200"
         $env:SEARCH_HOME
         $env:MAGICK_HOME
+        $env:MAGICK_TMPDIR
 
-   Just for debugging. Do not use it for production environment.It will be cleared next time when you open new PowerShell session.
-   Anyway, SetEnvironmentVariable feeds and ooverrides $env objects. Use $env in all scripts to read data relevant for current session
+   But it is sutable just for debugging. Do not use it for persistent environment. It will be cleared next time when you open new PowerShell session.
+   Use SetEnvironmentVariable which overrite session $env objects. 
+   All scripts and apps read data from environment variables.
 #>
 
 function Test-IsAdmin { 
@@ -20,7 +22,7 @@ if (!(Test-IsAdmin)){
     throw "Please run this script with admin priviliges" 
 }
 
-#persistent for current user or machine
+#persistent for current user profile
 [Environment]::SetEnvironmentVariable("ElasticUri", "http://localhost:9200", "User")
 #when x-pack is installed use this credencials
 #[Environment]::SetEnvironmentVariable("ElasticUser", "elastic", "User")
@@ -29,10 +31,9 @@ if (!(Test-IsAdmin)){
 #3rd party apps
 [Environment]::SetEnvironmentVariable("TESSERACT_HOME", "C:\Program Files (x86)\Tesseract-OCR", "User") 
 
-[Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-6.9.3-Q16", "User")
-#[Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-7.0.1-Q16", "User") see https://github.com/banban/OhMySearch/issues/4
+[Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-7.0.1-Q16", "User")
+[Environment]::SetEnvironmentVariable("MAGICK_TMPDIR", "C:\Temp\MAGICK_TMPDIR", "User") #use non system drive with enough free space
 
-[Environment]::SetEnvironmentVariable("MAGICK_TMPDIR", "C:\Temp\MAGICK_TMPDIR", "User")
 [Environment]::SetEnvironmentVariable("SEARCH_HOME", "C:\Search", "User")
 [Environment]::SetEnvironmentVariable("LOG_DIR", "C:\Logs", "User")
 [Environment]::SetEnvironmentVariable("GHOSTSCRIPT_HOME", "C:\Program Files\gs\gs9.18", "User")
@@ -55,7 +56,5 @@ if (!(Test-IsAdmin)){
 [Environment]::SetEnvironmentVariable("EntityRecognizerURI", "https://<your area>.services.azureml.net/workspaces/<your guid>/services/<your guid>/execute?api-version=2.0&details=true", "User")
 [Environment]::SetEnvironmentVariable("EntityRecognizerApiKey", "<your value>", "User")
 
-
-
-
-Get-ChildItem Env:
+#read environment variables
+Get-ChildItem Env: | ft
