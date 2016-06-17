@@ -30,11 +30,11 @@ Param(
 
     #tools
     [string]$TesseractExecPath = "$($env:TESSERACT_HOME)\tesseract.exe",
-    [string]$ImageMagickPath = $env:MAGICK_HOME, #"$($ImageMagickPath)\magic.exe"
+    [string]$ImageMagickPath = $env:MAGICK_HOME, #"$($ImageMagickPath)\magick.exe"
     [string]$ImageMagickTempFiles = "$([environment]::getfolderpath(“mydocuments”))".Trim("Documents") + "magick-*",
     [string]$ImageMagickTempPath = $env:MAGICK_TMPDIR,
     [string]$OfficeFileConverterExecPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\Tools\ofc.exe",
-    [string]$OfficeFileConverterTempPath = "$($env:SEARCH_HOME)\_artefacts\Binn\OfficeFileConverter\", #!!!create Input and Output folders here
+    [string]$OfficeFileConverterTempPath = "$($env:SEARCH_HOME)\_temp\OfficeFileConverter\", #!!!create Input and Output folders here
     [string]$b2xtranslatorExecPath = "$($env:SEARCH_HOME)\_artefacts\Binn\b2xtranslator\", 
     [string]$GHostScriptDllPath = "$($env:GHOSTSCRIPT_HOME)\bin\gsdll64.dll",
     [string]$iTextSharpDllPath = "$($env:SEARCH_HOME)\_artefacts\Binn\itextsharp.dll",
@@ -626,7 +626,7 @@ function ParsePdfText ([string]$filePath) {
         Set-ItemProperty $filePathCopy -name IsReadOnly -value $false
         Unblock-File -Path $filePathCopy
 
-        &"$($ImageMagickPath)\magic.exe" -strip -trim -monochrome -limit memory 10GB -limit area 10GB -limit disk 15GB -limit map 10GB -density 200 "$($filePathCopy)" "$($ImageMagickTempPath)\ocr-%04d.png" | Out-Null
+        &"$($ImageMagickPath)\magick.exe" -monochrome -limit memory 10GB -limit area 10GB -limit disk 15GB -limit map 10GB -density 200 "$($filePathCopy)" "$($ImageMagickTempPath)\ocr-%04d.png" | Out-Null
         start-sleep -Milliseconds 1000 #small delay after conversion
 
         Get-ChildItem $ImageMagickTempPath -Filter "*ocr-*.png" -ErrorAction SilentlyContinue -ErrorVariable err | 
@@ -638,7 +638,7 @@ function ParsePdfText ([string]$filePath) {
                     $numberOfPages++
                     [string]$fullName = ([IO.FileInfo]$_).FullName
                     [string]$outputBase = $fullName.Replace(".png", "")
-                    &"$($TesseractExecPath)" "$($fullName)" "$($outputBase)" -l eng -psm 1 | Out-Null
+                    &"$($TesseractExecPath)" "$($fullName)" "$($outputBase)" -psm 1 | Out-Null # -l eng
                     try{
                         [string]$currentText = [System.IO.File]::ReadAllText($fullName.Replace(".png", ".txt"))
                         #$bytes = [System.Text.Encoding]::UTF8.GetBytes($currentText) #Unicode
@@ -679,7 +679,7 @@ function ParseJpgText ([string]$filePath) {
                 #Add-Content $LogFilePath "$(Get-Date) Error: " $_.Exception.Message
         }
 #Write-Host "converting image..."
-        &"$($ImageMagickPath)\magic.exe" -charcoal 2 -threshold 50% -strip -trim -level 50% -density 200 "$($filePath)" "$($temp)" | Out-Null
+        &"$($ImageMagickPath)\magick.exe" "$($filePath)" -charcoal 2 -strip -trim -level 50% -threshold 50% -density 200 "$($temp)" | Out-Null
         if ((Test-Path -LiteralPath $temp) -eq $True) {
 #Write-Host "Get-Content..."
             $fileText = Get-Content $temp
