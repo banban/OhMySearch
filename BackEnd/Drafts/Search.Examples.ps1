@@ -111,6 +111,17 @@ $global:Debug = $true
     }
 }
 
+&$post "shared_v1/file/_search" -obj @{
+    size = 0
+    aggs = @{
+        Extenstions = @{
+            terms = @{
+                field = "Extension"
+            }
+        }
+    }
+}
+
 <#
     $delete "tender_v1" 
     &$delete $indexName 

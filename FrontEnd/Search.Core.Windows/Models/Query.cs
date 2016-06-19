@@ -14,6 +14,7 @@ namespace Search.Core.Windows.Models
             Size = 20;
             QueryOptions = new List<QueryOption>();
             SearchResults = new SearchResults();
+            Aggregations = new List<Aggregation>();
         }
 
         private string myQueryTerm = string.Empty;
@@ -48,8 +49,9 @@ namespace Search.Core.Windows.Models
         public int? Size { get; set; }
 
         public SearchResults SearchResults { get; set; }
-        public IEnumerable<QueryOption> QueryOptions { get; set; }
-        public IDictionary<string, string> Aggregations { get; set; }
+        public List<QueryOption> QueryOptions { get; set; }
+        public List<Aggregation> Aggregations { get; set; }
+
         public IEnumerable<string> GetOptionGroups()
         {
             var groups = this.QueryOptions.Select(qo => qo.OptionGroup).Distinct();
@@ -58,10 +60,24 @@ namespace Search.Core.Windows.Models
 
         public IEnumerable<QueryOption> GetOptions(string OptionGroup)
         {
-            var groups = this.QueryOptions
+            var options = this.QueryOptions
                 .Where(qo => qo.OptionGroup == OptionGroup)
                 .OrderBy(qo => qo.Key);
+            return options;
+        }
+
+        public IEnumerable<string> GetAggregations()
+        {
+            var groups = this.Aggregations.OrderBy(gr => gr.Group).Select(qo => qo.Group).Distinct();
             return groups;
+        }
+
+        public IEnumerable<Aggregation> GetAggregations(string Group)
+        {
+            var aggs = this.Aggregations
+                .Where(qo => qo.Group == Group)
+                .OrderByDescending(qo => qo.Count);
+            return aggs;
         }
     }
 

@@ -157,14 +157,28 @@ function Main(){
 
     <#configure plugins. 
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat list"
-        #extended unicode support https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis-icu.html
+        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana-plugin.bat list"
+
+    #extended unicode support https://www.elastic.co/guide/en/elasticsearch/plugins/master/analysis-icu.html
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install analysis-icu"
-                
-        #https://www.elastic.co/guide/en/x-pack/current/security-getting-started.html
+    #TimeLion
+        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana-plugin.bat install timelion"
+
+    #https://www.elastic.co/guide/en/x-pack/current/security-getting-started.html
+    Install X-Pack. Run as admin
+        $ESVersion = "5.0.0-alpha3"
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat install x-pack"
         cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana-plugin.bat install x-pack"
+        #[Environment]::SetEnvironmentVariable("ElasticUser", "elastic", "User")
+        #[Environment]::SetEnvironmentVariable("ElasticPassword", "changeme", "User")
 
-        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana-plugin.bat install timelion"
+
+    Uninstall X-Pack. Run as admin         
+        $ESVersion = "5.0.0-alpha3"
+        cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana-plugin.bat remove x-pack"
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat remove x-pack"
+        Remove-Item Env:\ElasticUser
+        Remove-Item Env:\ElasticPassword
 
 
     Do not use examples below in v5!!!

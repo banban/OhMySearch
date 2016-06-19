@@ -25,8 +25,12 @@ if (!(Test-IsAdmin)){
 #persistent for current user profile
 [Environment]::SetEnvironmentVariable("ElasticUri", "http://localhost:9200", "User")
 #when x-pack is installed use this credencials
-#[Environment]::SetEnvironmentVariable("ElasticUser", "elastic", "User")
-#[Environment]::SetEnvironmentVariable("ElasticPassword", "changeme", "User")
+    #[Environment]::SetEnvironmentVariable("ElasticUser", "elastic", "User")
+    #[Environment]::SetEnvironmentVariable("ElasticPassword", "changeme", "User")
+#when x-pack is removed use delete these varibles
+    #Remove-Item Env:\ElasticUser
+    #Remove-Item Env:\ElasticPassword
+
 
 #3rd party apps settings:
 

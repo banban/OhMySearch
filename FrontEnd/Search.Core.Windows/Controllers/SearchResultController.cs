@@ -60,7 +60,7 @@ namespace Search.Core.Windows.Controllers
                     {
                         System.IO.FileInfo fi = new System.IO.FileInfo(searchResult.Path);
                         var localThumbnailPath = Path.Combine(_hostingEnvironment.WebRootPath, "temp", fi.Name.Replace(fi.Extension, ".png"));
-                        var p = Process.Start(Path.Combine(imageMagicHome,"magick.exe"), string.Format("\"{0}\" -resize 300x300 \"{1}\"", fi.FullName, localThumbnailPath));
+                        var p = Process.Start(Path.Combine(imageMagicHome, "magick.exe"), string.Format("\"{0}\" -resize 300x300 \"{1}\"", fi.FullName, localThumbnailPath));
                         searchResult.ThumbnailPath = "temp/" + fi.Name.Replace(fi.Extension, ".png");
                         p.WaitForExit(1000);
                     }

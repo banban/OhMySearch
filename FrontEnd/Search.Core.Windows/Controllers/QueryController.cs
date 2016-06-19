@@ -85,6 +85,7 @@ namespace Search.Core.Windows.Controllers
             query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
 
             var results = await GetSearchResponse(query); //use extra call to get total
+
             query.Total = results.Total;
             if (query.From > results.Total)
             {
@@ -97,6 +98,31 @@ namespace Search.Core.Windows.Controllers
                 sr.Pager = new Models.Pager(query.Total, page, query.Size.Value);
                 sr.Items = GetSearchResults(results, query.QueryTerm);
                 query.SearchResults = sr;
+            }
+
+            foreach (var aggr in results.Aggs.Aggregations)
+            {
+                var buckets = results.Aggs.Terms(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                    .OrderByDescending(bct =>  bct.DocCount).ThenBy(bct => bct.KeyAsString)
+                    .Take(10);
+                foreach (var bucket in buckets)
+                {
+                    query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Key, Count = bucket.DocCount.Value });
+                }
+                var buckets2 = results.Aggs.DateHistogram(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                    .OrderByDescending(bct => bct.DocCount) //.ThenBy(bct => bct.KeyAsString)
+                    .Take(10);
+                foreach (var bucket in buckets2)
+                {
+                    query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Date.ToString("MMM yyyy"), Count = bucket.DocCount });
+                }
+                var buckets3 = results.Aggs.Range(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                    .OrderByDescending(bct => bct.DocCount)
+                    .Take(10);
+                foreach (var bucket in buckets3)
+                {
+                    query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = (bucket.From.HasValue ? bucket.From.ToString(): "0") + " - " + (bucket.To.HasValue ? bucket.To.ToString() : "..."), Count = bucket.DocCount });
+                }
             }
 
             ViewBag.QueryTerm = query.QueryTerm;
@@ -264,6 +290,10 @@ namespace Search.Core.Windows.Controllers
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_2", Value = "Page" });
                 //results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_3", Value = "Tile" });
 
+                options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_1", Value = "Terms" });
+                options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_2", Value = "Date Histogram" });
+                options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_3", Value = "Ranges" });
+
                 _memoryCache.Set("queryOptions", options, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
             }
 
@@ -300,19 +330,34 @@ namespace Search.Core.Windows.Controllers
         {
             //indices to search
             Nest.Indices indices = Nest.Indices.AllIndices;
+            string keyIndexType = "";
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
             {
-                indices = Nest.Indices.Index(query.ChosenOptions.Trim(',').Split(',').AsEnumerable()
-                    .Where(qo => qo.StartsWith("1_"))
-                    .Select(qo => new Nest.IndexName() { Name = qo.Replace("1_", "") }));
+                var names = query.ChosenOptions.Trim(',').Split(',').AsEnumerable().Where(qo => qo.StartsWith("1_"));
+                indices = Nest.Indices.Index(names.Select(qo => new Nest.IndexName() { Name = qo.Replace("1_", "") }));
+                foreach (var name in names)
+                {
+                    keyIndexType += name + ",";
+                }
+            }
+            else
+            {
+                keyIndexType += "AllIndices,";
             }
             //types to search
             Nest.Types types = Nest.Types.AllTypes;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("2_"))
             {
-                types = Nest.Types.Type(query.ChosenOptions.Trim(',').Split(',').AsEnumerable()
-                    .Where(qo => qo.StartsWith("2_"))
-                    .Select(qo => new Nest.TypeName() { Name = qo.Replace("2_", "") }));
+                var names = query.ChosenOptions.Trim(',').Split(',').AsEnumerable().Where(qo => qo.StartsWith("2_"));
+                types = Nest.Types.Type(names.Select(qo => new Nest.TypeName() { Name = qo.Replace("2_", "") }));
+                foreach (var name in names)
+                {
+                    keyIndexType += name + ",";
+                }
+            }
+            else
+            {
+                keyIndexType += "AllTypes,";
             }
 
             //var options = new List<Models.QueryOption>();
@@ -350,8 +395,9 @@ namespace Search.Core.Windows.Controllers
                     OptimizeBoundingBox = GeoOptimizeBBox.Memory
                 };
             }
+            #region More Like This
             else if (query.QueryTerm != null && query.QueryTerm.Contains("/")
-                    && query.ChosenOptions != null && query.ChosenOptions.Contains("3_6")) //More Like This
+            && query.ChosenOptions != null && query.ChosenOptions.Contains("3_6"))
             {
                 string[] fullId = query.QueryTerm.Split('/');
                 //fields to search
@@ -380,7 +426,7 @@ namespace Search.Core.Windows.Controllers
                 {
                     Name = "mlt_query",
                     //Fields = fields.ToArray(), //Defaults to the _all field for free text and to all possible fields for document inputs.
-                    Like = new List<Like> 
+                    Like = new List<Like>
                     {
                         //A list of documents following the same syntax as the Multi GET API.
                         new Like(new Models.LikeDocumentGeneral(fullId))
@@ -403,7 +449,8 @@ namespace Search.Core.Windows.Controllers
                     //}
                 };
             }
-            
+
+            #endregion
             else //free text
             {
                 qc = new QueryStringQuery
@@ -418,6 +465,167 @@ namespace Search.Core.Windows.Controllers
                 From = query.From ?? 0, //.Skip()
                 Size = query.Size ?? 10 //.Take()
             };
+
+            //Aggregations https://www.elastic.co/guide/en/elasticsearch/client/net-api/master/aggregations.html
+            var aggregations = new Dictionary<string, IAggregationContainer>();
+
+            #region Terms aggregation
+            if (query.ChosenOptions != null && query.ChosenOptions.Contains("5_1"))
+            {
+                //fields to search
+                List<string> termList = new List<string>();
+                string key = "FieldsForTermAgg:" + keyIndexType;
+                if (!_memoryCache.TryGetValue(key, out termList))
+                {
+                    termList = new List<string>();
+                    var mapping = _elclient.GetMapping(new GetMappingRequest(indices, types));
+                    foreach (var index in mapping.Mappings)
+                    {
+                        foreach (var typeMapping in index.Value)
+                        {
+                            foreach (var fieldMapping in typeMapping.Properties)
+                            {
+                                if (!termList.Contains(fieldMapping.Key.Name)
+                                    && fieldMapping.Value.Type.Name == "keyword" //can't use text fields for terms aggregation
+                                    && fieldMapping.Key.Name != "rowguid" && fieldMapping.Key.Name != "id" && fieldMapping.Key.Name != "Path"
+                                    )
+                                {
+                                    termList.Add(fieldMapping.Key.Name);
+                                }
+                            }
+                        }
+                    }
+                    _memoryCache.Set(key, termList, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
+                }
+
+                foreach (var term in termList)
+                {
+                    aggregations.Add("Top terms: " + term, new AggregationContainer
+                    {
+                        Terms = new TermsAggregation(term)
+                        {
+                            Field = term,
+                            MinimumDocumentCount = 1,
+                            Order = new List<TermsOrder>
+                            {
+                                TermsOrder.TermAscending,
+                                TermsOrder.CountDescending
+                            }
+                        }
+                    });
+                }
+            }
+
+            #endregion
+
+            #region Date Histogram aggregation
+            if (query.ChosenOptions != null && query.ChosenOptions.Contains("5_2"))
+            {
+                List<string> termList = new List<string>();
+                string key = "FieldsForDateHistogramAgg:" + keyIndexType;
+                if (!_memoryCache.TryGetValue(key, out termList))
+                {
+                    termList = new List<string>();
+                    var mapping = _elclient.GetMapping(new GetMappingRequest(indices, types));
+                    foreach (var index in mapping.Mappings)
+                    {
+                        foreach (var typeMapping in index.Value)
+                        {
+                            foreach (var fieldMapping in typeMapping.Properties)
+                            {
+                                if (!termList.Contains(fieldMapping.Key.Name) && fieldMapping.Value.Type.Name == "date")
+                                {
+                                    termList.Add(fieldMapping.Key.Name);
+                                }
+                            }
+                        }
+                    }
+                    _memoryCache.Set(key, termList, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
+                }
+
+                foreach (var term in termList)
+                {
+                    aggregations.Add("Top Months: " + term, new AggregationContainer
+                    {
+                        DateHistogram = new DateHistogramAggregation(term)
+                        {
+                            Field = term,
+                            Interval = DateInterval.Month,
+                            MinimumDocumentCount = 1,
+                            Format = "yyyy-MM-dd",
+                            ExtendedBounds = new ExtendedBounds<DateTime>
+                            {
+                                Minimum = DateTime.Today.AddYears(-10),
+                                Maximum = DateTime.Today.AddYears(1),
+                            },
+                            Order = HistogramOrder.KeyDescending,
+                            //Missing = FixedDate,
+                            //Aggregations = new NestedAggregation("project_tags")
+                            //{
+                            //    Path = Field<Project>(p => p.Tags),
+                            //    Aggregations = new TermsAggregation("tags")
+                            //    {
+                            //        Field = Field<Project>(p => p.Tags.First().Name)
+                            //    }
+                            //}
+                        }
+                    });
+                }
+            }
+
+            #endregion
+
+            #region Ranges aggregation
+            if (query.ChosenOptions != null && query.ChosenOptions.Contains("5_3"))
+            {
+                List<string> termList = new List<string>();
+                string key = "FieldsForRangesAgg:" + keyIndexType;
+                if (!_memoryCache.TryGetValue(key, out termList))
+                {
+                    termList = new List<string>();
+                    var mapping = _elclient.GetMapping(new GetMappingRequest(indices, types));
+                    foreach (var index in mapping.Mappings)
+                    {
+                        foreach (var typeMapping in index.Value)
+                        {
+                            foreach (var fieldMapping in typeMapping.Properties)
+                            {
+                                if (!termList.Contains(fieldMapping.Key.Name)
+                                    && (fieldMapping.Value.Type.Name == "double" || fieldMapping.Value.Type.Name == "float")
+                                    )
+                                {
+                                    termList.Add(fieldMapping.Key.Name);
+                                }
+                            }
+                        }
+                    }
+                    _memoryCache.Set(key, termList, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
+                }
+
+                foreach (var term in termList)
+                {
+                    aggregations.Add("Top ranges: " + term, new AggregationContainer
+                    {
+                        Range = new RangeAggregation(term)
+                        {
+                            Field = term,
+                            Ranges = new List<Nest.Range>
+                            {
+                                { new Nest.Range { To = 10000 } },
+                                { new Nest.Range { From = 10000, To = 100000 } },
+                                { new Nest.Range { From = 100000, To = 1000000 } },
+                                { new Nest.Range { From = 1000000, To = 10000000 } },
+                                { new Nest.Range { From = 10000000 } }
+                            }
+                        }
+                    });
+                }
+            }
+
+            #endregion
+
+            elRequest.Aggregations = aggregations;
+
 
             //elRequest.Aggregations = new CardinalityAggregation("state_count", Field<Models.IFileResult>(p => p.Extension))
             //{
@@ -481,6 +689,9 @@ namespace Search.Core.Windows.Controllers
             //        }
             //    }
             //}
+
+            #region Highlights. Not working yet :(
+
             elRequest.Highlight = new Highlight()
             {
                 PreTags = new[] { "<em>" },
@@ -491,7 +702,7 @@ namespace Search.Core.Windows.Controllers
                         {
                             Field = "*",
                             ///https://www.elastic.co/guide/en/elasticsearch/client/net-api/master/highlighting-usage.html
-                            Type = HighlighterType.Plain, 
+                            Type = HighlighterType.Plain,
                             ForceSource = true,
                             FragmentSize = 150,
                             NumberOfFragments = 3,
@@ -500,72 +711,10 @@ namespace Search.Core.Windows.Controllers
                     },
                 }
             };
-            
+
+            #endregion
+
             Nest.ISearchResponse<dynamic> results = await _elclient.SearchAsync<dynamic>(elRequest);
-            //var exts = results.Aggs.Children("extenstions");
-            //var exts = results.Aggs.DateHistogram("modified_per_month");
-            /*
-                results = await _elclient.SearchAsync<dynamic>(body => body
-                    .Index(indices)
-                    .Type(types)
-                    .From(query.From ?? 0)
-                    .Size(query.Size ?? 10)
-                    .Query(q => q.QueryString(qs => qs.Query(query.QueryTerm)))
-                    .Highlight(h => h
-                        .Fields(f => f
-                            .Field("*")
-                            //.OnAll()  == .Field("_all")
-                            .PreTags("<b style='color:black'>")
-                            .PostTags("</b>")))
-                //.Highlight(h => h
-                //    .PreTags("<em>")
-                //    .PostTags("</em>"))
-                );
-
-            _client.Search<Entry>(s => s
-                .Query(q => q
-                    .Boosting(bq => bq
-                        .Positive(pq => pq
-                            .CustomScore(cbf => cbf
-                                .Query(cbfq => cbfq
-                                    .QueryString(qs => qs
-                                        .OnFieldsWithBoost(d =>
-                                            d.Add(entry => entry.Title, 5.0)
-                                            .Add(entry => entry.Description, 2.0)
-                                        )
-                                        .Query(searchText)
-                                    )
-                                )
-                                .Script("_score + doc['year'].value")
-                            )
-                        )
-                        .Negative(nq => nq
-                            .Filtered(nfq => nfq
-                                .Query(qq => qq.MatchAll())
-                                .Filter(f => f.Missing(p => p.Award))
-                            )
-                        )
-                        .NegativeBoost(0.2)
-                    )
-                )
-            );
-            */
-            /*SearchDescriptor<dynamic> sd = new SearchDescriptor<dynamic>();
-            sd.Aggregations(new Dictionary<string, IAggregationContainer>()
-                {
-                    { "my_agg", new AggregationContainer
-                        {
-                            Terms = new TermsAggregation //TermsAggregator
-                            {
-
-                                Field = "content",
-                                Size = 10,
-                                ExecutionHint = TermsAggregationExecutionHint.Ordinals
-                            }
-                        }
-                    }
-                });*/
-
 
             return results;
         }

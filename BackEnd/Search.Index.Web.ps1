@@ -2,10 +2,10 @@
 Unit tests:
     cd C:\Search\Scripts
     
-    Test 1. Do not download new files, just process existings:
+Test 1. Do not download new files, just process existings:
     .\Search.Index.Web.ps1 -rootPath "C:\Search\Import\Test" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex
 
-    Test 2. Adjust type mapping:
+Test 2. Adjust type mapping:
     .\Search.Index.Web.ps1 -rootPath "C:\Search\Import\Test" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex `
        -typeMapping '{"tender_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
 "Agency_Divison":{"type":"text"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
@@ -16,7 +16,7 @@ Unit tests:
 "Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"text"},"Supplier_Country":{"type":"text"},"Supplier_Name":{"type":"text"},
 "Supplier_Postcode":{"type":"keyword"},"Value":{"type":"double"}}}}}}'
 
-    Test 3. Full load test with type mapping:
+Test 3. Full load test with type mapping:
     .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex `
        -typeMapping '{"tender_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
 "Agency_Divison":{"type":"text"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
@@ -27,34 +27,35 @@ Unit tests:
 "Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"text"},"Supplier_Country":{"type":"text"},"Supplier_Name":{"type":"text"},
 "Supplier_Postcode":{"type":"keyword"},"Value":{"type":"double"}}}}}}'
 
- 2 records were rejected: 
+Rejected records : 
     path: c:\search\import\austender\08-nov-15 to 14-nov-15.csv; _type: austender; _id: AVUer-1TRN9q28PbTZhH; error: mapper_parsing_exception; reason: failed to parse [Description]; status: 400
     path: c:\search\import\austender\08-nov-15 to 14-nov-15.csv; _type: austender; _id: AVUer-1TRN9q28PbTZif; error: mapper_parsing_exception; reason: failed to parse [Supplier_Name]; status: 400
+    path: c:\search\import\austender\17-jan-16 to 23-jan-16.csv; _type: austender; _id: AVVoYaUyq8_Br6NFE8M_; error: mapper_parsing_exception; reason: failed to parse [Description]; status: 400
+    path: c:\search\import\austender\17-jan-16 to 23-jan-16.csv; _type: austender; _id: AVVoYaUyq8_Br6NFE8ao; error: mapper_parsing_exception; reason: failed to parse [EndDate]; status: 400
 
-
-    prod
+Prod environment
     .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex
 
-    using "CN ID" as PK generates circuit_breaking_exception. You can use internal _id by ignoring the fueild
+Using "CN ID" as PK causes circuit_breaking_exception. You can use internal _id as surrogate key:
     .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex
 
 
-    Alternative approach is logstash. To test logstash in interactive mode use command: 
-        logstash.bat -e 'input { stdin { } } output { stdout {} }'
-    Check existing plugins
-        logstash-plugin.bat list
-        logstash-plugin.bat install logstash-filter-csv
+Alternative approach of loading data is logstash. To test logstash in interactive mode use command: 
+    logstash.bat -e 'input { stdin { } } output { stdout {} }'
+Check existing plugins
+    logstash-plugin.bat list
+    logstash-plugin.bat install logstash-filter-csv
 
-        logstash -e 'input { stdin { } } output { elasticsearch { host => localhost } }'
-        logstash -e 'input { stdin {} } output { stdout { codec => rubydebug } }'
+    logstash -e 'input { stdin { } } output { elasticsearch { host => localhost } }'
+    logstash -e 'input { stdin {} } output { stdout { codec => rubydebug } }'
 
-    Test your configuration use this command:
-        C:\Search\logstash-5.0.0-alpha3\bin\logstash.bat -f "C:\Search\Import\logstash-austender.conf" --config.test_and_exit
-    Expected result: Configuration OK
-    Unexpected error: The signal HUP is in use by the JVM and will not work correctly on this platform
-    Which means - kill existing jruby process conflicting with your request :(
+Test your configuration use this command:
+    C:\Search\logstash-5.0.0-alpha3\bin\logstash.bat -f "C:\Search\Import\logstash-austender.conf" --config.test_and_exit
+Expected result: Configuration OK
+Unexpected error: The signal HUP is in use by the JVM and will not work correctly on this platform
+Which means - kill existing jruby process conflicting with your request :(
 
- test API:
+Test API calls:
     $global:Debug = $true
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
     &$cat
@@ -77,7 +78,7 @@ Unit tests:
 
     &$delete "tender_v1" 
 
-    check foursquare search in Search.Index.Files.Test.ps1
+Also, check foursquare search in Search.Index.Files.Test.ps1
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 

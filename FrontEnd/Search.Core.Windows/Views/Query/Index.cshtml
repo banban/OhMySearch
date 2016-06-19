@@ -3,7 +3,7 @@
     ViewData["Title"] = "Search Results";
 }
 
-<div class="col-lg-12 col-md-12 col-sm-12" data-role="content" data-position="fixed">
+<div class="col-lg-pull-2 col-md-pull-2 col-sm-pull-2 col-lg-12 col-md-12 col-sm-12" data-role="content" data-position="fixed">
     @await Component.InvokeAsync("QueryOptions", Model)
     <ul class="nav nav-tabs" role="tablist">
         <li class="active"><a href="#Search-Results" role="tab" data-toggle="tab" aria-expanded="true" class="glyphicon glyphicon-list">Results <span class="badge">@Model.Total</span></a></li>
@@ -42,13 +42,29 @@
         </div>
     </div>
 </div>
-<div class="sidebar col-lg-pull-1 col-md-pull-1 col-sm-pull-1">
-    <b>Filters</b><br />
-    <ul>
-        <li>A <span class="badge">1</span></li>
-        <li>B <span class="badge">2</span></li>
-        <li>C <span class="badge">3</span></li>
-    </ul>
+<div id="accordion" class="panel-group sidebar col-lg-pull-1 col-md-pull-1 col-sm-pull-1">
+    @foreach (var aggr in Model.GetAggregations())
+    {
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                <h4 class="panel-title">
+                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")">
+                        @aggr
+                    </a>
+                </h4>
+            </div>
+            <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
+                <div class="panel-body">
+                    <ul>
+                        @foreach (var item in Model.GetAggregations(aggr))
+                        {
+                            <li>@item.Key <span class="badge">@item.Count</span></li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 
@@ -68,7 +84,9 @@
                 nextSelector: 'a.jscroll-next:last',
                 contentSelector: 'li'
             });
-
+            //$(function () {
+            //    $("#aggregations").accordion();
+            //});
         });
     </script>
 }
