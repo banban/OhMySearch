@@ -129,7 +129,7 @@ Test unicode analizers https://www.elastic.co/guide/en/elasticsearch/plugins/mas
         date_detection = $true #avoid “malformed date” exception
         properties = @{
             FirstName = @{
-                type = "string"
+                type = "text"
             }
             LoginID = @{
             type = "keyword"
@@ -142,7 +142,7 @@ Test unicode analizers https://www.elastic.co/guide/en/elasticsearch/plugins/mas
         date_detection = $true #avoid “malformed date” exception
         properties= @{
             FirstName = @{
-                type = "string"
+                type = "text"
             }
         }
     }
@@ -155,7 +155,7 @@ in which case it will update that parameter across all fields with the same name
     &$put "adworks_v1/_mapping/employee?update_all_types" -obj @{
       properties = @{
         FirstName = @{
-            type = "string"
+            type = "text"
         }
         LoginID = @{
           type = "keyword"
@@ -163,7 +163,7 @@ in which case it will update that parameter across all fields with the same name
       }
     }
 
-    &$put "adworks_v1/_mapping/employee" -body '{"properties":{"BusinessEntityID":{"type":"integer"},"NationalIDNumber":{"type":"text"},"LoginID":{"type":"text"},"OrganizationNode":{"fields":{"tree":{"type":"string","analyzer":"hierarchy_analyzer"}},"type":"text","index":"not_analyzed"},"OrganizationLevel":{"type":"short"},"JobTitle":{"type":"text"},"BirthDate":{"type":"date","format":"YYYY-MM-DD"},"MaritalStatus":{"type":"text"},"Gender":{"type":"text"},"HireDate":{"type":"date","format":"YYYY-MM-DD"},"SalariedFlag":{"type":"text"},"VacationHours":{"type":"short"},"SickLeaveHours":{"type":"short"},"CurrentFlag":{"type":"text"},"ModifiedDate":{"type":"date","format":"YYYY-MM-DD"}}}'
+    &$put "adworks_v1/_mapping/employee" -body '{"properties":{"BusinessEntityID":{"type":"integer"},"NationalIDNumber":{"type":"text"},"LoginID":{"type":"text"},"OrganizationNode":{"fields":{"tree":{"type":"text","analyzer":"hierarchy_analyzer"}},"type":"text","index":"not_analyzed"},"OrganizationLevel":{"type":"short"},"JobTitle":{"type":"text"},"BirthDate":{"type":"date","format":"YYYY-MM-DD"},"MaritalStatus":{"type":"text"},"Gender":{"type":"text"},"HireDate":{"type":"date","format":"YYYY-MM-DD"},"SalariedFlag":{"type":"text"},"VacationHours":{"type":"short"},"SickLeaveHours":{"type":"short"},"CurrentFlag":{"type":"text"},"ModifiedDate":{"type":"date","format":"YYYY-MM-DD"}}}'
 
     &$get "/adworks_v1/_mapping"
     &$get "/adworks_v1/_settings"
@@ -523,11 +523,11 @@ function Get-ElasticMappingByDataType
                 format = "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"  
             }} 
         'sqlhierarchyId' {@{
-                type = "string"
+                type = "keyword"
                 index = "not_analyzed"
                 fields = @{
                     tree = @{
-                        type = "string"
+                        type = "text"
                         analyzer = "hierarchy_analyzer"
                     }
                 }

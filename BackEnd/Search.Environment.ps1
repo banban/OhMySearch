@@ -65,5 +65,8 @@ if (!(Test-IsAdmin)){
 [Environment]::SetEnvironmentVariable("EntityRecognizerURI", "https://<your area>.services.azureml.net/workspaces/<your guid>/services/<your guid>/execute?api-version=2.0&details=true", "User")
 [Environment]::SetEnvironmentVariable("EntityRecognizerApiKey", "<your value>", "User")
 
+#IIS fronend deployment in production
+#[Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Production", "User")
+ 
 #read environment variables
 Get-ChildItem Env: | ft

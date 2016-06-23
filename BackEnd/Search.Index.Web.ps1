@@ -7,24 +7,24 @@ Test 1. Do not download new files, just process existings:
 
 Test 2. Adjust type mapping:
     .\Search.Index.Web.ps1 -rootPath "C:\Search\Import\Test" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex `
-       -typeMapping '{"tender_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
-"Agency_Divison":{"type":"text"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
-"Amendment_Reason":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"CN_ID":{"type":"keyword"},"Category":{"type":"text"},
+       -typeMapping = '{"tender_v1":{"mappings":{"austender":{"dynamic":"false","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text","fielddata":true},"Agency_Branch":{"type":"text","fielddata":true},
+"Agency_Divison":{"type":"text","fielddata":true},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
+"Amendment_Reason":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"CN_ID":{"type":"keyword"},"Category":{"type":"text","fielddata":true},
 "Confidentiality_Contract":{"type":"text"},"Confidentiality_Contract_Reason_s":{"type":"text"},"Confidentiality_Outputs":{"type":"text"},"Confidentiality_Outputs_Reason_s":{"type":"text"},
 "Consultancy":{"type":"text"},"Consultancy_Reason_s":{"type":"text"},"Description":{"type":"text"},"EndDate":{"type":"date"},"Parent_CN_ID":{"type":"text"},
-"Procurement_Method":{"type":"text"},"Publish_Date":{"type":"date"},"StartDate":{"type":"date"},"Status":{"type":"text"},"Supplier_ABN":{"type":"keyword"},
-"Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"text"},"Supplier_Country":{"type":"text"},"Supplier_Name":{"type":"text"},
+"Procurement_Method":{"type":"text","fielddata":true},"Publish_Date":{"type":"date"},"StartDate":{"type":"date"},"Status":{"type":"text","fielddata":true},"Supplier_ABN":{"type":"keyword"},
+"Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"text","fielddata":true},"Supplier_Country":{"type":"text","fielddata":true},"Supplier_Name":{"type":"text"},
 "Supplier_Postcode":{"type":"keyword"},"Value":{"type":"double"}}}}}}'
 
 Test 3. Full load test with type mapping:
     .\Search.Index.Web.ps1 -webSite "https://www.tenders.gov.au/"-rootPath "C:\Search\Import\AusTender" -delimeter "	" -keyFieldName "CN ID" -indexName "tender_v1" -aliasName "tender" -typeName "austender" -NewIndex `
-       -typeMapping '{"tender_v1":{"mappings":{"austender":{"dynamic":"true","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"text"},"Agency_Branch":{"type":"text"},
-"Agency_Divison":{"type":"text"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
-"Amendment_Reason":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"CN_ID":{"type":"keyword"},"Category":{"type":"text"},
+       -typeMapping '{"tender_v1":{"mappings":{"austender":{"dynamic":"false","properties":{"ATM_ID":{"type":"keyword"},"Agency":{"type":"keyword"},"Agency_Branch":{"type":"keyword"},
+"Agency_Divison":{"type":"keyword"},"Agency_Postcode":{"type":"keyword"},"Agency_Ref_ID":{"type":"keyword"},"Amendment_Publish_Date":{"type":"date"},
+"Amendment_Reason":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}},"CN_ID":{"type":"keyword"},"Category":{"type":"keyword"},
 "Confidentiality_Contract":{"type":"text"},"Confidentiality_Contract_Reason_s":{"type":"text"},"Confidentiality_Outputs":{"type":"text"},"Confidentiality_Outputs_Reason_s":{"type":"text"},
-"Consultancy":{"type":"text"},"Consultancy_Reason_s":{"type":"text"},"Description":{"type":"text"},"EndDate":{"type":"date"},"Parent_CN_ID":{"type":"text"},
-"Procurement_Method":{"type":"text"},"Publish_Date":{"type":"date"},"StartDate":{"type":"date"},"Status":{"type":"text"},"Supplier_ABN":{"type":"keyword"},
-"Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"text"},"Supplier_Country":{"type":"text"},"Supplier_Name":{"type":"text"},
+"Consultancy":{"type":"text"},"Consultancy_Reason_s":{"type":"text"},"Description":{"type":"text"},"EndDate":{"type":"date"},"Parent_CN_ID":{"type":"keyword"},
+"Procurement_Method":{"type":"keyword"},"Publish_Date":{"type":"date"},"StartDate":{"type":"date"},"Status":{"type":"keyword"},"Supplier_ABN":{"type":"keyword"},
+"Supplier_ABNExempt":{"type":"text"},"Supplier_Address":{"type":"text"},"Supplier_City":{"type":"keyword"},"Supplier_Country":{"type":"keyword"},"Supplier_Name":{"type":"text"},
 "Supplier_Postcode":{"type":"keyword"},"Value":{"type":"double"}}}}}}'
 
 Rejected records : 
