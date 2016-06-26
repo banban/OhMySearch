@@ -2,7 +2,7 @@
 @if (Model != null)
 {
     <!-- items being paged -->
-    <ul>
+    <ul id="ulllist" class="list-unstyled">
         @foreach (var item in Model.SearchResults.Items)
         {
             <li class="search-item">
@@ -28,14 +28,14 @@
     <!-- pager -->
     @if (Model.SearchResults.Pager.EndPage > 1)
     {
-        <ul class="pagination">
+        <ul class="pagination pager">
             @if (Model.SearchResults.Pager.CurrentPage > 1)
             {
                 <li>
                     <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)">First</a>
                 </li>
                 <li>
-                    <a href="../Query/Index?page=@(Model.SearchResults.Pager.CurrentPage - 1)">Previous</a>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage - 1)">Previous</a>
                 </li>
             }
 

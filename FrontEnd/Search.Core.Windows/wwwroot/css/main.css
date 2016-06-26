@@ -23,6 +23,8 @@ body {
 }
 button.findBtn {
   margin-top: 10px;
+  margin-left: 5px;
+  height: 34px;
 }
 .searchbox {
   margin-top: 10px;
@@ -120,4 +122,39 @@ button.findBtn {
     height: 100%;*/
   max-width: 200px;
   max-height: 200px;
+}
+ul.ulllist {
+  list-style: none;
+}
+.tile-search-item {
+  float: left;
+  margin: 5px;
+  height: 200px;
+  width: 200px;
+  overflow: hidden;
+  background-repeat: no-repeat;
+  max-width: 100%;
+  text-align: center;
+  vertical-align: middle;
+  /*background:url('../images/banner1.svg');*/
+  background-size: 200px 200px;
+}
+.tile-caption-search-item {
+  background-color: rgba(50, 50, 50, 0.4);
+  overflow: hidden;
+  color: #fff;
+  font-weight: bold;
+  margin: 150px 0px 0px 0px;
+  height: 200px;
+  width: 200px;
+}
+.tile-caption-search-item:hover {
+  transition: margin .5s;
+  margin: 0px 0px 20px 0px;
+  background-color: rgba(50, 50, 50, 0.4);
+  cursor: pointer;
+}
+.tile-description-search-item {
+  overflow: hidden;
+  margin: 25px 0px 0px 0px;
 }

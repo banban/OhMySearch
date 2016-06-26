@@ -13,19 +13,23 @@
     </ul>
     <div class="tab-content">
         <div class="tab-pane active" id="Search-Results">
-            @if ((Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2"))
-                || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2")))
+            @if (Model.ChosenOptions.Contains("4_1")
+                || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2") && !Model.ChosenOptions.Contains("4_3")))
             {
                 <div class="scroll col-lg-12 col-md-12">
-                    <ul id="ulllist">
-                        <li><a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))">...</a></li>
-                    </ul>
+                    <a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))">...</a>
                 </div>
             }
-            else if (!Model.ChosenOptions.Contains("4_1") && Model.ChosenOptions.Contains("4_2"))
+            else if (Model.ChosenOptions.Contains("4_2"))
             {
                 <div class="page col-lg-12 col-md-12">
                     @await Html.PartialAsync("Page")
+                </div>
+            }
+            else if (Model.ChosenOptions.Contains("4_3"))
+            {
+                <div class="page col-lg-12 col-md-12">
+                    @await Html.PartialAsync("Tile")
                 </div>
             }
         </div>
@@ -42,6 +46,7 @@
         </div>
     </div>
 </div>
+
 <div id="accordion" class="panel-group sidebar col-lg-pull-1 col-md-pull-1 col-sm-pull-1">
     @foreach (var aggr in Model.GetAggregations())
     {

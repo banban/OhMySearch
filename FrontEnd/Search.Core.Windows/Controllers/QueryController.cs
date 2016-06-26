@@ -92,7 +92,7 @@ namespace Search.Core.Windows.Controllers
                 return View(new EmptyResult());
             }
 
-            if (query.ChosenOptions.Contains("4_2"))
+            if (query.ChosenOptions.Contains("4_2") || query.ChosenOptions.Contains("4_3"))
             {
                 Models.SearchResults sr = new Models.SearchResults();
                 sr.Pager = new Models.Pager(query.Total, page, query.Size.Value);
@@ -283,12 +283,12 @@ namespace Search.Core.Windows.Controllers
                 options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_2", Value = "Fuzzy" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_3", Value = "Hierarchy" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_4", Value = "Location" });
-                //results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_5", Value = "Highlight" });
-                //results.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_6", Value = "More Like This" }); //hidden option used in QueryDetails controller
+                //options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_5", Value = "Highlight" });
+                //options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_6", Value = "More Like This" }); //hidden option used in QueryDetails controller
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_1", Value = "Scroll" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_2", Value = "Page" });
-                //results.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_3", Value = "Tile" });
+                options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_3", Value = "Tile" });
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_1", Value = "Terms" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_2", Value = "Date Histogram" });
@@ -483,14 +483,17 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            foreach (var fieldMapping in typeMapping.Properties)
+                            if (typeMapping.Properties != null)
                             {
-                                if (!termList.Contains(fieldMapping.Key.Name)
-                                    && fieldMapping.Value.Type.Name == "keyword" //can't use text fields for terms aggregation
-                                    && fieldMapping.Key.Name != "rowguid" && fieldMapping.Key.Name != "id" && fieldMapping.Key.Name != "Path"
-                                    )
+                                foreach (var fieldMapping in typeMapping.Properties)
                                 {
-                                    termList.Add(fieldMapping.Key.Name);
+                                    if (!termList.Contains(fieldMapping.Key.Name)
+                                        && fieldMapping.Value.Type.Name == "keyword" //can't use text fields for terms aggregation
+                                        && fieldMapping.Key.Name != "rowguid" && fieldMapping.Key.Name != "id" && fieldMapping.Key.Name != "Path"
+                                        )
+                                    {
+                                        termList.Add(fieldMapping.Key.Name);
+                                    }
                                 }
                             }
                         }
