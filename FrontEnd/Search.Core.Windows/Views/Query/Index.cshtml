@@ -4,7 +4,8 @@
 }
 
 <div class="col-lg-pull-2 col-md-pull-2 col-sm-pull-2 col-lg-12 col-md-12 col-sm-12" data-role="content" data-position="fixed">
-    @await Component.InvokeAsync("QueryOptions", Model)
+    @await Component.InvokeAsync("QueryOptions", Model) 
+    
     <ul class="nav nav-tabs" role="tablist">
         <li class="active"><a href="#Search-Results" role="tab" data-toggle="tab" aria-expanded="true" class="glyphicon glyphicon-list">Results <span class="badge">@Model.Total</span></a></li>
         @*<li><a href="#Search-Summary" role="tab" data-toggle="tab" class="glyphicon glyphicon-equalizer">Summary</a></li>
@@ -47,23 +48,38 @@
     </div>
 </div>
 
+
 <div id="accordion" class="panel-group sidebar col-lg-pull-1 col-md-pull-1 col-sm-pull-1">
+    @*<div class="panel panel-info">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+               Level of confidence
+            </h4>
+        </div>
+        <div id="collapse_LevelofConfidence" class="panel-collapse collapse in">
+            <div class="panel-body">
+                <output for="fader" id="confidencelbl" class="text-center">50%</output>
+                <input type="range" min="0" max="100" value="50" id="confidence" orient="vertical" step="10" oninput="outputUpdate(value)" />
+            </div>
+        </div>
+    </div>*@
+
     @foreach (var aggr in Model.GetAggregations())
     {
         <div class="panel panel-info">
             <div class="panel-heading">
                 <h4 class="panel-title">
-                    <a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")">
-                        @aggr
-                    </a>
+                    @*<a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")">
+                    </a>*@
+                    @aggr
                 </h4>
             </div>
             <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
                 <div class="panel-body">
-                    <ul>
+                    <ul class="list-unstyled">
                         @foreach (var item in Model.GetAggregations(aggr))
                         {
-                            <li>@item.Key <span class="badge">@item.Count</span></li>
+                            <li class="agg-link"><input type="checkbox" class="aggregate-filter" id="@Html.Raw(@aggr.Replace(" ",""))_@item.Key"/> @item.Key <span class="badge">@item.Count</span></li>
                         }
                     </ul>
                 </div>
@@ -80,6 +96,12 @@
     <script type="text/javascript">
         $.ajaxSetup({ cache: false }); //disable modal dialog caching
 
+        function outputUpdate(vol) {
+            //document.querySelector('#confidencelbl').value = vol + "%";
+            $('#confidencelbl').val(vol + " %");
+        }
+
+
         $(document).ready(function () {
             $('.scroll').jscroll({
                 //autoTriggerUntil: 3,
@@ -89,9 +111,42 @@
                 nextSelector: 'a.jscroll-next:last',
                 contentSelector: 'li'
             });
+
+            $('.agg-link').click(function () {
+                //$('li.input check').parent().removeClass("active").end();
+                //$('li a').filter("[href=" + $(this).attr("href") + "]").parent().addClass("active");
+            });
+
             //$(function () {
             //    $("#aggregations").accordion();
             //});
+
+            //$('#confidence').change(function () {
+            //    $('#confidencelbl').val(vol + " %");
+
+            //    switch (this.value) {
+            //        case 1:
+            //            alert(1);
+            //            $('#confidencelbl').html("Help me!");
+            //            break;
+            //        case 2:
+            //            $('#confidencelbl').html("Not sure");
+            //            break;
+            //        case 3:
+            //            $('#confidencelbl').html("Average");
+            //            break;
+            //        case 4:
+            //            $('#confidencelbl').html("More or less");
+            //            break;
+            //        case 5:
+            //            $('#confidencelbl').html("I know what I'm after");
+            //            break;
+            //        //default:
+            //        //    $('#confidencelbl').html("No idea");
+            //        //    break;
+            //    }
+                    
+            });
         });
     </script>
 }

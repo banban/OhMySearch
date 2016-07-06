@@ -1,4 +1,8 @@
 ﻿// Write your Javascript code.
+function AddFilter(filter, value) {
+    $("#QueryTerm").val("file.Name=The quick brown fox");
+
+}
 $(document).ready(function () {
 
     $('#editDialog')
@@ -25,18 +29,19 @@ $(document).ready(function () {
     }).change(function (event, params) {
         if (params.selected) {
             $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + ",");
-            if (params.selected == "3_1") {
-                $("#QueryTerm").val("file.Name=The quick brown fox");
-            }
-            else if (params.selected == "3_2") {
-                $("#QueryTerm").val("The qick broon foox");
-            }
-            else if (params.selected == "3_3") {
-                $("#QueryTerm").val("/1/2/3");
-            }
-            else if (params.selected == "3_4") {
-                $("#QueryTerm").val("Perth");
-            }
+            //if (params.selected == "3_1") {
+            //    $("#QueryTerm").val("file.Name=The quick brown fox");
+            //}
+            //else if (params.selected == "3_2") {
+            //    $("#QueryTerm").val("The qick broon foox");
+            //}
+            //else if (params.selected == "3_3") {
+            //    $("#QueryTerm").val("/1/2/3");
+            //}
+            //else if (params.selected == "3_4") {
+            //    $("#QueryTerm").val("Perth");
+            //}
+
             ///some options can conflict with others
             //else if (params.selected == "4_1") { 
             //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("4_2,", ""));

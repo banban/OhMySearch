@@ -75,7 +75,7 @@ namespace Search.Core.Windows.Models
         public IEnumerable<Aggregation> GetAggregations(string Group)
         {
             var aggs = this.Aggregations
-                .Where(qo => qo.Group == Group)
+                .Where(qo => qo.Group == Group && !string.IsNullOrEmpty(qo.Key))
                 .OrderByDescending(qo => qo.Count);
             return aggs;
         }

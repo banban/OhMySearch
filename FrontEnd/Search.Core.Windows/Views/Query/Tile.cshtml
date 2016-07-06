@@ -3,11 +3,9 @@
 {
     @foreach (var item in Model.SearchResults.Items)
     {
-        <div class="tile-search-item">
-            <div class="tile-caption-search-item">
-                <p>Index: @item.Index; Type: @item.Type; Score: @item.Score;</p>
-                <p class="tile-description-search-item">
-                    <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
+        <div class="flip-container" ontouchstart="this.classList.toggle('hover');">
+            <div class="flipper">
+                <div class="front">
                     @if (item.Extension.ToLower() == "pdf")
                     {
                         <img id="Content" src="~/images/pdf.gif" alt="Image" />
@@ -20,10 +18,47 @@
                     {
                         <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
                     }
-                    <br /><span class="small">@Html.Raw(item.Summary)</span>
-                </p>
+                    <span class="small">@Html.Raw(item.Summary)</span>
+                </div>
+                <div class="back">
+                    Index: @item.Index; Type: @item.Type; Score: @item.Score.ToString("N3")
+                    <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
+                </div>
             </div>
         </div>
+    }
+
+    <!-- pager -->
+    @if (Model.SearchResults.Pager.EndPage > 1)
+    {
+        <ul class="pagination pager">
+            @if (Model.SearchResults.Pager.CurrentPage > 1)
+            {
+                <li>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)">First</a>
+                </li>
+                <li>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage - 1)">Previous</a>
+                </li>
+            }
+
+            @for (var page = Model.SearchResults.Pager.StartPage; page <= Model.SearchResults.Pager.EndPage; page++)
+            {
+                <li class="@(page == Model.SearchResults.Pager.CurrentPage ? "active" : "")">
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@page">@page</a>
+                </li>
+            }
+
+            @if (Model.SearchResults.Pager.CurrentPage < Model.SearchResults.Pager.TotalPages)
+            {
+                <li>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage + 1)">Next</a>
+                </li>
+                <li>
+                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.TotalPages)">Last</a>
+                </li>
+            }
+        </ul>
     }
 }
 

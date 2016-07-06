@@ -279,12 +279,9 @@ namespace Search.Core.Windows.Controllers
                     }*/
                 }
 
-                options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_1", Value = "Term" });
-                options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_2", Value = "Fuzzy" });
-                options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_3", Value = "Hierarchy" });
-                options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_4", Value = "Location" });
-                //options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_5", Value = "Highlight" });
-                //options.Add(new Models.QueryOption() { OptionGroup = "Options", Key = "3_6", Value = "More Like This" }); //hidden option used in QueryDetails controller
+                options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_1", Value = "Suggest" }); //autocomplete, MLT, phonetic, stop words
+                options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_2", Value = "Fuzzy" }); //misspelling
+                //options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_3", Value = "Template" }); //predefined search
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_1", Value = "Scroll" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_2", Value = "Page" });
@@ -293,6 +290,10 @@ namespace Search.Core.Windows.Controllers
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_1", Value = "Terms" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_2", Value = "Date Histogram" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_3", Value = "Ranges" });
+
+                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_1", Value = "Hierarchy" });
+                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_2", Value = "Location" });
+                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_3", Value = "Metadata" }); //index/type/field metadata
 
                 _memoryCache.Set("queryOptions", options, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
             }
@@ -724,7 +725,7 @@ namespace Search.Core.Windows.Controllers
 
         [HttpGet]
         ///https://www.elastic.co/guide/en/elasticsearch/reference/master/query-dsl-geo-distance-query.html
-        public JToken Geo(double lat, double lng, string distance, string options)
+        public async Task<JToken> Geo(double lat, double lng, string distance, string options)
         {
             if (!string.IsNullOrEmpty(options)) //remove other query types to avoid conflict in builder
             {
@@ -744,7 +745,8 @@ namespace Search.Core.Windows.Controllers
                 QueryTerm = lat.ToString() +";"+ lng.ToString() + ";" + distance,
                 ChosenOptions = options
             };
-            var results = GetSearchResponse(query);
+            var response = await GetSearchResponse(query);
+            var results = GetSearchResults(response, query.QueryTerm);
             JArray json = JArray.FromObject(results);
             return json;
         }
