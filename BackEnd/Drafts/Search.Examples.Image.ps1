@@ -4,7 +4,7 @@
  This script is not for execution. It is just set of tests.
 #>
 Import-Module Image
-
+Install-Module 
 #Image Magic 6 convert.exe was replaced with magic.exe in version 7
 &"$env:MAGICK_HOME\convert.exe" "c:\temp\test2.jpg" -charcoal 2 -threshold 50% -strip -trim -contrast -density 200 "c:\temp\test7.png"
 #was replaced with magic.exe in version 7. Option -contrast was depricated and replaced with  -level 50% 

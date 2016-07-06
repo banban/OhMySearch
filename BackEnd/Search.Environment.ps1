@@ -34,13 +34,13 @@ if (!(Test-IsAdmin)){
 
 #3rd party apps settings:
 
-[Environment]::SetEnvironmentVariable("TESSERACT_HOME", "C:\Program Files (x86)\Tesseract-OCR", "User") 
+[Environment]::SetEnvironmentVariable("TESSERACT_HOME", "C:\Search\tesseract", "User") 
 #Please make sure the TESSDATA_PREFIX environment variable is set to the parent directory of your "tessdata" directory.
-[Environment]::SetEnvironmentVariable("TESSDATA_PREFIX", "C:\Program Files (x86)\Tesseract-OCR", "User") 
+[Environment]::SetEnvironmentVariable("TESSDATA_PREFIX", "C:\Search\tesseract", "User") 
 #$env:TESSERACT_HOME
 #$env:TESSDATA_PREFIX
 
-[Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-7.0.1-Q16", "User")
+[Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-7.0.2-Q16", "User")
 [Environment]::SetEnvironmentVariable("MAGICK_TMPDIR", "C:\Temp\MAGICK_TMPDIR", "User") #use non system drive with enough free space
 
 [Environment]::SetEnvironmentVariable("SEARCH_HOME", "C:\Search", "User")

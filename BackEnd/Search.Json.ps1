@@ -7,9 +7,16 @@ Unit tests:
 
     .\Search.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\NGC2015" -FileExtensionsForSearch ".jpg"
     .\Search.Json.ps1 -SharedFolders "$([Environment]::getfolderpath("mydocuments"))" -FileExtensionsForSearch ".pdf"
-    .\Search.Json.ps1 -SharedFolders "C:\Search\"
+    .\Search.Json.ps1 -SharedFolders "C:\Search\_artefacts"
     .\Search.Json.ps1 -SharedFolders "\\shares\library\"
     .\Search.Json.ps1 -SharedFolders "\\shares\files\"
+
+Test OCR
+1.pdf to png
+    &"$($env:MAGICK_HOME)\magick.exe" -monochrome -limit memory 10GB -limit area 10GB -limit disk 15GB -limit map 10GB -density 200 "C:\Search\_artefacts\AMM 25 Part 1.pdf" "C:\Search\_temp\MAGICK_TMPDIR\ocr-%04d.png" | Out-Null
+2.png to txt
+    &"$env:TESSDATA_PREFIX\tesseract.exe" "$($env:MAGICK_TMPDIR)\ocr-0000.png" "$($env:MAGICK_TMPDIR)\ocr-0000" -psm 1 | Out-Null # -l eng
+
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -763,17 +770,22 @@ function CleanOFCTempFolder(){
     }
 }
 
+<#
+$content = "123                                                                                                                                                             SERIES 200      #$     #               ( ) (            ) TASK No. FSL 17(3)"
+$r = CleanContent -Content $content
+#>
 function CleanContent(){
     Param(
         [string]$Content
     )
-    $b=[system.text.encoding]::UTF8.GetBytes($Content)
-    $c=[system.text.encoding]::convert([text.encoding]::UTF8,[text.encoding]::ASCII,$b) 
+    $b=[system.text.encoding]::UTF8.GetBytes($Content) | Where {$_ -ne 0x00} #exclude nulls: http://stackoverflow.com/questions/9863455/how-to-remove-null-char-0x00-from-object-within-powershell/9870457#9870457
+    $c=[system.text.encoding]::convert([text.encoding]::UTF8,[text.encoding]::ASCII,$b)
     $Content = -join [system.text.encoding]::ASCII.GetChars($c)
    
     $Content = $Content  -replace '\\u0027|\\u0091|\\u0092|\\u2018|\\u2019|\\u201B', '''' #convert quotes
-    $Content = $Content -replace '\\u\d{3}[0-9a-zA-Z]', '?' # remove encodded special symbols like '\u0026' '\u003c'
-    $Content = $Content -replace '[\\/''~?!*“"%&•â€¢©ø\[\]{}]', ' ' #special symbols and punctuation
+    $Content = $Content -replace '\\u\d{3}[0-9a-zA-Z]', '?' # remove encodded special symbols like '\u0026' '\u003c' \u0000
+    $Content = $Content -replace '[\\/''~?!*“"%&•â€¢©ø\[\]{}\-]', ' ' #special symbols and punctuation
+    $Content = $Content -replace '\x00|`0', ' ' #nulls
     $Content = $Content -replace '\s+', ' ' #remove extra spaces
     $Content = $Content -replace '(\w)\1{3,}', '$1' #replace repeating symbols more than 3 times with 1: "aaaassssssssssseeeee111112222223334" -replace '(\w)\1{3,}', '$1'
     

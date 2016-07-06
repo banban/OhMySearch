@@ -5,13 +5,13 @@
  1.test person table. Has some unicode fields which are not acepted by ES. Please read this: https://www.elastic.co/guide/en/elasticsearch/guide/master/unicode-normalization.html
    Do not index [AdditionalContactInfo],[Demographics],[rowguid] fields. XML should be converted to text first.
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -newIndex `
-        -sql_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]"
+        -sql_DbName "AdventureWorks2014" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]"
 
    100 records rejected (some unicode symbols are not accepted by standard analyzer in First or Last name). That is accepteble now. Will investegate later
     
    The same test but with explicit mapping:
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -newIndex `
-        -sql_DbName "AdventureWorks" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]" `
+        -sql_DbName "AdventureWorks2014" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]" `
         -typeMapping '{"adworks_v1":{"mappings":{"person":{"dynamic":"true","properties":{"BusinessEntityID":{"type":"integer"},"EmailPromotion":{"type":"integer"},"FirstName":{"type":"text"},"LastName":{"type":"text"},"MiddleName":{"type":"text"},"ModifiedDate":{"type":"date","format":"YYYY-MM-DD"},"NameStyle":{"type":"text"},"PersonType":{"type":"text"},"Suffix":{"type":"text"},"Title":{"type":"text"},}}}}}'
 
     &$cat
@@ -26,7 +26,7 @@
         &$post "/adworks_v1/_analyze" '{"analyzer": "hierarchy_analyzer", "text": "/one/two/three"}'
    Add new type to existing index. 
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -newType `
-        -sql_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -sql_Query "select * from [HumanResources].[Employee]"
+        -sql_DbName "AdventureWorks2014" -keyFieldName "BusinessEntityID" -sql_Query "select * from [HumanResources].[Employee]"
 
     #2 of 290 records rejected with unicode issue in LoginID field. that is ok for now
 
@@ -38,22 +38,22 @@
 
  3. Test documents with binary content. Not sure if that makes sense :)
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -newType `
-        -sql_DbName "AdventureWorks" -keyFieldName "DocumentNode" -sql_Query "select * from [Production].[Document]"
+        -sql_DbName "AdventureWorks2014" -keyFieldName "DocumentNode" -sql_Query "select * from [Production].[Document]"
 
-    #failed for OrganizationNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -sql_DbName "AdventureWorks" -keyFieldName "BusinessEntityID" -sql_Query "select * from [HumanResources].[Employee]"
-    #failed for DocumentNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -sql_DbName "AdventureWorks" -keyFieldName "DocumentNode" -sql_Query "select * from [Production].[Document]"
+    #failed for OrganizationNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "employee" -sql_DbName "AdventureWorks2014" -keyFieldName "BusinessEntityID" -sql_Query "select * from [HumanResources].[Employee]"
+    #failed for DocumentNode:  .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "pdocument" -sql_DbName "AdventureWorks2014" -keyFieldName "DocumentNode" -sql_Query "select * from [Production].[Document]"
 
     &$cat
  4.Test geography. Convert SqlGeography to GeoPoint for other shapes use poligons https://www.elastic.co/guide/en/elasticsearch/reference/master/geo-shape.html
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "address" -newType `
-        -sql_DbName "AdventureWorks" -keyFieldName "AddressID" -sql_Query "select * from [Person].[Address]"
+        -sql_DbName "AdventureWorks2014" -keyFieldName "AddressID" -sql_Query "select * from [Person].[Address]"
 
     971 of 19614 records with unicode were rejected by analyzer: _type: address; _id: 552; error: mapper_parsing_exception; reason: failed to parse [AddressLine1]; status: 400
     &$cat
 
  5.test views. multi language test:
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "candidate" -newType `
-        -sql_DbName "AdventureWorks" -keyFieldName "JobCandidateID" -sql_Query "SELECT  * FROM [HumanResources].[vJobCandidate]"
+        -sql_DbName "AdventureWorks2014" -keyFieldName "JobCandidateID" -sql_Query "SELECT  * FROM [HumanResources].[vJobCandidate]"
 
     3 of 13 records with unicode were rejected by analyzer: 
         _type: candidate; _id: 5; error: mapper_parsing_exception; reason: failed to parse [Skills]; status: 400
@@ -64,7 +64,7 @@
     &$cat
  5.test big tables:
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -typeName "sales" -newType `
-        -sql_DbName "AdventureWorks" -keyFieldName "SalesOrderDetailID" -sql_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] FROM [Sales].[SalesOrderDetail]"
+        -sql_DbName "AdventureWorks2014" -keyFieldName "SalesOrderDetailID" -sql_Query "SELECT [SalesOrderID],[SalesOrderDetailID],[CarrierTrackingNumber],[OrderQty],[ProductID],[SpecialOfferID],[UnitPrice],[UnitPriceDiscount],[LineTotal],[ModifiedDate] FROM [Sales].[SalesOrderDetail]"
     &$cat
 
  6. Another database (index)
@@ -176,7 +176,7 @@ in which case it will update that parameter across all fields with the same name
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] 
 Param(
     #[Parameter(Mandatory=$true, Position = 0, ValueFromRemainingArguments=$true , HelpMessage = 'Target server')]
-    [string]$sql_ServerName = ".\SQL2014",
+    [string]$sql_ServerName = ".\EXPRESS2014",
     [string]$sql_DbName,
     [string]$sql_Query,
 

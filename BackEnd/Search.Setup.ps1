@@ -6,17 +6,17 @@
     .\Search.Environment.ps1
 
 3. Set up dev (with daily snapshot ??)
-    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Dev"
+    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha4" -ClusterName "OhMySearch-Dev"
 
 4. Configure production cluster:
     cd E:\Search
-    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha3" -ClusterName "OhMySearch-Prod" -SetEnvironment `
+    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha4" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-<your code>.json"
 
 5. Debug locally:
-    cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha3\bin\elasticsearch.bat"
-    $ESVersion = "5.0.0-alpha3"
+    cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha4\bin\elasticsearch.bat"
+    $ESVersion = "5.0.0-alpha4"
 
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -31,6 +31,8 @@ Param(
     [switch]$SetEnvironment
 )
 
+[string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
+if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
 function Main(){
     Clear-Host
 
@@ -46,11 +48,28 @@ function Main(){
         #DownLoadAndExtract -Url "http://download.elastic.co/beats/winlogbeat-snapshot/winlogbeat-5.0.0-snapshot-windows-64.zip"
     }
     else{ #Official release
-        DownLoadAndExtract -Url "https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/zip/elasticsearch/$($ESVersion)/elasticsearch-$($ESVersion).zip"
+        DownLoadAndExtract -Url "https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/zip/elasticsearch/$($ESVersion)/elasticsearch-$($ESVersion).zip"
         DownLoadAndExtract -Url "https://download.elastic.co/logstash/logstash/logstash-$($ESVersion).zip"
+
         DownLoadAndExtract -Url "https://download.elastic.co/kibana/kibana/kibana-$($ESVersion)-windows.zip"
-        DownLoadAndExtract -Url "https://download.elastic.co/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-x64.zip"
+        DownLoadAndExtract -Url "https://download.elastic.co/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-x86_64.zip"
     }
+    
+    #configure file processors: tesseract, image, etc. 
+    Install-Module -ModuleUrl "https://gallery.technet.microsoft.com/scriptcenter/PowerShell-Image-module-caa4405a/file/62238/1/Image.zip" -Verbose
+
+    <#you can use 3.02, but I use 3.05 dev. First of all, get sources: https://github.com/tesseract-ocr/tesseract/archive/master.zip
+    if you do not want to compile sources, get ready to use binaries from here: https://www.dropbox.com/s/8t54mz39i58qslh/tesseract-3.05.00dev-win32-vc19.zip?dl=1
+    finally, fill tessdata subfolder with your languages training content: https://github.com/justin/tesseract-ocr/tree/master/tessdata
+        for example, english training data could be found in file named "eng.traineddata"
+    #>
+
+
+    #DownLoadAndInstall -Url "http://www.imagemagick.org/download/binaries/ImageMagick-7.0.2-2-Q16-x64-dll.exe"
+    #DownLoadAndInstall -Url "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs919/gs919w64.exe"
+    #DownLoadAndInstall -Url "https://inkscape.org/en/gallery/item/3956/inkscape-0.91-x64.msi" or https://inkscape.org/en/gallery/item/3938/Inkscape-0.91-1-win64.7z
+
+
 
     #configure elastice settings 
     #For settings that you do not wish to store in the configuration file, you can use the value ${prompt.text} or ${prompt.secret} 
@@ -68,7 +87,7 @@ function Main(){
 
     if($DiscoveryHosts.Length -gt 0){
         #The network.host setting also understands some special values such as _local_, _site_, _global_ and modifiers like :ip4 and :ip6, details of which can be found in the section called “Special values for network.hostedit”.
-        #$ipV4 = (Test-Connection -ComputerName (hostname) -Count 1  | Select IPV4Address).IPV4Address.IPAddressToString
+        $ipV4 = (Test-Connection -ComputerName (hostname) -Count 1  | Select IPV4Address).IPV4Address.IPAddressToString
         $config = $config.Replace("# network.host: 192.168.0.1", " network.host: $ipV4") # `${ES_NETWORK_HOST}
 
         $otherhosts = ''
@@ -205,13 +224,18 @@ function DownLoadAndExtract(){
     Param(
         [string]$Url
     )
-    $fileName = split-path $Url -Leaf
+    $fileName = split-path $Url.TrimEnd("?dl=1") -Leaf
     [IO.FileInfo]$archiveFileInfo = "$env:SEARCH_HOME\$fileName"
     if ((Test-Path $archiveFileInfo.FullName) -eq $false){
         Echo "Downloading archive  $Url ..."
-        (New-Object Net.WebClient).DownloadFile($Url,$archiveFileInfo.FullName);
+        (New-Object Net.WebClient).DownloadFile($Url, $archiveFileInfo.FullName)
         Unblock-File -Path $archiveFileInfo.FullName
-        (new-object -com shell.application).namespace($env:SEARCH_HOME).CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
+        if ($fileName -like "tesseract-*"){
+            (new-object -com shell.application).namespace("$env:SEARCH_HOME\$($archiveFileInfo.BaseName)").CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
+        }
+        else{
+            (new-object -com shell.application).namespace($env:SEARCH_HOME).CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
+        }
         #Remove-Item $archiveFileInfo.FullName -Confirm:$false
     }
 }
