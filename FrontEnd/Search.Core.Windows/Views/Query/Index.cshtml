@@ -64,6 +64,7 @@
         </div>
     </div>*@
 
+    <input id="ChosenFilters" hidden asp-for="ChosenAggregations" />
     @foreach (var aggr in Model.GetAggregations())
     {
         <div class="panel panel-info">
@@ -111,11 +112,22 @@
                 nextSelector: 'a.jscroll-next:last',
                 contentSelector: 'li'
             });
-
-            $('.agg-link').click(function () {
-                //$('li.input check').parent().removeClass("active").end();
-                //$('li a').filter("[href=" + $(this).attr("href") + "]").parent().addClass("active");
+            
+            $('input.aggregate-filter').click(function () {
+                var agg = $(this).name +"_"+ $(this).val();
+                console.log(agg);
+                console.log($(this).val());
+                if ($(this).val()=="on") {
+                    $("#ChosenAggregations").val($("#ChosenAggregations").val().replace(agg + ",", ""));
+                }
+                else{
+                    $("#ChosenAggregations").val($("#ChosenAggregations").val() + "," + agg);
+                }
             });
+            //$('.agg-link').click(function () {
+            //    $('li.input check').parent().removeClass("active").end();
+            //    $('li a').filter("[href=" + $(this).attr("href") + "]").parent().addClass("active");
+            //});
 
             //$(function () {
             //    $("#aggregations").accordion();
@@ -145,8 +157,6 @@
             //        //    $('#confidencelbl').html("No idea");
             //        //    break;
             //    }
-                    
-            });
         });
     </script>
 }

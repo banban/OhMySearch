@@ -142,13 +142,18 @@ namespace Search.Core.Windows.Controllers
             {
                 query.ChosenOptions = Request.Query["options"];
             }
-
+            if (string.IsNullOrEmpty(query.ChosenAggregations) && !string.IsNullOrEmpty(Request.Query["aggregations"]))
+            {
+                query.ChosenAggregations = Request.Query["aggregations"];
+            }
+            
             if (query.QueryOptions.Count() == 0)
             {
                 query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
             }
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
+            ViewBag.ChosenAggregations = query.ChosenAggregations;
             return RedirectToAction("Index", new { term = query.QueryTerm, options = query.ChosenOptions, from = query.From, size = query.Size });
         }
 
@@ -390,9 +395,7 @@ namespace Search.Core.Windows.Controllers
                     Location = new GeoLocation(double.Parse(data[0]), double.Parse(data[1])),
                     Distance = data[2],
                     DistanceType = GeoDistanceType.Arc,
-                    IgnoreMalformed = true,
-                    Coerce = true,
-                    ValidationMethod = GeoValidationMethod.Strict,
+                    ValidationMethod = GeoValidationMethod.IgnoreMalformed | GeoValidationMethod.Coerce,
                     OptimizeBoundingBox = GeoOptimizeBBox.Memory
                 };
             }
@@ -411,11 +414,17 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            foreach (var fieldMapping in typeMapping.Properties)
-                            {
-                                if (fieldMapping.Value.Type.Name == "text" || fieldMapping.Value.Type.Name == "keyword" || fieldMapping.Value.Type.Name == "string")
+                            if (typeMapping != null && typeMapping.Properties != null) {
+                                foreach (var fieldMapping in typeMapping.Properties)
                                 {
-                                    fields.Add(fieldMapping.Key.Name);
+                                    if (fieldMapping.Value != null 
+                                            &&  (fieldMapping.Value.Type.Name == "text" 
+                                                || fieldMapping.Value.Type.Name == "keyword" 
+                                                || fieldMapping.Value.Type.Name == "string")
+                                            )
+                                    {
+                                        fields.Add(fieldMapping.Key.Name);
+                                    }
                                 }
                             }
                         }
@@ -484,11 +493,11 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping.Properties != null)
+                            if (typeMapping != null && typeMapping.Properties != null)
                             {
                                 foreach (var fieldMapping in typeMapping.Properties)
                                 {
-                                    if (!termList.Contains(fieldMapping.Key.Name)
+                                    if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name)
                                         && fieldMapping.Value.Type.Name == "keyword" //can't use text fields for terms aggregation
                                         && fieldMapping.Key.Name != "rowguid" && fieldMapping.Key.Name != "id" && fieldMapping.Key.Name != "Path"
                                         )
@@ -535,11 +544,15 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            foreach (var fieldMapping in typeMapping.Properties)
+                            if (typeMapping != null && typeMapping.Properties != null)
                             {
-                                if (!termList.Contains(fieldMapping.Key.Name) && fieldMapping.Value.Type.Name == "date")
+                                foreach (var fieldMapping in typeMapping.Properties)
                                 {
-                                    termList.Add(fieldMapping.Key.Name);
+                                    if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name) 
+                                        && fieldMapping.Value.Type.Name == "date")
+                                    {
+                                        termList.Add(fieldMapping.Key.Name);
+                                    }
                                 }
                             }
                         }
@@ -592,13 +605,16 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            foreach (var fieldMapping in typeMapping.Properties)
+                            if (typeMapping != null && typeMapping.Properties != null)
                             {
-                                if (!termList.Contains(fieldMapping.Key.Name)
-                                    && (fieldMapping.Value.Type.Name == "double" || fieldMapping.Value.Type.Name == "float")
-                                    )
+                                foreach (var fieldMapping in typeMapping.Properties)
                                 {
-                                    termList.Add(fieldMapping.Key.Name);
+                                    if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name)
+                                        && (fieldMapping.Value.Type.Name == "double" || fieldMapping.Value.Type.Name == "float")
+                                        )
+                                    {
+                                        termList.Add(fieldMapping.Key.Name);
+                                    }
                                 }
                             }
                         }
@@ -606,23 +622,61 @@ namespace Search.Core.Windows.Controllers
                     _memoryCache.Set(key, termList, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
                 }
 
+                var stats = new Dictionary<string, IAggregationContainer>();
                 foreach (var term in termList)
                 {
-                    aggregations.Add("Top ranges: " + term, new AggregationContainer
+                    stats.Add("Stats: " + term, new AggregationContainer
                     {
-                        Range = new RangeAggregation(term)
+                        Stats = new StatsAggregation(term, term)
+                    });
+                }
+                if (stats.Count > 0)
+                {
+                    elRequest.Aggregations = stats;
+                    Nest.ISearchResponse<dynamic> statsResponse = await _elclient.SearchAsync<dynamic>(elRequest);
+                    if (statsResponse.IsValid)
+                    {
+                        foreach (var agg in statsResponse.Aggregations)
                         {
-                            Field = term,
-                            Ranges = new List<Nest.Range>
+                            if (agg.Value != null)
                             {
-                                { new Nest.Range { To = 10000 } },
-                                { new Nest.Range { From = 10000, To = 100000 } },
-                                { new Nest.Range { From = 100000, To = 1000000 } },
-                                { new Nest.Range { From = 1000000, To = 10000000 } },
-                                { new Nest.Range { From = 10000000 } }
+                                var minValue = statsResponse.Aggs.Stats(agg.Key).Min;
+                                var maxValue = statsResponse.Aggs.Stats(agg.Key).Max;
+                                if (minValue.HasValue && maxValue.HasValue)
+                                {
+                                    string term = agg.Key.Replace("Stats: ", "");
+                                    var ranges = new List<Nest.Range>();
+                                    double step = Math.Round((maxValue.Value - minValue.Value) / 10, 0);
+                                    double currValue = minValue.Value;
+                                    for (int i = 0; i < 10; i++)
+                                    {
+                                        if (currValue == minValue.Value)
+                                        {
+                                            ranges.Add(new Nest.Range { To = currValue + step });
+                                        }
+                                        else if (i == 9)
+                                        {
+                                            ranges.Add(new Nest.Range { From = currValue + 1 });
+                                        }
+                                        else
+                                        {
+                                            ranges.Add(new Nest.Range { From = currValue + 1, To = currValue + step });
+                                        }
+                                        currValue += step; 
+                                    }
+
+                                    aggregations.Add("Top ranges: " + term, new AggregationContainer
+                                    {
+                                        Range = new RangeAggregation(term)
+                                        {
+                                            Field = term,
+                                            Ranges = ranges
+                                        }
+                                    });
+                                }
                             }
                         }
-                    });
+                    }
                 }
             }
 

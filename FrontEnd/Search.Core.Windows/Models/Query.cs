@@ -9,7 +9,6 @@ namespace Search.Core.Windows.Models
     {
         public Query()
         {
-            ChosenOptions = string.Empty;
             From = 0;
             Size = 20;
             QueryOptions = new List<QueryOption>();
@@ -27,6 +26,21 @@ namespace Search.Core.Windows.Models
                 if (value == null)
                     value = string.Empty;
                 myQueryTerm = value;
+            }
+        }
+
+        private string myChosenAggregations = string.Empty;
+        public string ChosenAggregations
+        {
+            get
+            {
+                return myChosenAggregations;
+            }
+            set
+            {
+                if (value == null)
+                    value = string.Empty;
+                myChosenAggregations = value;
             }
         }
 
