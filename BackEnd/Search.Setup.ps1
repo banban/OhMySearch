@@ -55,8 +55,14 @@ function Main(){
         DownLoadAndExtract -Url "https://download.elastic.co/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-x86_64.zip"
     }
     
-    #configure file processors: tesseract, image, etc. 
+    #configure file processors: tesseract, image, etc. Install-Module described here: http://psget.net
     Install-Module -ModuleUrl "https://gallery.technet.microsoft.com/scriptcenter/PowerShell-Image-module-caa4405a/file/62238/1/Image.zip" -Verbose
+
+    #For server OS you need to activate Desktop-Experience to avoid this exception in Search.Json.ps1 : Retrieving the COM class factory for component with CLSID {00000000-0000-0000-0000-000000000000} failed due to the following error: 80040154 Class not registered (Exception from HRESULT: 0x80040154 (REGDB_E_CLASSNOTREG)).
+    try{
+        Add-WindowsFeature Desktop-Experience 
+    }
+    catch{}
 
     <#you can use 3.02, but I use 3.05 dev. First of all, get sources: https://github.com/tesseract-ocr/tesseract/archive/master.zip
     if you do not want to compile sources, get ready to use binaries from here: https://www.dropbox.com/s/8t54mz39i58qslh/tesseract-3.05.00dev-win32-vc19.zip?dl=1
@@ -65,7 +71,7 @@ function Main(){
     #>
 
 
-    #DownLoadAndInstall -Url "http://www.imagemagick.org/download/binaries/ImageMagick-7.0.2-2-Q16-x64-dll.exe"
+    #DownLoadAndInstall -Url "http://www.imagemagick.org/download/binaries/ImageMagick-7.0.2-3-Q16-x64-dll.exe"
     #DownLoadAndInstall -Url "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs919/gs919w64.exe"
     #DownLoadAndInstall -Url "https://inkscape.org/en/gallery/item/3956/inkscape-0.91-x64.msi" or https://inkscape.org/en/gallery/item/3938/Inkscape-0.91-1-win64.7z
 
@@ -135,9 +141,22 @@ function Main(){
         Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\jvm.options" $jvmoptoins
     }
 
+    <#initial heap size [268435456] not equal to maximum heap size [2147483648]; this can cause resize pauses and prevents mlockall from locking the entire heap
+        Min and max heap size must be equal to start ES 5.0.0-alpha2#>
+    if (([Environment]::Is64BitProcess -eq $null -or [Environment]::Is64BitProcess -eq $false) -and $jvmoptoins.Contains("-Xms1g") -eq $false){
+        $jvmoptoins += "`r`n-Xms1g"
+        Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\jvm.options" $jvmoptoins
+    }
+    if (([Environment]::Is64BitProcess -eq $null -or [Environment]::Is64BitProcess -eq $false) -and $jvmoptoins.Contains("-Xmx1g") -eq $false){
+        $jvmoptoins += "`r`n-Xmx1g"
+        Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\jvm.options" $jvmoptoins
+    }
+
     #check current versions
     cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch.bat" -V
     cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana.bat" -V
+    java -version
+    dotnet --version
 
     #configure windows services
     if ($AsService.IsPresent){
@@ -233,7 +252,7 @@ function DownLoadAndExtract(){
         if ($fileName -like "tesseract-*"){
             (new-object -com shell.application).namespace("$env:SEARCH_HOME\$($archiveFileInfo.BaseName)").CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
         }
-        else{
+        elseif ($fileName -like "*.zip"){
             (new-object -com shell.application).namespace($env:SEARCH_HOME).CopyHere((new-object -com shell.application).namespace("$($archiveFileInfo.FullName)").Items(),16)
         }
         #Remove-Item $archiveFileInfo.FullName -Confirm:$false

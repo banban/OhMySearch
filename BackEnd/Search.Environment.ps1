@@ -23,7 +23,7 @@ if (!(Test-IsAdmin)){
 }
 
 #persistent for current user profile
-[Environment]::SetEnvironmentVariable("ElasticUri", "http://localhost:9200", "User")
+[Environment]::SetEnvironmentVariable("ElasticUri", "http://$($env:computername):9200", "User")
 #when x-pack is installed use this credencials
     #[Environment]::SetEnvironmentVariable("ElasticUser", "elastic", "User")
     #[Environment]::SetEnvironmentVariable("ElasticPassword", "changeme", "User")

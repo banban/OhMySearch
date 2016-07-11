@@ -29,7 +29,7 @@ Param(
     [ValidateCount(1,100)]
     $FileExtensionsForSearch = @(".xls",".xlsx",".xlsm",".xlsb",".ppt",".pps",".pptx",".doc",".docx",".docm",".pdf",".jpg",".msg"), #
     [Parameter(HelpMessage = 'List of full path (partial name of folder or file) parts excluded from search')]
-    $FilePathExceptions = @("*\_template*\*","*\_private\*","*\dfsrprivate\*","*\bin\*","*\tags\*","*obsolete\*","*\backup\*","*backup copy*","*\previous issues and bak-ups\*","*\log\*","*\old\*","*\recyclebin\*","*\AI_RecycleBin\*","*\conflictanddeleted\*","*\deleted\*","*\previous issues\*","*\temp\*","*\drafts\*","*\documents not used as re-worded\*","*_Draft Documents\*"),
+    $FilePathExceptions = @("*\_template*\*","*\_private\*","*\dfsrprivate\*","*\bin\*","*\tags\*","*obsolete\*","*\backup\*","*backup copy*","*\previous issues and bak-ups\*","*\log\*","*\old\*","*\recyclebin\*","*\AI_RecycleBin\*","*\conflictanddeleted\*","*\deleted\*","*\previous issues\*","*\temp\*","*\drafts\*","*\documents not used as re-worded\*","*_Draft Documents\*","*\99_Old Versions\*","*\.svn\*","*\.git\*"),
     [Parameter(HelpMessage = 'List of file name excluded from search')]
     $FileNameExceptions = @("*.search.json","*.zip","*.config","*.db","*.bak","*.url","*.lnk","*.log","subsegmentlist_*.pdf","*._*.pdf","* draft *.","*_draft_*.*","temp *.*","*.bin","_permissions.txt","_readme.txt","*[?][?]*"),
     [Parameter(HelpMessage = 'werfault process is message box described here http://smallbusiness.chron.com/stop-werfaultexe-56154.html')]
@@ -50,6 +50,7 @@ Param(
     #General settings
     [int]$MaxFileBiteSize = 20000000,  #<=20 Mb
     [int]$MaxFolderNestedLevel = 20,
+    [int]$MaxFilesInFolder = 20,
     [string]$SearchFolderName = "_search",
     [string]$LogFilePath = "$($env:LOG_DIR)\Search.Index.Json.log",
     [string]$EventSource = "Search",
@@ -78,7 +79,7 @@ function LoadFolder(){
     #take files at the current level only
     $files = Get-ChildItem $RootPath -File -Force -ErrorAction SilentlyContinue | # -ErrorVariable err !do not use -ReadOnly
         Where-Object {$_.FullName.Length -le 255} | 
-        Where-Object {$_ -is [IO.FileInfo]} |
+        Where-Object {$_ -is [IO.FileInfo]} | select $_ -First $MaxFilesInFolder |
         % {"$($_.FullName.ToLower())"}
 
     if($files.Count -gt 0){
@@ -628,7 +629,7 @@ function ParsePdfText ([string]$filePath) {
         }
 
         #copy file locally to avoid permission issues
-        [string]$filePathCopy =$OfficeFileConverterTempPath+"Input\"+$fileInfo.Name.ToLower()
+        [string]$filePathCopy =$OfficeFileConverterTempPath+"Input\"+$fileInfo.Name.ToLower().Replace(",","")
         Copy-Item $fileInfo.FullName "$filePathCopy"
         Set-ItemProperty $filePathCopy -name IsReadOnly -value $false
         Unblock-File -Path $filePathCopy
@@ -692,7 +693,7 @@ function ParseJpgText ([string]$filePath) {
             $fileText = Get-Content $temp
         }
 #Write-Host "loading image..."
-        $image  = New-Object -ComObject Wia.ImageFile
+        $image  = New-Object -ComObject Wia.ImageFile #don't forget to activate the feature on your server: Add-WindowsFeature Desktop-Experience  
 #Write-Host "loading exif..."
         $image.LoadFile($filePath)
         $exif = Get-Exif($image)
@@ -761,9 +762,9 @@ function CleanOFCTempFolder(){
     [string]$temp = (get-item $env:TEMP ).parent.parent.FullName
     if ((Test-Path -LiteralPath $temp) -eq $true) {
         [string]$temp2 = (Get-ChildItem $temp -Force  -Recurse -filter "INetCache" -ErrorAction SilentlyContinue | where { $_.Attributes -match "Hidden"}).FullName
-        if ($temp2 -ne "" -and (Test-Path -LiteralPath $temp2) -eq $true) {
+        if ($temp2 -ne $null -and $temp2 -ne "" -and (Test-Path -LiteralPath $temp2) -eq $true) {
             [string]$temp3 = (Get-ChildItem -LiteralPath $temp2 -Force  -Recurse -filter "Content.MSO" -ErrorAction SilentlyContinue | where { $_.Attributes -match "Hidden"}).FullName
-            if ((Test-Path -LiteralPath $temp3) -eq $true) {
+            if ($temp3 -ne $null -and $temp3 -ne "" -and (Test-Path -LiteralPath $temp3) -eq $true) {
                 Remove-Item $temp3\*.* -recurse
             }
         }

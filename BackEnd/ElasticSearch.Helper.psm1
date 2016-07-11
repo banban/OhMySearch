@@ -15,10 +15,10 @@ if (!(Get-Command $CURL -errorAction SilentlyContinue))
 }
 
 
-if ($global:ElasticUri -eq $null){
+if ($global:ElasticUri -eq $null -or $global:ElasticUri -eq ""){
     $global:ElasticUri = $env:ElasticUri
-    if ($global:ElasticUri -eq ""){
-        $env:ElasticUri = "http://localhost:9200"
+    if ($global:ElasticUri -eq $null -or $global:ElasticUri -eq ""){
+        $env:ElasticUri = "http://$($env:computername):9200"
         $global:ElasticUri = $env:ElasticUri
     }
 }
