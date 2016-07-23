@@ -126,6 +126,9 @@ button.findBtn {
 ul.ulllist {
   list-style: none;
 }
+.panel-title {
+  font: medium;
+}
 /* entire container, keeps perspective */
 .flip-container {
   perspective: 300px;

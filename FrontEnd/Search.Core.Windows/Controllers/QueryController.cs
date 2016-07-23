@@ -54,7 +54,7 @@ namespace Search.Core.Windows.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string term, string options, int? from, int? page, int? size)
+        public async Task<IActionResult> Index(string term, string options, string aggregations, int? from, int? page, int? size)
         {
             //if (string.IsNullOrEmpty(term))
             //{
@@ -62,6 +62,7 @@ namespace Search.Core.Windows.Controllers
             //}
             Models.Query query = new Models.Query();
             query.ChosenOptions = options;
+            query.ChosenAggregations = aggregations;
             query.QueryTerm = term;
             query.Size = (size.HasValue ? size.Value : query.Size);
             if (from.HasValue)
@@ -84,10 +85,12 @@ namespace Search.Core.Windows.Controllers
 
             query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
 
-            var results = await GetSearchResponse(query); //use extra call to get total
-
-            query.Total = results.Total;
-            if (query.From > results.Total)
+            var response = await GetSearchResponse(query); //use extra call to get total
+            //query.ScrollId = response.ScrollId;
+            query.RawQuery = response.DebugInformation;
+            //query.RawQuery = response.CallDetails.;
+            query.Total = response.Total;
+            if (query.From > response.Total)
             {
                 return View(new EmptyResult());
             }
@@ -96,27 +99,27 @@ namespace Search.Core.Windows.Controllers
             {
                 Models.SearchResults sr = new Models.SearchResults();
                 sr.Pager = new Models.Pager(query.Total, page, query.Size.Value);
-                sr.Items = GetSearchResults(results, query.QueryTerm);
+                sr.Items = GetSearchResults(response, query.QueryTerm);
                 query.SearchResults = sr;
             }
 
-            foreach (var aggr in results.Aggs.Aggregations)
+            foreach (var aggr in response.Aggs.Aggregations)
             {
-                var buckets = results.Aggs.Terms(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                var buckets = response.Aggs.Terms(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
                     .OrderByDescending(bct =>  bct.DocCount).ThenBy(bct => bct.KeyAsString)
                     .Take(10);
                 foreach (var bucket in buckets)
                 {
                     query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Key, Count = bucket.DocCount.Value });
                 }
-                var buckets2 = results.Aggs.DateHistogram(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                var buckets2 = response.Aggs.DateHistogram(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
                     .OrderByDescending(bct => bct.DocCount) //.ThenBy(bct => bct.KeyAsString)
                     .Take(10);
                 foreach (var bucket in buckets2)
                 {
                     query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Date.ToString("MMM yyyy"), Count = bucket.DocCount });
                 }
-                var buckets3 = results.Aggs.Range(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                var buckets3 = response.Aggs.Range(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
                     .OrderByDescending(bct => bct.DocCount)
                     .Take(10);
                 foreach (var bucket in buckets3)
@@ -127,6 +130,7 @@ namespace Search.Core.Windows.Controllers
 
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
+            ViewBag.ChosenAggregations = query.ChosenAggregations;
             return View(query);
         }
 
@@ -154,11 +158,11 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
-            return RedirectToAction("Index", new { term = query.QueryTerm, options = query.ChosenOptions, from = query.From, size = query.Size });
+            return RedirectToAction("Index", new { term = query.QueryTerm, options = query.ChosenOptions, aggregations = query.ChosenAggregations, from = query.From, size = query.Size });
         }
 
         [HttpGet]
-        public async Task<IActionResult> Scroll(int? from, int? size, string term, string options)
+        public async Task<IActionResult> Scroll(int? from, int? size, string term, string options, string aggregations)
         {
             //if (string.IsNullOrEmpty(term))
             //{
@@ -168,18 +172,20 @@ namespace Search.Core.Windows.Controllers
             query.From = (from.HasValue ? from.Value : 0);
             query.QueryTerm = term;
             query.ChosenOptions = options;
+            query.ChosenAggregations = aggregations;
             query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
             if (size.HasValue)
                 query.Size = size.Value;
 
-            var results = await GetSearchResponse(query);
-            if (query.From > results.Total)
+            var response = await GetSearchResponse(query);
+            if (query.From > response.Total)
                 return View(new EmptyResult());
-
+            //query.ScrollId = response.ScrollId;
             ViewBag.From = query.From + query.Size;
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
-            return PartialView(GetSearchResults(results, query.QueryTerm));
+            ViewBag.ChosenAggregations = query.ChosenAggregations;
+            return PartialView(GetSearchResults(response, query.QueryTerm));
         }
 
         public static async Task<List<Models.QueryOption>> GetQueryOptions(string chosenOptions)
@@ -286,7 +292,8 @@ namespace Search.Core.Windows.Controllers
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_1", Value = "Suggest" }); //autocomplete, MLT, phonetic, stop words
                 options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_2", Value = "Fuzzy" }); //misspelling
-                //options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_3", Value = "Template" }); //predefined search
+                options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_3", Value = "Raw" }); //raw query
+                //options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_4", Value = "Location" }); //location internal map calls
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_1", Value = "Scroll" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Layout", Key = "4_2", Value = "Page" });
@@ -297,7 +304,6 @@ namespace Search.Core.Windows.Controllers
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_3", Value = "Ranges" });
 
                 //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_1", Value = "Hierarchy" });
-                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_2", Value = "Location" });
                 //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_3", Value = "Metadata" }); //index/type/field metadata
 
                 _memoryCache.Set("queryOptions", options, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
@@ -307,7 +313,7 @@ namespace Search.Core.Windows.Controllers
             {
                 foreach (var option in options)
                 {
-                    option.Selected = (chosenOptions.Contains(option.Key + ","));
+                    option.Selected = (chosenOptions.Contains(option.Key + "+"));
                 }
             }
             return options;
@@ -339,7 +345,7 @@ namespace Search.Core.Windows.Controllers
             string keyIndexType = "";
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
             {
-                var names = query.ChosenOptions.Trim(',').Split(',').AsEnumerable().Where(qo => qo.StartsWith("1_"));
+                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable().Where(qo => qo.StartsWith("1_"));
                 indices = Nest.Indices.Index(names.Select(qo => new Nest.IndexName() { Name = qo.Replace("1_", "") }));
                 foreach (var name in names)
                 {
@@ -354,7 +360,7 @@ namespace Search.Core.Windows.Controllers
             Nest.Types types = Nest.Types.AllTypes;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("2_"))
             {
-                var names = query.ChosenOptions.Trim(',').Split(',').AsEnumerable().Where(qo => qo.StartsWith("2_"));
+                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable().Where(qo => qo.StartsWith("2_"));
                 types = Nest.Types.Type(names.Select(qo => new Nest.TypeName() { Name = qo.Replace("2_", "") }));
                 foreach (var name in names)
                 {
@@ -386,6 +392,24 @@ namespace Search.Core.Windows.Controllers
                     Value = query.QueryTerm // DSL equivalent => .Query(q => q.Fuzzy(f => f.Value(query.QueryTerm)))
                 };
             }
+            else if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_2")) //fuzzy
+            {
+                qc = new FuzzyQuery
+                {
+                    //Field
+                    //Fuzziness
+                    Value = query.QueryTerm // DSL equivalent => .Query(q => q.Fuzzy(f => f.Value(query.QueryTerm)))
+                };
+            }
+            else if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_3")) //raw
+            {
+                    qc = new RawQuery()
+                {
+                    //Name = "RawQuery",
+                    Raw = query.QueryTerm
+                };
+            }
+
             else if (query.QueryTerm.Contains(";") && query.ChosenOptions != null && query.ChosenOptions.Contains("3_4")) //location
             {
                 string[] data = query.QueryTerm.Split(';');
@@ -401,7 +425,7 @@ namespace Search.Core.Windows.Controllers
             }
             #region More Like This
             else if (query.QueryTerm != null && query.QueryTerm.Contains("/")
-            && query.ChosenOptions != null && query.ChosenOptions.Contains("3_6"))
+                        && query.ChosenOptions != null && query.ChosenOptions.Contains("3_6"))
             {
                 string[] fullId = query.QueryTerm.Split('/');
                 //fields to search
@@ -472,10 +496,68 @@ namespace Search.Core.Windows.Controllers
             var elRequest = new SearchRequest(indices, types)
             {
                 Query = qc,
+                //Scroll = "1m",
                 From = query.From ?? 0, //.Skip()
                 Size = query.Size ?? 10 //.Take()
             };
 
+            if (!string.IsNullOrEmpty(query.ChosenAggregations)) //mask: "Group1.Field1.Value1|Group1.Field2.Value2|Group2.Field3.Value3|"
+            {   
+                var filters = query.ChosenAggregations.Split('|').Where(s => !string.IsNullOrEmpty(s))
+                   .Select(s => new { Group = s.Substring(0,s.IndexOf('.')).Trim()
+                                        , KeyValue = s.Substring(s.IndexOf('.')+1).Trim() } )
+                   .Select(s => new { Group = s.Group
+                                        , Field = s.KeyValue.Substring(0, s.KeyValue.IndexOf('.')).Trim()
+                                        , Value = s.KeyValue.Substring(s.KeyValue.IndexOf('.')+1).Trim() } );
+
+                var groups = filters.Select(qo => qo.Group).Distinct();
+                foreach (var group in groups)
+                {
+                    var groupFilters = filters.Where(qo => qo.Group == group);
+                    foreach (var item in filters)
+                    {
+                        //NEST v5 introduces operator overloading so complex bool queries become easier to write
+                        switch (item.Group)
+                        {
+                            case "Top terms":
+                                //+ special construct, which will cause the term query to be wrapped inside a bool 
+                                var termQuery = +new TermQuery
+                                {
+                                    Field = item.Field,
+                                    Value = item.Value
+                                };
+                                elRequest.Query = elRequest.Query && termQuery;
+                                break;
+                            //case "Stats":
+                            //    break;
+                            case "Top months":
+                                DateTime start = DateTime.Parse(item.Value);
+                                var dateRangeQuery = +new DateRangeQuery() {
+                                    Field = item.Field,
+                                    GreaterThanOrEqualTo = start,
+                                    LessThan = start.AddMonths(1)
+                                };
+                                elRequest.Query = elRequest.Query && dateRangeQuery;
+                                break;
+                            case "Top ranges": //0 - 100 or 200 - ...
+                                var numRangeQuery = +new Nest.NumericRangeQuery()
+                                {
+                                    Field = item.Field,
+                                    GreaterThanOrEqualTo = double.Parse(item.Value.Split('-')[0].Trim()),
+                                    LessThanOrEqualTo = ((item.Value.Split('-')[1].Trim() != "...") ? double.Parse(item.Value.Split('-')[1].Trim()) : double.MaxValue)
+                                };
+                                elRequest.Query = elRequest.Query && numRangeQuery;
+                                break;
+                            default:
+                                break;
+                        }
+
+                    }
+                }
+                //fagg.Filter = QueryContainer();
+
+                //elRequest.FilterPath
+            }
             //Aggregations https://www.elastic.co/guide/en/elasticsearch/client/net-api/master/aggregations.html
             var aggregations = new Dictionary<string, IAggregationContainer>();
 
@@ -513,7 +595,7 @@ namespace Search.Core.Windows.Controllers
 
                 foreach (var term in termList)
                 {
-                    aggregations.Add("Top terms: " + term, new AggregationContainer
+                    aggregations.Add("Top terms." + term, new AggregationContainer
                     {
                         Terms = new TermsAggregation(term)
                         {
@@ -562,7 +644,7 @@ namespace Search.Core.Windows.Controllers
 
                 foreach (var term in termList)
                 {
-                    aggregations.Add("Top Months: " + term, new AggregationContainer
+                    aggregations.Add("Top months." + term, new AggregationContainer
                     {
                         DateHistogram = new DateHistogramAggregation(term)
                         {
@@ -665,7 +747,7 @@ namespace Search.Core.Windows.Controllers
                                         currValue += step; 
                                     }
 
-                                    aggregations.Add("Top ranges: " + term, new AggregationContainer
+                                    aggregations.Add("Top ranges." + term, new AggregationContainer
                                     {
                                         Range = new RangeAggregation(term)
                                         {
@@ -772,6 +854,7 @@ namespace Search.Core.Windows.Controllers
 
             #endregion
 
+            //elRequest.Scroll = new Time("5y");
             Nest.ISearchResponse<dynamic> results = await _elclient.SearchAsync<dynamic>(elRequest);
 
             return results;
@@ -800,6 +883,7 @@ namespace Search.Core.Windows.Controllers
                 ChosenOptions = options
             };
             var response = await GetSearchResponse(query);
+            //query.ScrollId = response.ScrollId;
             var results = GetSearchResults(response, query.QueryTerm);
             JArray json = JArray.FromObject(results);
             return json;
@@ -871,7 +955,7 @@ namespace Search.Core.Windows.Controllers
             string responseBody = string.Empty;
             using (var client = new HttpClient())
             {
-                client.BaseAddress = new Uri(Startup.GetElasticSearchUrl().TrimEnd('/'));
+                client.BaseAddress = new Uri(Startup.GetElasticSearchUrl());
                 Uri uri = new Uri(client.BaseAddress + url.TrimStart('/'));
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

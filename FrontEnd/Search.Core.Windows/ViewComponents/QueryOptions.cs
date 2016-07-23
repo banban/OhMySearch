@@ -20,9 +20,20 @@ namespace Search.Core.Windows.ViewComponents
             {
                 query.QueryTerm = Request.Query["term"];
             }
-            if (string.IsNullOrEmpty(query.ChosenOptions) && !string.IsNullOrEmpty(Request.Query["options"]))
+            if (string.IsNullOrEmpty(query.ChosenOptions))
             {
-                query.ChosenOptions = Request.Query["options"];
+                if (!string.IsNullOrEmpty(Request.Query["options"]))
+                {
+                    query.ChosenOptions = Request.Query["options"].ToString();
+                }
+                else
+                {
+                    query.ChosenOptions = ""; //this is required to remove previous chosen options which are not used anymore
+                }
+            }
+            if (string.IsNullOrEmpty(query.ChosenAggregations) && !string.IsNullOrEmpty(Request.Query["aggregations"]))
+            {
+                query.ChosenAggregations = Request.Query["aggregations"];
             }
             if (query.QueryOptions.Count() == 0)
             {

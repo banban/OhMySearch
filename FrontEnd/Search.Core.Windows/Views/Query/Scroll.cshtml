@@ -2,10 +2,10 @@
 @model IEnumerable<Search.Core.Windows.Models.SearchResult>
 @if (Model != null)
 {
-    <ul class="list-unstyled">
+    <ul id="ulllist" class="list-unstyled">
         @foreach (var item in Model)
         {
-            <li class="search-item unstyled">
+            <li class="search-item">
                 <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
                 Index: @item.Index; Type: @item.Type; Score: @item.Score;
                 @if (item.Extension.ToLower() == "pdf")
@@ -23,6 +23,6 @@
                 <br /><span class="small">@Html.Raw(item.Summary)</span>
             </li>
         }
-        <li><a class="jscroll-next" hidden href="../Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))">End of page...</a></li>
+        <li><a class="jscroll-next" hidden href="../Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))&aggregations=@(Uri.EscapeUriString(ViewBag.ChosenAggregations))">End of page...</a></li>
     </ul>
 }

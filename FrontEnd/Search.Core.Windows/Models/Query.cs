@@ -65,6 +65,8 @@ namespace Search.Core.Windows.Models
         public SearchResults SearchResults { get; set; }
         public List<QueryOption> QueryOptions { get; set; }
         public List<Aggregation> Aggregations { get; set; }
+        public string ScrollId { get; internal set; }
+        public string RawQuery { get; internal set; }
 
         public IEnumerable<string> GetOptionGroups()
         {
@@ -82,14 +84,16 @@ namespace Search.Core.Windows.Models
 
         public IEnumerable<string> GetAggregations()
         {
-            var groups = this.Aggregations.OrderBy(gr => gr.Group).Select(qo => qo.Group).Distinct();
+            var groups = this.Aggregations
+                .Where(qo => !string.IsNullOrEmpty(qo.Key) && qo.Count > 0)
+                .OrderBy(gr => gr.Group).Select(qo => qo.Group).Distinct();
             return groups;
         }
 
         public IEnumerable<Aggregation> GetAggregations(string Group)
         {
             var aggs = this.Aggregations
-                .Where(qo => qo.Group == Group && !string.IsNullOrEmpty(qo.Key))
+                .Where(qo => qo.Group == Group && !string.IsNullOrEmpty(qo.Key) && qo.Count > 0)
                 .OrderByDescending(qo => qo.Count);
             return aggs;
         }

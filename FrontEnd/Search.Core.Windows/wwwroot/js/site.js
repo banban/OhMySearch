@@ -28,19 +28,19 @@ $(document).ready(function () {
         width: "70%"
     }).change(function (event, params) {
         if (params.selected) {
-            $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + ",");
-            //if (params.selected == "3_1") {
-            //    $("#QueryTerm").val("file.Name=The quick brown fox");
-            //}
-            //else if (params.selected == "3_2") {
-            //    $("#QueryTerm").val("The qick broon foox");
-            //}
-            //else if (params.selected == "3_3") {
-            //    $("#QueryTerm").val("/1/2/3");
-            //}
-            //else if (params.selected == "3_4") {
-            //    $("#QueryTerm").val("Perth");
-            //}
+            $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + "+");
+            if (params.selected == "3_1") {
+                $("#QueryTerm").val("file.Name=The quick brown fox");
+            }
+            else if (params.selected == "3_2") {
+                $("#QueryTerm").val("The qick broon foox");
+            }
+            else if (params.selected == "3_3") {
+                $("#QueryTerm").val("{'term': {'Content': 'test'}}");
+            }
+            else if (params.selected == "3_4") {
+                $("#QueryTerm").val("Perth");
+            }
 
             ///some options can conflict with others
             //else if (params.selected == "4_1") { 
@@ -49,9 +49,10 @@ $(document).ready(function () {
             //else if (params.selected == "4_2") {
             //    $("#ChosenOptions").val($("#ChosenOptions").val().replace("4_1,", ""));
             //}
-        }
+
+}
         else if (params.deselected) {
-            $("#ChosenOptions").val($("#ChosenOptions").val().replace(params.deselected + ",", ""));
+            $("#ChosenOptions").val($("#ChosenOptions").val().replace(params.deselected + "+", ""));
         }
     });
 

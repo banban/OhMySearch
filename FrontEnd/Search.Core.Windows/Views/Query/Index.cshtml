@@ -2,10 +2,10 @@
 @{
     ViewData["Title"] = "Search Results";
 }
+<div class="col-lg-pull-1 col-md-pull-1 col-sm-pull-1 col-lg-12 col-md-12 col-sm-12" data-position="fixed" data-role="content">
+<div class="col-lg-9 col-md-9 col-sm-9" >
+    @await Component.InvokeAsync("QueryOptions", new { query = Model })
 
-<div class="col-lg-pull-2 col-md-pull-2 col-sm-pull-2 col-lg-12 col-md-12 col-sm-12" data-role="content" data-position="fixed">
-    @await Component.InvokeAsync("QueryOptions", Model) 
-    
     <ul class="nav nav-tabs" role="tablist">
         <li class="active"><a href="#Search-Results" role="tab" data-toggle="tab" aria-expanded="true" class="glyphicon glyphicon-list">Results <span class="badge">@Model.Total</span></a></li>
         @*<li><a href="#Search-Summary" role="tab" data-toggle="tab" class="glyphicon glyphicon-equalizer">Summary</a></li>
@@ -18,7 +18,7 @@
                 || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2") && !Model.ChosenOptions.Contains("4_3")))
             {
                 <div class="scroll col-lg-12 col-md-12">
-                    <a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))">...</a>
+                    <a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))&aggregations=@(Uri.EscapeUriString(Model.ChosenAggregations))">...</a>
                 </div>
             }
             else if (Model.ChosenOptions.Contains("4_2"))
@@ -49,7 +49,7 @@
 </div>
 
 
-<div id="accordion" class="panel-group sidebar col-lg-pull-1 col-md-pull-1 col-sm-pull-1">
+<div id="accordion" class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
     @*<div class="panel panel-info">
         <div class="panel-heading">
             <h4 class="panel-title">
@@ -64,23 +64,26 @@
         </div>
     </div>*@
 
-    <input id="ChosenFilters" hidden asp-for="ChosenAggregations" />
     @foreach (var aggr in Model.GetAggregations())
     {
         <div class="panel panel-info">
             <div class="panel-heading">
-                <h4 class="panel-title">
-                    @*<a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")">
-                    </a>*@
-                    @aggr
-                </h4>
+                @*<a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")"></a>*@
+                <label class="panel-title">
+                    @*@aggr.Replace(".",": ").Replace("_", " ")*@
+                    @aggr.Substring(aggr.IndexOf(".")+1).Replace("_", " ")
+                </label>
             </div>
             <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
                 <div class="panel-body">
                     <ul class="list-unstyled">
                         @foreach (var item in Model.GetAggregations(aggr))
                         {
-                            <li class="agg-link"><input type="checkbox" class="aggregate-filter" id="@Html.Raw(@aggr.Replace(" ",""))_@item.Key"/> @item.Key <span class="badge">@item.Count</span></li>
+                            string key = aggr + "." + item.Key;
+                            <li>
+                                @*<label class="small"><input type="radio" name="@aggr" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked" : "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>*@
+                                <label class="small"><input type="checkbox" name="checkbox" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked": "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>
+                            </li>
                         }
                     </ul>
                 </div>
@@ -88,7 +91,7 @@
         </div>
     }
 </div>
-
+</div>
 
 @section Scripts {
     <script src="~/lib/jquery.jscroll/jquery.jscroll.min.js"></script>
@@ -102,7 +105,6 @@
             $('#confidencelbl').val(vol + " %");
         }
 
-
         $(document).ready(function () {
             $('.scroll').jscroll({
                 //autoTriggerUntil: 3,
@@ -113,21 +115,37 @@
                 contentSelector: 'li'
             });
             
+            //Array.prototype.remove = function () {
+            //    var what, a = arguments, L = a.length, ax;
+            //    while (L && this.length) {
+            //        what = a[--L];
+            //        while ((ax = this.indexOf(what)) !== -1) {
+            //            this.splice(ax, 1);
+            //        }
+            //    }
+            //    return this;
+            //};
+            //var chosenAggs = [];
+
             $('input.aggregate-filter').click(function () {
-                var agg = $(this).name +"_"+ $(this).val();
-                console.log(agg);
-                console.log($(this).val());
-                if ($(this).val()=="on") {
-                    $("#ChosenAggregations").val($("#ChosenAggregations").val().replace(agg + ",", ""));
+                var agg = $(this).prop('value');
+                //console.log(agg);
+                var chousenaggs = $("#ChosenAggregations").val();
+                if (!chousenaggs)
+                {
+                    chousenaggs = "";
+                }
+                console.log($(this).is(":checked"));
+                if ($(this).is(":checked")) {
+                    //chosenAggs.push(agg);
+                    $("#ChosenAggregations").val(chousenaggs + agg + "|");
                 }
                 else{
-                    $("#ChosenAggregations").val($("#ChosenAggregations").val() + "," + agg);
+                    $("#ChosenAggregations").val(chousenaggs.replace(agg + "|", ""));
+                    //chosenAggs.remove(agg);
                 }
+                //console.log($("#ChosenAggregations").val());
             });
-            //$('.agg-link').click(function () {
-            //    $('li.input check').parent().removeClass("active").end();
-            //    $('li a').filter("[href=" + $(this).attr("href") + "]").parent().addClass("active");
-            //});
 
             //$(function () {
             //    $("#aggregations").accordion();

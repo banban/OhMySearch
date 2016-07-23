@@ -91,7 +91,7 @@ namespace Search.Core.Windows.Controllers
             {
                 QueryTerm = _index +"/"+ _type + "/" +_id,
                 Size = 10,
-                ChosenOptions = "1_" + _index + ","+ "2_" + _type + ",3_6,"
+                ChosenOptions = "1_" + _index + "+2_" + _type + "+3_6+"
             };
 
             var mltResults = await QueryController.GetSearchResponse(mltQuery);

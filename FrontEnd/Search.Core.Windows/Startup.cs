@@ -94,8 +94,11 @@ namespace Search.Core.Windows
             {
                 result = Environment.GetEnvironmentVariable("ElasticUri");
             }
-
-            return result;
+            if (result == null)
+            {
+                result = "";
+            }
+            return result.TrimEnd('/');
         }
 
         public static string GetGoogleMapKey()

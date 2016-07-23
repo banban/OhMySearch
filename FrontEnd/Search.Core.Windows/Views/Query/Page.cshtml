@@ -1,7 +1,8 @@
 ﻿@model Search.Core.Windows.Models.Query
 @if (Model != null)
 {
-    <!-- items being paged -->
+    @await Component.InvokeAsync("Pager", new { query = Model })
+
     <ul id="ulllist" class="list-unstyled">
         @foreach (var item in Model.SearchResults.Items)
         {
@@ -24,37 +25,6 @@
             </li>
         }
     </ul>
+    @await Component.InvokeAsync("Pager", new { query = Model })
 
-    <!-- pager -->
-    @if (Model.SearchResults.Pager.EndPage > 1)
-    {
-        <ul class="pagination pager">
-            @if (Model.SearchResults.Pager.CurrentPage > 1)
-            {
-                <li>
-                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)">First</a>
-                </li>
-                <li>
-                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage - 1)">Previous</a>
-                </li>
-            }
-
-            @for (var page = Model.SearchResults.Pager.StartPage; page <= Model.SearchResults.Pager.EndPage; page++)
-            {
-                <li class="@(page == Model.SearchResults.Pager.CurrentPage ? "active" : "")">
-                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@page">@page</a>
-                </li>
-            }
-
-            @if (Model.SearchResults.Pager.CurrentPage < Model.SearchResults.Pager.TotalPages)
-            {
-                <li>
-                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.CurrentPage + 1)">Next</a>
-                </li>
-                <li>
-                    <a href="../Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&page=@(Model.SearchResults.Pager.TotalPages)">Last</a>
-                </li>
-            }
-        </ul>
-    }
 }

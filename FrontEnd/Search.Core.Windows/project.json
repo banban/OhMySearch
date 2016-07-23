@@ -27,7 +27,7 @@
     "Microsoft.Extensions.Caching.Memory": "1.0.0",
     "NEST": "5.0.0-alpha3",
     "Newtonsoft.Json": "9.0.1",
-    "BundlerMinifier.Core": "2.0.238"
+    "BundlerMinifier.Core": "2.1.258"
   },
 
   "tools": {
