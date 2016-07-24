@@ -16,6 +16,12 @@ namespace Search.Core.Windows.Models
             Aggregations = new List<Aggregation>();
         }
 
+        /////The method will return a collection of terms that match the query. 
+        /////The result of particular suggestion is a collection of suggestion options. 
+        /////We may order them by frequency or weight (which we did not defined) and return the suggested text.
+        //[Nest.Completion]
+        //public IEnumerable<string> Suggest { get; set; }
+
         private string myQueryTerm = string.Empty;
         public string QueryTerm
         {
@@ -66,7 +72,7 @@ namespace Search.Core.Windows.Models
         public List<QueryOption> QueryOptions { get; set; }
         public List<Aggregation> Aggregations { get; set; }
         public string ScrollId { get; internal set; }
-        public string RawQuery { get; internal set; }
+        public string DebugInformation { get; internal set; }
 
         public IEnumerable<string> GetOptionGroups()
         {

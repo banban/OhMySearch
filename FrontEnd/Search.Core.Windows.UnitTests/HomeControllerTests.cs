@@ -5,9 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Search.Core.Windows.Controllers;
-using Search.Core.Windows.Core.Interfaces;
-using Search.Core.Windows.Core.Model;
-using Search.Core.Windows.ViewModels;
+using Search.Core.Windows.Models;
 using Xunit;
 
 namespace Search.Core.Windows.UnitTests

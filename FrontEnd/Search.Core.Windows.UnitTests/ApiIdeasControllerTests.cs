@@ -4,10 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using Search.Core.Windows.Api;
-using Search.Core.Windows.ClientModels;
-using Search.Core.Windows.Core.Interfaces;
-using Search.Core.Windows.Core.Model;
+using Search.Core.Windows.Models;
 using Xunit;
 
 namespace Search.Core.Windows.UnitTests

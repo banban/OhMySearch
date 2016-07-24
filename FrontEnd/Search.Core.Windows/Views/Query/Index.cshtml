@@ -8,9 +8,8 @@
 
     <ul class="nav nav-tabs" role="tablist">
         <li class="active"><a href="#Search-Results" role="tab" data-toggle="tab" aria-expanded="true" class="glyphicon glyphicon-list">Results <span class="badge">@Model.Total</span></a></li>
-        @*<li><a href="#Search-Summary" role="tab" data-toggle="tab" class="glyphicon glyphicon-equalizer">Summary</a></li>
-            <li><a href="#Search-Charts" role="tab" data-toggle="tab" class="glyphicon glyphicon-adjust">Charts</a></li>*@
         <li><a id="MapsTab" href="#Search-Maps" role="tab" data-toggle="tab" class="glyphicon glyphicon-map-marker">Maps</a></li>
+        @*<li><a href="#Search-Debug" role="tab" data-toggle="tab" class="glyphicon glyphicon-info-sign">Request Info</a></li>*@
     </ul>
     <div class="tab-content">
         <div class="tab-pane active" id="Search-Results">
@@ -34,17 +33,12 @@
                 </div>
             }
         </div>
-        <div class="tab-pane" id="Search-Summary">
-            <div id="searchSummary">
-                @*@Html.EditorFor(model => model.Properties, "Properties")*@
-            </div>
-        </div>
-        <div class="tab-pane" id="Search-Charts">
-            <div id="chartSummary"></div>
-        </div>
         <div class="tab-pane" id="Search-Maps">
             <div id="googleMap"></div>
         </div>
+        @*<div class="tab-pane" id="Search-Debug">
+            <span id="searchDebugInfo">@Model.DebugInformation</span>
+        </div>*@
     </div>
 </div>
 

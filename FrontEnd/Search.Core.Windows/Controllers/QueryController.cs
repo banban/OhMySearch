@@ -87,7 +87,7 @@ namespace Search.Core.Windows.Controllers
 
             var response = await GetSearchResponse(query); //use extra call to get total
             //query.ScrollId = response.ScrollId;
-            query.RawQuery = response.DebugInformation;
+            query.DebugInformation = response.ApiCall.DebugInformation;
             //query.RawQuery = response.CallDetails.;
             query.Total = response.Total;
             if (query.From > response.Total)
@@ -185,7 +185,8 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
-            return PartialView(GetSearchResults(response, query.QueryTerm));
+            var results = GetSearchResults(response, query.QueryTerm);
+            return PartialView(results);
         }
 
         public static async Task<List<Models.QueryOption>> GetQueryOptions(string chosenOptions)
@@ -311,6 +312,7 @@ namespace Search.Core.Windows.Controllers
 
             if (!string.IsNullOrEmpty(chosenOptions))
             {
+                chosenOptions = chosenOptions + "+";
                 foreach (var option in options)
                 {
                     option.Selected = (chosenOptions.Contains(option.Key + "+"));
@@ -341,12 +343,14 @@ namespace Search.Core.Windows.Controllers
         public static async Task<Nest.ISearchResponse<dynamic>> GetSearchResponse(Models.Query query)
         {
             //indices to search
-            Nest.Indices indices = Nest.Indices.AllIndices;
+            Nest.Indices indices = null;
             string keyIndexType = "";
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
             {
-                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable().Where(qo => qo.StartsWith("1_"));
-                indices = Nest.Indices.Index(names.Select(qo => new Nest.IndexName() { Name = qo.Replace("1_", "") }));
+                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable()
+                    .Where(qo => qo.StartsWith("1_"))
+                    .Select(qo => qo.Substring(2).Trim());
+                indices = Nest.Indices.Index(names.Select(s => new Nest.IndexName() { Name = s }));
                 foreach (var name in names)
                 {
                     keyIndexType += name + ",";
@@ -354,14 +358,17 @@ namespace Search.Core.Windows.Controllers
             }
             else
             {
+                indices = Nest.Indices.AllIndices;
                 keyIndexType += "AllIndices,";
             }
             //types to search
-            Nest.Types types = Nest.Types.AllTypes;
+            Nest.Types types = null;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("2_"))
             {
-                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable().Where(qo => qo.StartsWith("2_"));
-                types = Nest.Types.Type(names.Select(qo => new Nest.TypeName() { Name = qo.Replace("2_", "") }));
+                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable()
+                    .Where(qo => qo.StartsWith("2_"))
+                    .Select(qo => qo.Substring(2).Trim());
+                types = Nest.Types.Type(names.Select(s => new Nest.TypeName() { Name = s }));
                 foreach (var name in names)
                 {
                     keyIndexType += name + ",";
@@ -369,6 +376,7 @@ namespace Search.Core.Windows.Controllers
             }
             else
             {
+                types = Nest.Types.AllTypes;
                 keyIndexType += "AllTypes,";
             }
 
@@ -377,7 +385,7 @@ namespace Search.Core.Windows.Controllers
             QueryContainer qc = new QueryContainer(); //{q => q.QueryString(qs => qs.Query(query.QueryTerm)};
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_1") && query.QueryTerm.Contains("=")) //term Name=Value
             {
-                qc = new TermQuery
+                qc = new TermQuery()
                 {
                     Field = query.QueryTerm.Split('=')[0], //"file.Name"
                     Value = query.QueryTerm.Split('=')[1]
@@ -385,16 +393,7 @@ namespace Search.Core.Windows.Controllers
             }
             else if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_2")) //fuzzy
             {
-                qc = new FuzzyQuery
-                {
-                    //Field
-                    //Fuzziness
-                    Value = query.QueryTerm // DSL equivalent => .Query(q => q.Fuzzy(f => f.Value(query.QueryTerm)))
-                };
-            }
-            else if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_2")) //fuzzy
-            {
-                qc = new FuzzyQuery
+                qc = new FuzzyQuery()
                 {
                     //Field
                     //Fuzziness
@@ -413,7 +412,7 @@ namespace Search.Core.Windows.Controllers
             else if (query.QueryTerm.Contains(";") && query.ChosenOptions != null && query.ChosenOptions.Contains("3_4")) //location
             {
                 string[] data = query.QueryTerm.Split(';');
-                qc = new GeoDistanceQuery
+                qc = new GeoDistanceQuery()
                 {
                     Boost = 1.1,
                     Location = new GeoLocation(double.Parse(data[0]), double.Parse(data[1])),
@@ -423,6 +422,39 @@ namespace Search.Core.Windows.Controllers
                     OptimizeBoundingBox = GeoOptimizeBBox.Memory
                 };
             }
+            //else if (query.QueryTerm.Contains(";") && query.ChosenOptions != null && query.ChosenOptions.Contains("3_5")) //suggestions
+            //{
+            //    var result = _elclient.Suggest<dynamic>(x => x        // use suggest method
+            //        .Completion("tag-suggestions", c => c             // use completion suggester and name it
+            //            .Prefix(query.QueryTerm)                                  // pass text
+            //            //.Field(f => f.Suggest)                        // work against completion field
+            //            .Size(20)));                               // limit number of suggestions
+
+            //    return result.Suggestions["tag-suggestions"].SelectMany(x => x.Options)
+            //        .Select(y => y.Text);
+            //}
+            else if (query.QueryTerm.StartsWith("\"") && query.QueryTerm.EndsWith("\"")) //"Match phrase"
+            {
+                qc = new MatchQuery()
+                {
+                    //Field = Field<Project>(p => p.Description),
+                    Analyzer = "standard",
+                    Boost = 1.1,
+                    Name = "named_query",
+                    CutoffFrequency = 0.001,
+                    Query = query.QueryTerm,
+                    Fuzziness = Fuzziness.Auto,
+                    FuzzyTranspositions = true,
+                    MinimumShouldMatch = 2,
+                    FuzzyRewrite = RewriteMultiTerm.ConstantScoreBoolean,
+                    MaxExpansions = 2,
+                    Slop = 2,
+                    Lenient = true,
+                    Operator = Operator.Or,
+                    PrefixLength = 2
+                };
+            }
+
             #region More Like This
             else if (query.QueryTerm != null && query.QueryTerm.Contains("/")
                         && query.ChosenOptions != null && query.ChosenOptions.Contains("3_6"))
@@ -456,11 +488,11 @@ namespace Search.Core.Windows.Controllers
                     _memoryCache.Set("FieldsForMLT:" + fullId[0] + "/" + fullId[1], fields, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
                 }
 
-                qc = new Nest.MoreLikeThisQuery
+                qc = new Nest.MoreLikeThisQuery()
                 {
                     Name = "mlt_query",
                     //Fields = fields.ToArray(), //Defaults to the _all field for free text and to all possible fields for document inputs.
-                    Like = new List<Like>
+                    Like = new List<Like>()
                     {
                         //A list of documents following the same syntax as the Multi GET API.
                         new Like(new Models.LikeDocumentGeneral(fullId))
@@ -485,11 +517,17 @@ namespace Search.Core.Windows.Controllers
             }
 
             #endregion
-            else //free text
+            else if(!string.IsNullOrEmpty(query.QueryTerm)) //free text
             {
-                qc = new QueryStringQuery
+                qc = new QueryStringQuery()
                 {
                     Query = query.QueryTerm  //DSL: .Query(q => q.QueryString(qs => qs.Query(query.QueryTerm)))
+                };
+            }
+            else //Match All
+            {
+                qc = new MatchAllQuery()
+                {
                 };
             }
 
@@ -497,10 +535,13 @@ namespace Search.Core.Windows.Controllers
             {
                 Query = qc,
                 //Scroll = "1m",
+                IgnoreUnavailable = true,
+                Explain = true,
+                //SearchType = Elasticsearch.Net.SearchType.QueryThenFetch,
                 From = query.From ?? 0, //.Skip()
                 Size = query.Size ?? 10 //.Take()
             };
-
+            //check if query has aggregation filters
             if (!string.IsNullOrEmpty(query.ChosenAggregations)) //mask: "Group1.Field1.Value1|Group1.Field2.Value2|Group2.Field3.Value3|"
             {   
                 var filters = query.ChosenAggregations.Split('|').Where(s => !string.IsNullOrEmpty(s))
@@ -764,7 +805,10 @@ namespace Search.Core.Windows.Controllers
 
             #endregion
 
-            elRequest.Aggregations = aggregations;
+            if (aggregations.Count > 0)
+            {
+                elRequest.Aggregations = aggregations;
+            }
 
 
             //elRequest.Aggregations = new CardinalityAggregation("state_count", Field<Models.IFileResult>(p => p.Extension))
@@ -830,7 +874,7 @@ namespace Search.Core.Windows.Controllers
             //    }
             //}
 
-            #region Highlights. Not working yet :(
+            #region Highlights. Not working in fuzzy yet :(
 
             elRequest.Highlight = new Highlight()
             {
@@ -854,10 +898,43 @@ namespace Search.Core.Windows.Controllers
 
             #endregion
 
+            Nest.ISearchResponse<dynamic> response = await _elclient.SearchAsync<dynamic>(elRequest);
             //elRequest.Scroll = new Time("5y");
-            Nest.ISearchResponse<dynamic> results = await _elclient.SearchAsync<dynamic>(elRequest);
+            //Nest.ISearchResponse<dynamic> results = await _elclient.ScrollAsync<dynamic>(elScroll);
 
-            return results;
+            //depricated
+            //var requestURL = response.ConnectionStatus;
+            //var jsonBody = Encoding.UTF8.GetString(response.RequestInformation.Request);
+
+            return response;
+        }
+
+        [HttpGet]
+        public async Task<JToken> Suggest(string queryTerm, string options)
+        {
+            if (!string.IsNullOrEmpty(options)) //remove other query types to avoid conflict in builder
+            {
+                options = options.Replace("3_1", "").Replace("3_2", "").Replace("3_3", "").Replace("3_4", "");
+            }
+            else
+            {
+                options = "3_5,";
+            }
+
+            if (!options.Contains("3_5,"))
+            {
+                options += "3_5,";
+            }
+
+            Models.Query query = new Models.Query()
+            {
+                QueryTerm = queryTerm,
+                ChosenOptions = options
+            };
+            var response = await GetSearchResponse(query);
+            var results = GetSearchResults(response, query.QueryTerm);
+            JArray json = JArray.FromObject(results);
+            return json;
         }
 
         [HttpGet]

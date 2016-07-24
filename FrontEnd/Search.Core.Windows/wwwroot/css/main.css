@@ -129,6 +129,10 @@ ul.ulllist {
 .panel-title {
   font: medium;
 }
+em {
+  font: bold;
+  background: yellow;
+}
 /* entire container, keeps perspective */
 .flip-container {
   perspective: 300px;
