@@ -89,7 +89,7 @@ namespace Search.Core.Windows
 
         public static string GetElasticSearchUrl()
         {
-            string result = Configuration["Data:ElasticSearch:Url"];
+            string result = result = Configuration["Data:ElasticSearch:Url"];
             if (string.IsNullOrEmpty(result))
             {
                 result = Environment.GetEnvironmentVariable("ElasticUri");
@@ -97,6 +97,10 @@ namespace Search.Core.Windows
             if (result == null)
             {
                 result = "";
+            }
+            if (string.IsNullOrEmpty(result))
+            {
+                result = "http://localhost:9200";
             }
             return result.TrimEnd('/');
         }

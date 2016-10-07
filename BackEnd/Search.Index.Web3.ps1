@@ -8,7 +8,6 @@ Test 1. Process document:
 
  2 records rejected
 
-
  test API:
     $global:Debug = $true
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
@@ -56,9 +55,6 @@ Param(
 
 function Main(){
     Clear-Host
-
-    Add-Type -Path "c:\Program Files\Common Files\microsoft shared\Web Server Extensions\16\ISAPI\Microsoft.SharePoint.Client.dll" 
-    Add-Type -Path "c:\Program Files\Common Files\microsoft shared\Web Server Extensions\16\ISAPI\Microsoft.SharePoint.Client.Runtime.dll" 
 
     if ($url -ne $null -and $url -ne ""){
         #ignore test ssl certificate warning, do not use for external resources

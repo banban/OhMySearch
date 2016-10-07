@@ -11,6 +11,11 @@ using Nest;
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Caching.Memory;
 
+/// <summary>
+/// How to Build a Search Page with Elasticsearch and .NET https://www.simple-talk.com/dotnet/development/how-to-build-a-search-page-with-elasticsearch-and-.net/
+/// How do you debug your Nest queries? http://stackoverflow.com/questions/28139604/how-do-you-debug-your-nest-queries
+/// Request Body Search https://www.elastic.co/guide/en/elasticsearch/reference/master/search-request-body.html#search-request-body
+/// </summary>
 namespace Search.Core.Windows.Controllers
 {
     public class QueryController : Controller
@@ -95,13 +100,13 @@ namespace Search.Core.Windows.Controllers
                 return View(new EmptyResult());
             }
 
+            Models.SearchResults sr = new Models.SearchResults();
             if (query.ChosenOptions.Contains("4_2") || query.ChosenOptions.Contains("4_3"))
             {
-                Models.SearchResults sr = new Models.SearchResults();
                 sr.Pager = new Models.Pager(query.Total, page, query.Size.Value);
-                sr.Items = GetSearchResults(response, query.QueryTerm);
-                query.SearchResults = sr;
             }
+            sr.Items = GetSearchResults(response, query.QueryTerm);
+            query.SearchResults = sr;
 
             foreach (var aggr in response.Aggs.Aggregations)
             {
@@ -262,7 +267,8 @@ namespace Search.Core.Windows.Controllers
                                 Key = "2_" + indType, //item.Index + "_" + 
                                 Value = indType //item.Index + "_" + indType
                             };
-                            if (!options.Contains(option))
+                            //do not show the same time from different indexes
+                            if (options.Where(op => op.Key == option.Key).FirstOrDefault() == null)
                             {
                                 options.Add(option);
                             }
@@ -470,8 +476,8 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping != null && typeMapping.Properties != null) {
-                                foreach (var fieldMapping in typeMapping.Properties)
+                            if (typeMapping.Key != null && typeMapping.Value != null) {
+                                foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
                                     if (fieldMapping.Value != null 
                                             &&  (fieldMapping.Value.Type.Name == "text" 
@@ -616,9 +622,9 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping != null && typeMapping.Properties != null)
+                            if (typeMapping.Key != null && typeMapping.Value != null)
                             {
-                                foreach (var fieldMapping in typeMapping.Properties)
+                                foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
                                     if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name)
                                         && fieldMapping.Value.Type.Name == "keyword" //can't use text fields for terms aggregation
@@ -667,9 +673,9 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping != null && typeMapping.Properties != null)
+                            if (typeMapping.Key != null && typeMapping.Value != null)
                             {
-                                foreach (var fieldMapping in typeMapping.Properties)
+                                foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
                                     if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name) 
                                         && fieldMapping.Value.Type.Name == "date")
@@ -728,9 +734,9 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping != null && typeMapping.Properties != null)
+                            if (typeMapping.Value != null && typeMapping.Key != null)
                             {
-                                foreach (var fieldMapping in typeMapping.Properties)
+                                foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
                                     if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name)
                                         && (fieldMapping.Value.Type.Name == "double" || fieldMapping.Value.Type.Name == "float")

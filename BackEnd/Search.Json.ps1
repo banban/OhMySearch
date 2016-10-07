@@ -79,20 +79,24 @@ function LoadFolder(){
     #take files at the current level only
     $files = Get-ChildItem $RootPath -File -Force -ErrorAction SilentlyContinue | # -ErrorVariable err !do not use -ReadOnly
         Where-Object {$_.FullName.Length -le 255} | 
-        Where-Object {$_ -is [IO.FileInfo]} | select $_ -First $MaxFilesInFolder |
+        Where-Object {$_ -is [IO.FileInfo]} |
+        Where-Object {$FileExtensionsForSearch.Contains($_.Extension.ToLower()) -eq $True} |
+        Sort-Object -Property LastWriteTime -Descending | Sort-Object -Property Length -Descending |
         % {"$($_.FullName.ToLower())"}
 
     if($files.Count -gt 0){
-        $searchFolder = Get-Item "$($RootPath)\$($SearchFolderName)\" -Force -ErrorAction SilentlyContinue 
-        if ($searchFolder -eq $null){
-            $searchFolder = New-Item -ItemType directory -Path "$($RootPath)\$($SearchFolderName)\" -ErrorAction SilentlyContinue 
-            $searchFolder.Attributes = 'Hidden' #, NotContentIndexed, Compressed is ignored
+        if ($files.Count -gt $MaxFilesInFolder){
+            $files = $files | Select-Object -First $MaxFilesInFolder
         }
 
-        $searchFiles = Get-ChildItem $searchFolder -File -Force -ErrorAction SilentlyContinue | # -ErrorVariable err !do not use -ReadOnly
-            Where-Object {$_.FullName.Length -le 255} | 
-            Where-Object {$_ -is [IO.FileInfo]} |
-            % {"$($_.FullName.ToLower())"}
+        $searchFiles = $null
+        $searchFolder = Get-Item "$($RootPath)\$($SearchFolderName)\" -Force -ErrorAction SilentlyContinue 
+        if ($searchFolder -ne $null){
+            $searchFiles = Get-ChildItem $searchFolder -File -Force -ErrorAction SilentlyContinue | # -ErrorVariable err !do not use -ReadOnly
+                Where-Object {$_.FullName.Length -le 255} | 
+                Where-Object {$_ -is [IO.FileInfo]} |
+                % {"$($_.FullName.ToLower())"}
+        }
 
         if ($SearchFileNameHashed.IsPresent) {
             $fileNames = $files | %{ (split-path $_ -Leaf).ToLower().GetHashCode().ToString()}
@@ -100,16 +104,18 @@ function LoadFolder(){
         else {
             $fileNames = $files | %{ (split-path $_ -Leaf)}
         }
-    
-        #delete orphan search files
-        $searchFiles | %{ 
-            if (!$fileNames.Contains((split-path $_ -Leaf).TrimEnd(".json").TrimEnd("search").TrimEnd("."))){
-                try{
-                    $fileInfo = [IO.FileInfo]$_
-                    $fileInfo.Attributes = 'Normal' #can't delete hidden file until unhide it
-                    $fileInfo.Delete(); #orphan search file
+
+        if ($searchFiles -ne $null){
+            #delete orphan search files
+            $searchFiles | %{ 
+                if (!$fileNames.Contains((split-path $_ -Leaf).TrimEnd(".json").TrimEnd("search").TrimEnd("."))){
+                    try{
+                        $fileInfo = [IO.FileInfo]$_
+                        $fileInfo.Attributes = 'Normal' #can't delete hidden file until unhide it
+                        $fileInfo.Delete(); #orphan search file
+                    }
+                    catch{}
                 }
-                catch{}
             }
         }
 
@@ -128,17 +134,20 @@ function LoadFolder(){
             }
         }
 
-        #clean up empty folders
-        try{
-            $searchFiles = Get-ChildItem $searchFolder -Filter "*.search.json" -File -Force -ErrorAction SilentlyContinue
-            if ($searchFiles.Count -eq 0){
-                Remove-Item "$($RootPath)\$($SearchFolderName)\" -Force -Recurse | Out-Null
-                #$searchFolder = Get-Item "$($RootPath)\$($SearchFolderName)\" -Force -ErrorAction SilentlyContinue 
-                #$searchFolder.Attributes = 'Normal'
-                #$searchFolder.Delete()| Out-Null 
+        $searchFolder = Get-Item "$($RootPath)\$($SearchFolderName)\" -Force -ErrorAction SilentlyContinue 
+        if ($searchFolder -ne $null){
+            #clean up empty folders
+            try{
+                $searchFiles = Get-ChildItem $searchFolder -Filter "*.search.json" -File -Force -ErrorAction SilentlyContinue
+                if ($searchFiles.Count -eq 0){
+                    Remove-Item "$($RootPath)\$($SearchFolderName)\" -Force -Recurse | Out-Null
+                    #$searchFolder = Get-Item "$($RootPath)\$($SearchFolderName)\" -Force -ErrorAction SilentlyContinue 
+                    #$searchFolder.Attributes = 'Normal'
+                    #$searchFolder.Delete()| Out-Null 
+                }
             }
+            catch{}
         }
-        catch{}
     }
 
     #proceed with sub folders with except of $SearchFolderName
@@ -186,6 +195,12 @@ function LoadFile () {
     #exclude irrelevant folders and files
     if (($FilePathExceptions | where { $fileInfo.DirectoryName.ToLower() -like "$_"}).Count -gt 0 ) {return}
     if (($FileNameExceptions | where { $fileInfo.Name.ToLower() -like "$_"}).Count -gt 0 ) {return}
+
+    $searchFolder = Get-Item "$($fileInfo.DirectoryName)\$($SearchFolderName)\" -Force -ErrorAction SilentlyContinue 
+    if ($searchFolder -eq $null){
+        $searchFolder = New-Item -ItemType directory -Path "$($fileInfo.DirectoryName)\$($SearchFolderName)\" -ErrorAction SilentlyContinue 
+        $searchFolder.Attributes = 'Hidden' #, NotContentIndexed, Compressed is ignored
+    }
 
     if ($SearchFileNameHashed) {
         [string]$searchFilePath = "$($fileInfo.DirectoryName)\$($SearchFolderName)\$($fileInfo.Name.ToLower().GetHashCode()).search.json"
@@ -264,18 +279,18 @@ Echo $fullPath
             #1st tool - direct call stops other processes caused by protected files modal dialog
             #&$OfficeFileConverterExecPath $filePathIni | Out-Null 
             $process = $(Start-Process $OfficeFileConverterExecPath -ArgumentList "$filePathIni" -WindowStyle Hidden -PassThru) #| Wait-Process # do not wait here!!!
-            Start-Sleep -Milliseconds 2000
+            Start-Sleep -Milliseconds 5000
             if((Test-Path -LiteralPath $filePathOut) -eq $false) { 
-                Start-Sleep -Milliseconds 5000
+                Start-Sleep -Milliseconds 2000
             }
             #if 1st approach fails, use 2nd
             if((Test-Path -LiteralPath $filePathOut) -eq $false) { 
                 KillConverterProcesses(5000);
-                #2nd tool - without custom fuields :(
+                #2nd tool - without custom fields :(
                 [string]$executable = $b2xtranslatorExecPath + $extension.replace(".","")+"2x.exe"
 
                 $arguments = '"{0}" -o "{1}" -v 0' -f $filePathCopy, $filePathOut
-                Start-Process $executable -ArgumentList $arguments -WindowStyle Hidden -PassThru #| Wait-Process do not wait here!!!
+                Start-Process $executable -ArgumentList $arguments -WindowStyle Hidden -PassThru | Wait-Process #wait here!
             }
    
             if(Test-Path -LiteralPath $filePathOut) {
@@ -779,7 +794,13 @@ function CleanContent(){
     Param(
         [string]$Content
     )
+    if ($Content -eq ""){
+        return $Content
+    }
     $b=[system.text.encoding]::UTF8.GetBytes($Content) | Where {$_ -ne 0x00} #exclude nulls: http://stackoverflow.com/questions/9863455/how-to-remove-null-char-0x00-from-object-within-powershell/9870457#9870457
+    if ($b -eq $null){
+        return $Content
+    }
     $c=[system.text.encoding]::convert([text.encoding]::UTF8,[text.encoding]::ASCII,$b)
     $Content = -join [system.text.encoding]::ASCII.GetChars($c)
    

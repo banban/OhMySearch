@@ -6,17 +6,17 @@
     .\Search.Environment.ps1
 
 3. Set up dev (with daily snapshot ??)
-    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha4" -ClusterName "OhMySearch-Dev"
+    .\Search.Setup.ps1 -ESVersion "5.0.0-beta1" -ClusterName "OhMySearch-Dev"
 
 4. Configure production cluster:
     cd E:\Search
-    .\Search.Setup.ps1 -ESVersion "5.0.0-alpha4" -ClusterName "OhMySearch-Prod" -SetEnvironment `
+    .\Search.Setup.ps1 -ESVersion "5.0.0-beta1" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-<your code>.json"
 
 5. Debug locally:
-    cmd.exe /C "C:\Search\elasticsearch-5.0.0-alpha4\bin\elasticsearch.bat"
-    $ESVersion = "5.0.0-alpha4"
+    cmd.exe /C "C:\Search\elasticsearch-5.0.0-beta1\bin\elasticsearch.bat"
+    $ESVersion = "5.0.0-beta1"
 
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -44,15 +44,14 @@ function Main(){
     if ($UseSnapshot.IsPresent){#daily builds works for kibana only :(
         #DownLoadAndExtract -Url "http://download.elastic.co/elasticsearch/elasticsearch-snapshot/elasticsearch-5.0.0-snapshot.zip"
         #DownLoadAndExtract -Url "http://download.elastic.co/logstash/logstash-snapshot/logstash-5.0.0-snapshot.zip"
-        DownLoadAndExtract -Url "http://download.elastic.co/kibana/kibana-snapshot/kibana-5.0.0-snapshot-windows.zip"
+        #DownLoadAndExtract -Url "http://download.elastic.co/kibana/kibana-snapshot/kibana-5.0.0-snapshot-windows.zip"
         #DownLoadAndExtract -Url "http://download.elastic.co/beats/winlogbeat-snapshot/winlogbeat-5.0.0-snapshot-windows-64.zip"
     }
     else{ #Official release
-        DownLoadAndExtract -Url "https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/zip/elasticsearch/$($ESVersion)/elasticsearch-$($ESVersion).zip"
-        DownLoadAndExtract -Url "https://download.elastic.co/logstash/logstash/logstash-$($ESVersion).zip"
-
-        DownLoadAndExtract -Url "https://download.elastic.co/kibana/kibana/kibana-$($ESVersion)-windows.zip"
-        DownLoadAndExtract -Url "https://download.elastic.co/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-x86_64.zip"
+        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$($ESVersion).zip"
+        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/logstash/logstash-$($ESVersion).zip"
+        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/kibana/kibana-$($ESVersion)-windows-x86.zip"
+        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-$($ESVersion)-windows-x86_64.zip"
     }
     
     #configure file processors: tesseract, image, etc. Install-Module described here: http://psget.net
@@ -80,11 +79,11 @@ function Main(){
     #configure elastice settings 
     #For settings that you do not wish to store in the configuration file, you can use the value ${prompt.text} or ${prompt.secret} 
     $config = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\elasticsearch.yml" -Raw
-    $config = $config.Replace("# cluster.name: my-application", " cluster.name: $ClusterName")
+    $config = $config.Replace("#cluster.name: my-application", " cluster.name: $ClusterName")
     #Environment variables referenced with the ${...} notation within the configuration file will be replaced with the value of the environment variable, for instance:
-    $config = $config.Replace("# node.name: node-1", " node.name: `${HOSTNAME}") #$env:COMPUTERNAME
-    $config = $config.Replace("# path.data: /path/to/data", " path.data: $env:SEARCH_HOME\Data")
-    $config = $config.Replace("# path.logs: /path/to/logs", " path.logs: $env:LOG_DIR")
+    $config = $config.Replace("#node.name: node-1", " node.name: `${HOSTNAME}") #$env:COMPUTERNAME
+    $config = $config.Replace("#path.data: /path/to/data", " path.data: $env:SEARCH_HOME\Data")
+    $config = $config.Replace("#path.logs: /path/to/logs", " path.logs: $env:LOG_DIR")
 
     #default is localhost:9200, otherwise use cluster
     #command line configuration
@@ -122,11 +121,17 @@ function Main(){
     Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\elasticsearch.yml" $config
 
     #configure logging setting. 
-    $logging = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml" -Raw
-    #$logging = $logging.Replace("es.logger.level: INFO", "es.logger.level: DEBUG")
-    #For example, this will create a daily rolling deprecation log file in your log directory. Check this file regularly, especially when you intend to upgrade to a new major version.:
-    $logging = $logging.Replace("deprecation: INFO, deprecation_log_file", "deprecation: DEBUG, deprecation_log_file")
-    Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml" $logging
+    if (Test-Path "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml")
+    {
+        $logging = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml" -Raw
+        if ($logging -ne $null)
+        {
+            #$logging = $logging.Replace("es.logger.level: INFO", "es.logger.level: DEBUG")
+            #For example, this will create a daily rolling deprecation log file in your log directory. Check this file regularly, especially when you intend to upgrade to a new major version.:
+            $logging = $logging.Replace("deprecation: INFO, deprecation_log_file", "deprecation: DEBUG, deprecation_log_file")
+            Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml" $logging
+        }
+    }
 
     <#The service installer requires that the thread stack size setting be configured in jvm.options before you install the service. 
         On 32-bit Windows, you should add -Xss320k to the jvm.options file, 
@@ -154,8 +159,12 @@ function Main(){
 
     #check current versions
     cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch.bat" -V
-    cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana.bat" -V
+    cmd.exe /C "$env:SEARCH_HOME\kibana-$ESVersion-windows-x86\bin\kibana.bat" -V
     java -version
+
+    <#dotnet new
+    dotnet restore
+    dotnet run#>
     dotnet --version
 
     #configure windows services

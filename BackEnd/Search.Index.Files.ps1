@@ -5,17 +5,66 @@ Unit tests:
         powershell -ExecutionPolicy ByPass -command "C:\Search\Scripts\Search.Index.Files.ps1" -SharedFolders "\\shares\files\" -indexName "shared_v1" -aliasName "shared" -NewIndex
         powershell -executionPolicy bypass -noexit -file "C:\Search\Scripts\Search.Index.Files.ps1" -SharedFolders "\\shares\files\" -indexName "shared_v1" -aliasName "shared" -NewIndex
     PS environment call examples:
+
         .\Search.Index.Files.ps1 -SharedFolders "\\shares\files\" -indexName "files_v1" -aliasName "files" -NewIndex
         .\Search.Index.Files.ps1 -SharedFolders "\\shares\library\" -indexName "library_v1" -aliasName "library" -NewIndex
 
-        .\Search.Index.Files.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\GeoTags" -indexName "shared_v1" -aliasName "shared" -NewIndex
+    Add specific mapping
+        $indexName = "shared_v1"
+
+        $typeMapping = '{"shared_v1":{"mappings":{
+            "file":{"dynamic":"true","properties":{
+                "Author":{"type":"text","fielddata":true},
+                "LastModifiedBy":{"type":"text","fielddata":true},
+                "Manager":{"type":"text","fielddata":true},
+                "Company":{"type":"text","fielddata":true},
+                "LastPrinted":{"type":"date"},
+                "NumberOfPages":{"type":"integer"}
+            }},
+            "photo":{"dynamic":"true","properties":{
+                "Saturation":{"type":"keyword"},
+                "Flash":{"type":"keyword"},
+                "WhiteBalance":{"type":"keyword"},
+                "CaptureMode":{"type":"keyword"},
+                "ExposureMode":{"type":"keyword"},
+                "MeteringMode":{"type":"keyword"},
+                "Manufacturer":{"type":"keyword"},
+                "Sharpness":{"type":"keyword"},
+                "Contrast":{"type":"keyword"},
+                "LightSource":{"type":"keyword"},
+
+                "DigitalZoomRatio":{"type":"text","fielddata":true},
+                "Software":{"type":"text","fielddata":true},
+                "ExposureProgram":{"type":"text","fielddata":true},
+                "Model":{"type":"text","fielddata":true},
+                "Copyright":{"type":"text","fielddata":true},
+
+                "DateTaken":{"type":"date"},
+                "LastPrinted":{"type":"date"},
+
+                "ISO":{"type":"integer"},
+                "Height":{"type":"integer"},
+                "Width":{"type":"integer"},
+                "MaxApperture":{"type":"integer"},
+                "FocalLength":{"type":"integer"},
+                "FocalLength35":{"type":"integer"},
+                "FNumber":{"type":"float"}
+            }}
+         }}}'
+
+
+        .\Search.Index.Files.ps1 -SharedFolders "$([Environment]::getfolderpath("mypictures"))\GeoTags" -indexName "shared_v1" `
+            -aliasName "shared" -NewIndex -typeMapping $typeMapping
         .\Search.Index.Files.ps1 -SharedFolders "\\$(hostname)\C$\Search\_search" -indexName "shared_v1"
 
     C:\Search\logstash-5.0.0-alpha2\bin\logstash.bat -f "C:\Search\Import\AusTender\logstash-austender.conf"
 
     ES helper function call examples:
+        Import-Module -Name ".\ElasticSearch.Helper.psm1" -Force -Verbose
+        &$cat
         #test file update/add 
-        &$get "/shared/_mapping"
+        &$get "/_mapping"
+        &$get "/shared_v1/_mapping"
         &$get "/shared/file,photo/_search"
         &$get "/shared/photo/AVQZ9Boa2V9OaD-z4_3i"
         &$delete "files"
@@ -39,6 +88,8 @@ Param(
 
     [string]$indexName = "",
     [string]$aliasName = "",
+    [Parameter(HelpMessage = 'Represents manual mapping - most accurate approach')]
+    [string]$typeMapping,
     [Parameter(HelpMessage = '~20 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.')]
     [int]$batchMaxSize = 20000000,
 
@@ -71,6 +122,39 @@ function Main(){
     #&$cat
     #&$call "Get" "/_cluster/state"
 
+    if ($typeMapping -ne $null -and $typeMapping -ne ""){
+        $meatadata = ConvertFrom-Json $typeMapping
+    }
+    else{
+        #read existing index mapping metadata
+        try{
+            $meatadata = ConvertFrom-Json (&$get "$indexName/_mapping")
+        }
+        catch{}
+    }
+    
+    $fileTypeMapping = @{} #cached mapping between field name and data type
+    $photoTypeMapping = @{} #cached mapping between field name and data type
+
+    if ($meatadata -ne $null){
+        $index_mt = $meatadata.psobject.properties | Where {$_.Name -eq "$indexName"} 
+        if ($index_mt -ne $null){
+            $type_mt = $index_mt.Value.mappings.psobject.properties | Where {$_.Name -eq "file"}
+            if ($type_mt -ne $null){
+                $type_mt.Value.properties.psobject.properties | %{
+                    $fileTypeMapping.Set_Item($_.Name, $_.Value.type)
+                }
+            }
+
+            $type_mt = $index_mt.Value.mappings.psobject.properties | Where {$_.Name -eq "photo"}
+            if ($type_mt -ne $null){
+                $type_mt.Value.properties.psobject.properties | %{
+                    $photoTypeMapping.Set_Item($_.Name, $_.Value.type)
+                }
+            }
+        }
+    }
+
     #get storage status summary before index
     #ConvertFrom-Json (&$cat) | ft
     #(ConvertFrom-Json (&$cat)) | Where-Object {$_.index -EQ $indexName} | select health, status, docs.count, store.size |  fl
@@ -98,6 +182,137 @@ function Main(){
         This increases the overall cardinality of the field and contributes to more memory pressure.
         The string field datatype has been replaced by the text field for full text analyzed content, and the keyword field for not-analyzed exact string values. For backwards compatibility purposes, during the 5.x series:
         #>
+
+
+        $fileProperties = @{
+            #general properties
+            Path = @{
+                type = "keyword"
+                fields = @{
+                    Tree = @{ # Path.Tree field will contain the path hierarchy.
+                        type = "string"
+                        analyzer = "hierarchy_analyzer"
+                    }
+                }
+            }
+            Extension = @{
+                type = "keyword"
+            }
+            Content = @{
+                type = "text"
+                analyzer = "english"
+            }
+            LastModified = @{
+                type = "date"
+                format = "YYYY-MM-DD"  
+            }
+        
+            #the rest fields would be added dynamically
+
+            <#Azure ML output based on Content
+            Entities = @{
+                type = "nested"
+                properties = @{
+                    Count = @{
+                        type = "integer"
+                        index = "not_analyzed"
+                    }
+                    Mention = @{
+                        type = "string"
+                    }
+                    Type = @{
+                        type = "string"
+                    }
+                }
+            }#>
+
+        }#general properties
+        #additional properties mapping 
+        $fileTypeMapping.GetEnumerator() | %{
+            [bool]$isNewProp = $false
+            try{
+                if ($fileProperties.psobject.properties.Item($_.Key) -eq $null){
+                    $isNewProp = $true
+                }
+            }
+            catch{
+                $isNewProp = $true
+            }
+            if ($isNewProp){ #add new field mapping
+                if ($_.Value -eq "text"){
+                    $fileProperties.Add(@{
+                                    type = "$($_.Key, $_.Value)"
+                                    fielddata = $true
+                                })
+
+                    #$fileProperties | Add-Member Noteproperty $_.Key @{
+                    #    type = "$($_.Value)"
+                    #    fielddata = $true
+                    #}
+                }
+                else{
+                    $fileProperties.Add($_.Key, @{
+                                    type = "$($_.Value)"
+                                })
+                    #$fileProperties | Add-Member Noteproperty $_.Key @{
+                    #    type = "$($_.Value)"
+                    #}
+                }
+            }
+        }
+
+        $photoProperties = @{
+            #general properties
+            Path = @{
+                type = "keyword"
+        		#key = $True #obsolete notation, not supported in ES 2.0
+                #index = "not_analyzed"
+                fields = @{
+                    Tree = @{ # Path.Tree field will contain the path hierarchy.
+                        type = "string"
+                        analyzer = "hierarchy_analyzer"
+                    }
+                }
+            }
+            Extension = @{
+                type = "keyword"
+                index = "not_analyzed" #To be able to group on the whole extension
+            }
+
+            #Exif data. This field should be typed in mapping explicitly
+            GPS = @{
+                type = "geo_point"
+                geohash_prefix = "true" #tells Elasticsearch to index all geohash prefixes, up to the specified precision.
+                geohash_precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
+            }
+
+        }#general properties
+        #additional properties mapping 
+        $photoTypeMapping.GetEnumerator() | %{
+            [bool]$isNewProp = $false
+            try{
+                if ($photoProperties.psobject.properties.Item($_.Key) -eq $null){
+                    $isNewProp = $true
+                }
+            }
+            catch{
+                $isNewProp = $true
+            }
+
+            if ($isNewProp){ #add new field mapping
+                if ($_.Value -eq "text"){
+                    $photoProperties | Add-Member Noteproperty $_.Key @{
+                        type = "$($_.Value)"
+                        fielddata = $true
+                    }
+                }
+                else{
+                    $photoProperties | Add-Member Noteproperty $_.Key @{
+                        type = "$($_.Value)"
+                    }
+                }
+            }
+        }
 
         &$createIndex $indexName -obj @{
             settings = @{
@@ -140,167 +355,13 @@ function Main(){
                 file = @{
                      dynamic = $true #will additional fields dynamically.
                      date_detection = $false #avoid “malformed date” exception
-
-                     properties = @{
-                        #general properties
-                        Path = @{
-                            type = "keyword"
-                            fields = @{
-                                Tree = @{ # Path.Tree field will contain the path hierarchy.
-                                    type = "string"
-                                    analyzer = "hierarchy_analyzer"
-                                }
-                            }
-                        }
-                        Extension = @{
-                            type = "keyword"
-                        }
-                        Content = @{
-                            type = "text"
-                            analyzer = "english"
-                        }
-                        LastModified = @{
-                            type = "date"
-                            format = "YYYY-MM-DD"  
-                        }
-
-
-                        #the rest fields would be added dynamically
-
-                        <#Azure ML output based on Content
-                        Entities = @{
-                            type = "nested"
-                            properties = @{
-                                Count = @{
-                                    type = "integer"
-                                    index = "not_analyzed"
-                                }
-                                Mention = @{
-                                    type = "string"
-                                }
-                                Type = @{
-                                    type = "string"
-                                }
-                            }
-                        }#>
-
-                    } #properties
-                    } #file
+                     properties = $fileProperties
+                } #file
 
                 photo = @{
                     dynamic = $true #will additional fields dynamically.
                     date_detection = $false #avoid “malformed date” exception
-                    properties = @{
-                        #general properties
-                        Path = @{
-                            type = "keyword"
-        			        #key = $True #obsolete notation, not supported in ES 2.0
-                            #index = "not_analyzed"
-                            fields = @{
-                                Tree = @{ # Path.Tree field will contain the path hierarchy.
-                                    type = "string"
-                                    analyzer = "hierarchy_analyzer"
-                                }
-                            }
-                        }
-                        Extension = @{
-                            type = "keyword"
-                            index = "not_analyzed" #To be able to group on the whole extension
-                        }
-
-                        #Exif data. This field should be typed in mapping explicitly
-                        GPS = @{
-                            type = "geo_point"
-                            geohash_prefix = "true" #tells Elasticsearch to index all geohash prefixes, up to the specified precision.
-                            geohash_precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
-                        }
-
-                        <#the rest fields would be added dynamically
-                        LastPrinted= @{
-                            type = "keyword"
-                        }
-                        ISO= @{
-                            type = "keyword"
-                        }
-                        DateTaken= @{
-                            type = "keyword"
-                        }
-                        DigitalZoomRatio= @{
-                            type = "keyword"
-                        }
-                        Flash= @{
-                            type = "keyword"
-                        }
-                        CaptureMode= @{
-                            type = "keyword"
-                        }
-                        CharactersWithSpaces= @{
-                            type = "keyword"
-                        }
-                        ColorSpace= @{
-                            type = "keyword"
-                        }
-                        FocalLength= @{
-                            type = "keyword"
-                        }
-                        FocalLength35mm= @{
-                            type = "keyword"
-                        }
-                        Contrast= @{
-                            type = "keyword"
-                        }
-                        LightSource= @{
-                            type = "keyword"
-                        }
-                        MaxApperture= @{
-                            type = "keyword"
-                        }
-                        MeteringMode= @{
-                            type = "keyword"
-                        }
-                        MMClips= @{
-                            type = "keyword"
-                        }
-                        Sharpness= @{
-                            type = "keyword"
-                        }
-                        Slides= @{
-                            type = "keyword"
-                        }
-                        HeadingPairs= @{
-                            type = "keyword"
-                        }
-                        HiddenSlides= @{
-                            type = "keyword"
-                        }
-                        Height= @{
-                            type = "keyword"
-                        }
-                        ExposureBias= @{
-                            type = "keyword"
-                        }
-                        ExposureMode= @{
-                            type = "keyword"
-                        }
-                        ExposureProgram= @{
-                            type = "keyword"
-                        }
-                        Exposuretime= @{
-                            type = "keyword"
-                        }
-                        ScaleCrop= @{
-                            type = "keyword"
-                        }
-                        Saturation= @{
-                            type = "keyword"
-                        }
-                        WhiteBalance= @{
-                            type = "keyword"
-                        }
-                        Width= @{
-                            type = "keyword"
-                        }#>
-                    } #properties
+                    properties = $photoProperties
                 } #photo
             } #mappings
         } #obj
@@ -466,7 +527,7 @@ function LoadFile() {
             }
         }
     }
-    $typeName = "file"
+    [string]$typeName = "file"
     #add file to index and read _id ???
     if ($fileObj.Extension.ToLower() -eq ".jpg"){
         $typeName = "photo"
