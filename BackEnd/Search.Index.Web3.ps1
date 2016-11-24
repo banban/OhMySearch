@@ -4,7 +4,7 @@ Unit tests:
     cd C:\Search\Scripts
     
 Test 1. Process document:
-    .\Search.Index.Web3.ps1 -rootPath "https://intranet/bms/wiki/Forms/AllPages.aspx" -mask "acrftreg.csv" -delimeter "," -keyFieldName "Serial" -indexName "aircraft_v1" -aliasName "aircraft" -typeName "casa" -newIndex
+    .\Search.Index.Web3.ps1 -rootPath "https://intranet.novagroup.com.au/bms/wiki/Forms/AllPages.aspx" -mask "acrftreg.csv" -delimeter "," -keyFieldName "Serial" -indexName "aircraft_v1" -aliasName "aircraft" -typeName "casa" -newIndex
 
  2 records rejected
 

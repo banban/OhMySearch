@@ -7,6 +7,13 @@
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -newIndex `
         -sql_DbName "AdventureWorks2014" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]"
 
+    .\Search.Index.SQL.ps1 -indexName "datamart_v1" -aliasName "datamart" -newIndex `
+        -sql_ServerName "SVRADLDB02" -sql_DbName "Nova_Datamart" -typeName "project" -keyFieldName "ProjectNo" -sql_Query "SELECT * FROM t_ProjectsAll"
+    .\Search.Index.SQL.ps1 -indexName "datamart_v1" -aliasName "datamart" `
+        -sql_ServerName "SVRADLDB02" -sql_DbName "Nova_Datamart" -typeName "client" -keyFieldName "Id" -sql_Query "SELECT * FROM t_Clients"
+    &$get "datamart/project/711"
+
+
    100 records rejected (some unicode symbols are not accepted by standard analyzer in First or Last name). That is accepteble now. Will investegate later
     
    The same test but with explicit mapping:

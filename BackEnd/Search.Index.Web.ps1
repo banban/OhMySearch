@@ -59,6 +59,7 @@ Test API calls:
     $global:Debug = $true
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
     &$cat
+&$call "Get" "/_cluster/state"
     &$get "tender_v1/_mapping"
     &$get "tender_v1/austender"
     &$get "tender_v1/austender/_query?q=*"

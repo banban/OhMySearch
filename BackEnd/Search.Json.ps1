@@ -447,7 +447,7 @@ function ParseWordXml([string]$filePath) {
             if ($xml -ne $null) {
                 $ns = @{w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
                 $textBuilder = New-Object -TypeName "System.Text.StringBuilder"
-                Select-Xml -Xml $xml -XPath '//w:p//w:t' -Namespace $ns | Foreach {
+                Select-Xml -Xml $xml -XPath '//w:p//w:t' -Namespace $ns | Select -First 10000 | Foreach {
                     $text = $_.Node.InnerText.Trim()
                     if ($text) {
                         $textBuilder.AppendLine($text) | Out-Null
@@ -481,8 +481,8 @@ function ParseExcelXml([string]$filePath) {
         try{
             $textBuilder = New-Object -TypeName "System.Text.StringBuilder"
             $xml = [xml]$wpxls.WorkbookPart.SharedStringTablePart.SharedStringTable.OuterXml
-            if ($xml -ne $null) {
-                Select-Xml -Xml $xml -XPath '//x:sst//x:t' -Namespace $ns | Foreach {
+            if ($xml -ne $null -and $xml.sst -ne $null) {
+                Select-Xml -Xml $xml -XPath '//x:sst//x:t' -Namespace $ns | Select -First 10000 | Foreach {
                     $text = $_.Node.InnerText.Trim()
                     if ($text) {
                         $textBuilder.AppendLine($text) | Out-Null
@@ -518,7 +518,7 @@ function ParsePowerPointXml([string]$filePath) {
             $wpppt.PresentationPart.SlideParts | Foreach { $_.Slide | Foreach { 
                 $xml = [xml]$_.OuterXml
                 if ($xml -ne $null) {
-                    Select-Xml -Xml $xml -XPath '//p:cSld//a:t' -Namespace $ns | Foreach {
+                    Select-Xml -Xml $xml -XPath '//p:cSld//a:t' -Namespace $ns | Select -First 10000 | Foreach {
                         $text = $_.Node.InnerText.Trim()
                         if ($text) {
                             $textBuilder.AppendLine($text) | Out-Null

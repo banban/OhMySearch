@@ -57,7 +57,7 @@ Unit tests:
             -aliasName "shared" -NewIndex -typeMapping $typeMapping
         .\Search.Index.Files.ps1 -SharedFolders "\\$(hostname)\C$\Search\_search" -indexName "shared_v1"
 
-    C:\Search\logstash-5.0.0-alpha2\bin\logstash.bat -f "C:\Search\Import\AusTender\logstash-austender.conf"
+    C:\Search\logstash-5.0.0\bin\logstash.bat -f "C:\Search\Import\AusTender\logstash-austender.conf"
 
     ES helper function call examples:
         Import-Module -Name ".\ElasticSearch.Helper.psm1" -Force -Verbose
