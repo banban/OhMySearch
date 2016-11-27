@@ -735,13 +735,16 @@ function UpdateOfficeFileProperties($officeDoc){
     $fileProperties = Get-Variable -Name fileProperties -Valueonly  -Erroraction SilentlyContinue -Scope 2
     $names = $officeDoc.PackageProperties | Get-Member -membertype properties | % {$_.Name}
     foreach ($name in $names){
-        $value = $officeDoc.PackageProperties | Select -ExpandProperty "$name"
-        if ($value -and $value -ne "") { 
-            #Write-Host $name ":" $value
-            if (!$fileProperties.Contains($name)){
-                $fileProperties.Add($name, $value)| Out-Null
+        try{
+            $value = $officeDoc.PackageProperties | Select -ExpandProperty "$name"
+            if ($value -and $value -ne "") { 
+                #Write-Host $name ":" $value
+                if (!$fileProperties.Contains($name)){
+                    $fileProperties.Add($name, $value)| Out-Null
+                }
             }
         }
+        catch{}
     }
 
     $extProps = $officeDoc.ExtendedFilePropertiesPart.Properties | Select LocalName, InnerText | %{$_}
