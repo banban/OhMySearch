@@ -631,6 +631,9 @@ function ParsePdfText ([string]$filePath) {
         if (!$fileProperties.Contains("PDFParser")){
             $fileProperties.Add("PDFParser","Tesseract OCR")| Out-Null
         }
+        else{
+            $fileProperties["PDFParser"]="Tesseract OCR"
+        }
 
         [int]$numberOfPages = 0
         try {
@@ -714,13 +717,16 @@ function ParseJpgText ([string]$filePath) {
         $exif = Get-Exif($image)
         $names = $exif | Get-Member -membertype properties | % {$_.Name}
         foreach ($name in $names){
-            $value = $exif | Select -ExpandProperty "$name"
-            if ($value -and $value -ne "") { 
-                #Write-Host $name ":" $value
-                if (!$fileProperties.Contains($name)){
-                    $fileProperties.Add($name, $value)| Out-Null
+            try{
+                $value = $exif | Select -ExpandProperty "$name"
+                if ($value -and $value -ne "") { 
+                    #Write-Host $name ":" $value
+                    if (!$fileProperties.Contains($name)){
+                        $fileProperties.Add($name, $value)| Out-Null
+                    }
                 }
             }
+            catch{}
         }
     }
     Remove-Item $ImageMagickTempPath\* -recurse
