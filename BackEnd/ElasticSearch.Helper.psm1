@@ -48,7 +48,7 @@ $call = {
         }
     }
 
-    $response = wget -Uri "$global:ElasticUri/$params" -method $verb -Headers $headers -ContentType 'application/json' -Body $body
+    $response = Invoke-WebRequest -Uri "$global:ElasticUri/$params" -method $verb -Headers $headers -ContentType 'application/json' -Body $body
     $response.Content #  | Select StatusCode, StatusDescription, Headers, Content | Write-Output #
 }
 
@@ -139,7 +139,7 @@ $search = {
 }
 
 $cat = {
-    &$get "_cat/indices?v&pretty"
+    &$get "_cat/indices?format=json&pretty"
 }
 #get storage status summary before index
 #ConvertFrom-Json (&$cat) | out-datatable
