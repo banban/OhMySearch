@@ -17,7 +17,7 @@
                 || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2") && !Model.ChosenOptions.Contains("4_3")))
             {
                 <div class="scroll col-lg-12 col-md-12">
-                    <a class="jscroll-next" hidden href="../Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))&aggregations=@(Uri.EscapeUriString(Model.ChosenAggregations))">...</a>
+                    <a class="jscroll-next" hidden href="~/Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))&aggregations=@(Uri.EscapeUriString(Model.ChosenAggregations))">...</a>
                 </div>
             }
             else if (Model.ChosenOptions.Contains("4_2"))
@@ -66,6 +66,9 @@
                 <label class="panel-title">
                     @*@aggr.Replace(".",": ").Replace("_", " ")*@
                     @aggr.Substring(aggr.IndexOf(".")+1).Replace("_", " ")
+                    <button id="findBtn" class="btn btn-primary" type="submit">
+                        <i class="glyphicon glyphicon-search"></i>
+                    </button>
                 </label>
             </div>
             <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
@@ -129,7 +132,7 @@
                 {
                     chousenaggs = "";
                 }
-                console.log($(this).is(":checked"));
+                //console.log($(this).is(":checked"));
                 if ($(this).is(":checked")) {
                     //chosenAggs.push(agg);
                     $("#ChosenAggregations").val(chousenaggs + agg + "|");

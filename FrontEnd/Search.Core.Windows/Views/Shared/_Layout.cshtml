@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - OMS</title>
+    <title>@ViewData["Title"] - @Startup.Configuration["AppSettings:SiteTitle"]</title>
 
     <environment names="Development">
         <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
@@ -91,7 +91,7 @@
         @RenderBody()
         <hr /><br/>
         <footer>
-            <p>&copy; @DateTime.Now.Year - Andrew Butenko</p>
+            <p>&copy; @DateTime.Now.Year - @Startup.Configuration["AppSettings:Author"]</p>
         </footer>
     </div>
 
@@ -114,5 +114,9 @@
 
     <script src="~/lib/chosen/chosen.jquery.js"></script>
     @RenderSection("scripts", required: false)
+
+    @*<script type="text/javascript">
+        var baseUrl = '@Url.Content("~/")';
+    </script>*@
 </body>
 </html>

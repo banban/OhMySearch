@@ -13,6 +13,26 @@ namespace Search.Core.Windows.Models
             MoreLikeThis = new List<SearchResult>();
         }
         public string Id { get; set; }
+
+        private bool canRead = true;
+        public bool CanRead
+        {
+            get { return canRead; }
+            set
+            {
+                canRead = value;
+                if (!canRead)
+                {
+                    //instead of hiding data I use data masking
+                    this.Source = "***";
+                    this.Path = "***";
+                    this.ThumbnailPath = "***";
+                    this.Extension = "***";
+                    this.Summary = "***";
+                }
+            }
+        }
+
         public string Index { get; set; }
         public string Type { get; set; }
         public double Score { get; set; }
@@ -61,6 +81,7 @@ namespace Search.Core.Windows.Models
 
     public class SearchResults
     {
+
         public IEnumerable<SearchResult> Items { get; set; }
         public Pager Pager { get; set; }
     }

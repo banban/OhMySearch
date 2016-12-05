@@ -30,7 +30,7 @@ function findSharedImages(lat, lng) {
             var marker = new google.maps.Marker({
                 position: { lat: item.lat, lng: item.lng },
                 map: map,
-                icon: "~/images/icon46.png", //baseUrl +   http://maps.google.com/mapfiles/kml/pal4/icon46.png "http://maps.google.com/mapfiles/marker_purple.png",
+                icon: "~/images/icon46.png", //http://maps.google.com/mapfiles/kml/pal4/icon46.png "http://maps.google.com/mapfiles/marker_purple.png",
                 //shape: shape,
                 body: item.body,
                 id: item.id
@@ -178,7 +178,7 @@ $(document).ready(function () {
             //var gmarkers = [];
             geocoder = new google.maps.Geocoder();
             /*var imageFlag = {
-                url: baseUrl + 'Content/Images/star-on.png',
+                url: '~/Images/star-on.png',
                 // This marker is 20 pixels wide by 32 pixels high.
                 size: new google.maps.Size(20, 32)//,
                 // The origin for this image is (0, 0).

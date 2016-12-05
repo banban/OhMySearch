@@ -17,6 +17,9 @@
                     <div class="form-group">
                         <div class="col-lg-2">
                             <label asp-for="Path"></label>
+                        </div>
+                        <div class="col-lg-10">
+                            <a href='file:///@Model.Path.Replace("\\", "/")'>@Model.Path.Replace("/", "\\")</a>
                             @if (Model.Extension.ToLower() == "pdf")
                             {
                                 <img id="Content" src="~/images/pdf.gif" alt="Image" />
@@ -25,9 +28,6 @@
                             {
                                 <label class="@Model.Extension">@Model.Extension</label>
                             }
-                        </div>
-                        <div class="col-lg-10">
-                            <a href='file:///@Model.Path.Replace("\\", "/")'>@Model.Path.Replace("/", "\\")</a>
                         </div>
                     </div>
                     <div class="form-group">
@@ -43,11 +43,11 @@
                             <div class="col-lg-10">
                                 @if (!string.IsNullOrEmpty(Model.ThumbnailPath))
                                 {
-                                    <img id="Content" class="file-image" title="@Model.Path" src="@Model.ThumbnailPath" alt="Image" />
+                                    <img id="Content" class="file-image" title="@Model.Path.Replace("\\","/")" src="@Model.ThumbnailPath" alt="Image" />
                                 }
                                 else
                                 {
-                                    <img id="Content" class="file-image" title="@Model.Path" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
+                                    <img id="Content" class="file-image" title="@Model.Path.Replace("\\","/")" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
                                 }
                             </div>
                         </div>
@@ -56,7 +56,7 @@
                 <div class="form-group">
                     <label class="col-lg-2" asp-for="Summary"></label>
                     <div class="col-lg-10">
-                        <span>@Model.Summary</span>
+                        <span class="small">@Model.Summary</span>
                     </div>
                 </div>
             </div>
@@ -68,10 +68,17 @@
                     {
                         <li class="search-item">
                             @*<a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." ></a>*@
-                            Index: @item.Index; Type: @item.Type; Id: @item.Id;
-                            <label class="@item.Extension">@item.Extension</label>
-                            @if (!string.IsNullOrEmpty(item.Path))
+                            Index: @item.Index; Type: @item.Type;
+                            @if (!string.IsNullOrEmpty(item.Path) && item.CanRead)
                             {
+                                @if (item.Extension.ToLower() == "pdf")
+                                {
+                                    <img id="Content" src="~/images/pdf.gif" alt="Image" />
+                                }
+                                else
+                                {
+                                    <label class="@item.Extension">@item.Extension</label>
+                                }
                                 <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
                             }
                             <br /><span class="small">@Html.Raw(item.Summary)</span>

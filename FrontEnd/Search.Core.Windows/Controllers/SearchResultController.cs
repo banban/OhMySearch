@@ -7,6 +7,7 @@ using Search.Core.Windows.Models;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 // For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -32,57 +33,62 @@ namespace Search.Core.Windows.Controllers
             Models.SearchResult searchResult = new Models.SearchResult()
             {
                 Id = result.Id,
+                CanRead = true,
                 Index = result.Index,
                 Type = result.Type,
                 Summary = result.Source.ToString()
             };
-
-            if (result.Type == "file" || result.Type == "photo")
+            if (searchResult.Type == "file" || searchResult.Type == "photo")
             {
-                try
+                searchResult.Path = (string)result.Source["Path"];
+                searchResult.CanRead = QueryController.UserHasAccess(User.Identity.Name, searchResult.Path.Substring(0, searchResult.Path.LastIndexOf('/')));
+                if (searchResult.CanRead)
                 {
-                    searchResult.Path = (string)result.Source["Path"];
-                    searchResult.Extension = (string)result.Source["Extension"];
-                    DateTime lm = new DateTime();
-                    if (DateTime.TryParse((string)result.Source["LastModified"], out lm))
+                    try
                     {
-                        searchResult.LastModified = lm.ToLocalTime(); //convert from UTC
-                    }
-                }
-                catch (Exception)
-                {
-                }
-
-                if (System.IO.File.Exists(searchResult.Path) && result.Type == "photo")
-                {
-                    string imageMagicHome = Environment.GetEnvironmentVariable("MAGICK_HOME");
-                    if (!string.IsNullOrEmpty(imageMagicHome))
-                    {
-                        System.IO.FileInfo fi = new System.IO.FileInfo(searchResult.Path);
-                        var localThumbnailPath = Path.Combine(_hostingEnvironment.WebRootPath, "temp", fi.Name.Replace(fi.Extension, ".png"));
-                        var p = Process.Start(Path.Combine(imageMagicHome, "magick.exe"), string.Format("\"{0}\" -resize 300x300 \"{1}\"", fi.FullName, localThumbnailPath));
-                        searchResult.ThumbnailPath = "temp/" + fi.Name.Replace(fi.Extension, ".png");
-                        p.WaitForExit(1000);
-                    }
-                    else {
-                        using (Stream str = System.IO.File.OpenRead(searchResult.Path))
+                        searchResult.Extension = (string)result.Source["Extension"];
+                        DateTime lm = new DateTime();
+                        if (DateTime.TryParse((string)result.Source["LastModified"], out lm))
                         {
-                            using (MemoryStream data = new MemoryStream())
-                            {
-                                str.CopyTo(data);
-                                data.Seek(0, SeekOrigin.Begin);
-                                byte[] buf = new byte[data.Length];
-                                data.Read(buf, 0, buf.Length);
-                                searchResult.Content = buf;
-                            }
+                            searchResult.LastModified = lm.ToLocalTime(); //convert from UTC
                         }
                     }
+                    catch (Exception)
+                    {
+                    }
 
-                    ///SystemDrawing is NotFound implemented in Core 1 RC2 yet :(
-                    //Image image = Image.FromFile(imagePath, false);
-                    //Image thumb = image.GetThumbnailImage(100, 100, () => false, IntPtr.Zero);
-                    //thumb.Save(localPath, System.Drawing.Imaging.ImageFormat.Png);
-                    //thumb.Dispose();
+                    if (System.IO.File.Exists(searchResult.Path) && result.Type == "photo")
+                    {
+                        string imageMagicHome = Environment.GetEnvironmentVariable("MAGICK_HOME");
+                        if (!string.IsNullOrEmpty(imageMagicHome))
+                        {
+                            System.IO.FileInfo fi = new System.IO.FileInfo(searchResult.Path);
+                            var localThumbnailPath = Path.Combine(_hostingEnvironment.WebRootPath, "temp", fi.Name.Replace(fi.Extension, ".png"));
+                            var p = Process.Start(Path.Combine(imageMagicHome, "magick.exe"), string.Format("\"{0}\" -resize 300x300 \"{1}\"", fi.FullName, localThumbnailPath));
+                            searchResult.ThumbnailPath = "temp/" + fi.Name.Replace(fi.Extension, ".png");
+                            p.WaitForExit(1000);
+                        }
+                        else
+                        {
+                            using (Stream str = System.IO.File.OpenRead(searchResult.Path))
+                            {
+                                using (MemoryStream data = new MemoryStream())
+                                {
+                                    str.CopyTo(data);
+                                    data.Seek(0, SeekOrigin.Begin);
+                                    byte[] buf = new byte[data.Length];
+                                    data.Read(buf, 0, buf.Length);
+                                    searchResult.Content = buf;
+                                }
+                            }
+                        }
+
+                        ///SystemDrawing is NotFound implemented in Core 1 RC2 yet :(
+                        //Image image = Image.FromFile(imagePath, false);
+                        //Image thumb = image.GetThumbnailImage(100, 100, () => false, IntPtr.Zero);
+                        //thumb.Save(localPath, System.Drawing.Imaging.ImageFormat.Png);
+                        //thumb.Dispose();
+                    }
                 }
             }
 
@@ -95,8 +101,7 @@ namespace Search.Core.Windows.Controllers
             };
 
             var mltResults = await QueryController.GetSearchResponse(mltQuery);
-            
-            searchResult.MoreLikeThis = QueryController.GetSearchResults(mltResults, mltQuery.QueryTerm)
+            searchResult.MoreLikeThis = QueryController.GetSearchResults(User.Identity.Name, mltResults, mltQuery.QueryTerm)
                 .Where(sr => sr.Id != _id)
                 .Take(5);
             //foreach (var item in searchResult.MoreLikeThis)

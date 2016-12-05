@@ -10,6 +10,8 @@ using Nest;
 //using Elasticsearch.Net;
 using Newtonsoft.Json.Linq;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
 
 /// <summary>
 /// How to Build a Search Page with Elasticsearch and .NET https://www.simple-talk.com/dotnet/development/how-to-build-a-search-page-with-elasticsearch-and-.net/
@@ -20,9 +22,21 @@ namespace Search.Core.Windows.Controllers
 {
     public class QueryController : Controller
     {
+        //private IMemoryCache _memoryCache;
         private static IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions() { CompactOnMemoryPressure = true });
-        public QueryController()
+        private readonly IHostingEnvironment _hostingEnvironment;
+        private readonly ILogger<QueryController> _logger;
+
+        //public QueryController() //IMemoryCache memoryCache
+        //{
+        //}
+        public QueryController(IHostingEnvironment hostingEnvironment, ILogger<QueryController> logger) //IMemoryCache memoryCache),
         {
+            //_memoryCache = memoryCache;
+            _logger = logger;
+            _hostingEnvironment = hostingEnvironment;
+            //    _logger.LogInformation("Environment.GetEnvironmentVariable:ElasticUri: " + Environment.GetEnvironmentVariable("ElasticUri"));
+            //_logger.LogInformation("Startup.GetElasticSearchUrl(): " + Startup.GetElasticSearchUrl());
         }
 
         private static readonly ElasticClient _elclient = CreateClient(); // = new Nest.ElasticClient(new Nest.ConnectionSettings(new Uri(Startup.GetElasticSearchUrl())));
@@ -88,7 +102,10 @@ namespace Search.Core.Windows.Controllers
                 page = 1;
             }
 
+            //_logger.LogInformation(string.Format("GetQueryOptions. Startup.GetElasticSearchUrl(): {0}", Startup.GetElasticSearchUrl()));
+            //_logger.LogInformation(string.Format("GetQueryOptions. Startup.GetACLUrl(): {0}", Startup.GetACLUrl()));
             query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
+            //_logger.LogInformation(string.Format("query.QueryOptions.Count {0}", query.QueryOptions.Count));
 
             var response = await GetSearchResponse(query); //use extra call to get total
             //query.ScrollId = response.ScrollId;
@@ -105,7 +122,8 @@ namespace Search.Core.Windows.Controllers
             {
                 sr.Pager = new Models.Pager(query.Total, page, query.Size.Value);
             }
-            sr.Items = GetSearchResults(response, query.QueryTerm);
+
+            sr.Items = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
             query.SearchResults = sr;
 
             foreach (var aggr in response.Aggs.Aggregations)
@@ -132,10 +150,10 @@ namespace Search.Core.Windows.Controllers
                     query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = (bucket.From.HasValue ? bucket.From.ToString(): "0") + " - " + (bucket.To.HasValue ? bucket.To.ToString() : "..."), Count = bucket.DocCount });
                 }
             }
-
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
+            //ViewBag.WebRootPath = _hostingEnvironment.WebRootPath;
             return View(query);
         }
 
@@ -190,7 +208,8 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
-            var results = GetSearchResults(response, query.QueryTerm);
+            //ViewBag.WebRootPath = _hostingEnvironment.WebRootPath;
+            var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
             return PartialView(results);
         }
 
@@ -476,7 +495,8 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping.Key != null && typeMapping.Value != null) {
+                            if (typeMapping.Key != null && typeMapping.Value != null && typeMapping.Value.Properties != null)
+                            {
                                 foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
                                     if (fieldMapping.Value != null 
@@ -622,7 +642,7 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping.Key != null && typeMapping.Value != null)
+                            if (typeMapping.Key != null && typeMapping.Value != null && typeMapping.Value.Properties != null)
                             {
                                 foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
@@ -673,7 +693,7 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping.Key != null && typeMapping.Value != null)
+                            if (typeMapping.Key != null && typeMapping.Value != null && typeMapping.Value.Properties != null)
                             {
                                 foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
@@ -734,7 +754,7 @@ namespace Search.Core.Windows.Controllers
                     {
                         foreach (var typeMapping in index.Value)
                         {
-                            if (typeMapping.Value != null && typeMapping.Key != null)
+                            if (typeMapping.Key != null && typeMapping.Value != null && typeMapping.Value.Properties != null)
                             {
                                 foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
@@ -938,7 +958,7 @@ namespace Search.Core.Windows.Controllers
                 ChosenOptions = options
             };
             var response = await GetSearchResponse(query);
-            var results = GetSearchResults(response, query.QueryTerm);
+            var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
             JArray json = JArray.FromObject(results);
             return json;
         }
@@ -967,12 +987,19 @@ namespace Search.Core.Windows.Controllers
             };
             var response = await GetSearchResponse(query);
             //query.ScrollId = response.ScrollId;
-            var results = GetSearchResults(response, query.QueryTerm);
+            var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
             JArray json = JArray.FromObject(results);
             return json;
         }
 
-        public static List<Models.SearchResult> GetSearchResults(Nest.ISearchResponse<dynamic> nestResults, string queryTerm)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <param name="nestResults"></param>
+        /// <param name="queryTerm"></param>
+        /// <returns></returns>
+        public static List<Models.SearchResult> GetSearchResults(string userName, Nest.ISearchResponse<dynamic> nestResults, string queryTerm)
         {
             var results = new List<Models.SearchResult>();
             foreach (var hit in nestResults.Hits)
@@ -994,23 +1021,85 @@ namespace Search.Core.Windows.Controllers
                         summary = summary.ToLower().Replace(queryTerm.ToLower(), "<em>" + queryTerm + "</em>");
                     }
                 }
-
-                results.Add(new Models.SearchResult()
+                Models.SearchResult result = new Models.SearchResult()
                 {
                     Id = hit.Id,
+                    CanRead = true,
                     Index = hit.Index,
                     Score = hit.Score,
                     Source = hit.Source.ToString(),
                     Type = hit.Type,
-                    Path = (string)hit.Source["Path"],
+                    /// File path is represented as Elastic hierarchy type with notation: c:\Temp -> c:/Temp. 
+                    /// So we use / as folder separator
+                    Path = (string)hit.Source["Path"], 
                     //LastModified = (DateTime)hit.Source["LastModified"],
-                    Extension = ((hit.Type=="file" || hit.Type == "photo") ? ((string)hit.Source["Extension"]) : ""),
+                    Extension = ((hit.Type == "file" || hit.Type == "photo") ? ((string)hit.Source["Extension"]) : ""),
                     Summary = summary
-                });
+                };
+                
+                if ((result.Type == "file" || result.Type == "photo") && result.Path.Contains("/"))
+                {
+                    result.CanRead = UserHasAccess(userName, result.Path.Substring(0, result.Path.LastIndexOf('/')));
+                }
+                results.Add(result);
 
                 //var myAgg = nestResults.Aggs.Terms("my_agg");
             }
             return results;
+        }
+
+
+        /// <summary>
+        /// Deligate security check to another web service specific for the domain.
+        /// I use AD domain ACL check, but it could be any system
+        /// </summary>
+        /// <param name="upn">User principal name</param>
+        /// <param name="path">path to file</param>
+        /// <returns></returns>
+        public static bool UserHasAccess(string upn, string path)
+        {
+            string key = string.Format("UserHasAccess:{0}_{1}", upn, path.Replace("/","\\")); //convert hierarchy notation c:/ to path c:\
+            bool hasAccess = false;
+            if (!_memoryCache.TryGetValue(key, out hasAccess))
+            {
+                // fetch the value from ACL web service
+                string url = Startup.GetACLUrl();
+                Uri uri = new Uri(url);
+                if (string.IsNullOrEmpty(url)) //which means ACL service is not available in current environment
+                {
+                    return true; //ignore ACL security
+                }
+                else
+                {
+                    //ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;//not supported by ASP.Net Core
+                    using (var handler = new HttpClientHandler { UseDefaultCredentials = true })
+                    using (var client = new HttpClient(handler))
+                    {
+                        client.BaseAddress = new Uri(url.Substring(0, url.IndexOf(uri.LocalPath)));
+                        client.DefaultRequestHeaders.Accept.Clear();
+                        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        var result = client.PostAsync(string.Format(url.Substring(url.IndexOf(uri.LocalPath)), upn, path), null).Result;
+                        if (result.IsSuccessStatusCode)
+                        {
+                            string responseBody = result.Content.ReadAsStringAsync().Result;
+                            //hasAccess = (responseBody.Contains("\\\"CanRead\\\":true"));
+                            var responseJson = JsonConvert.DeserializeObject<dynamic>(responseBody);
+                            var responseObj = JValue.Parse(responseJson);
+                            hasAccess = (bool)responseObj["CanRead"];
+                        }
+                        else //ACL service is configured but not available
+                        {
+                            hasAccess = false;
+                            //throw;
+                        }
+                    }
+                }
+
+                // store in the cache
+                _memoryCache.Set(key, hasAccess, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromDays(1)));
+            }
+            //else retrieved from cache
+            return hasAccess;
         }
 
         //private static List<Models.SearchResult> GetQueryAggregations(Nest.ISearchResponse<dynamic> nestResults)

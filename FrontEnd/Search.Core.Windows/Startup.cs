@@ -65,6 +65,9 @@ namespace Search.Core.Windows
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
+            loggerFactory.AddFile("Logs/OMS-{Date}.txt");
+            
+            var _logger = loggerFactory.CreateLogger("Config"); _logger.LogInformation(string.Format("EnvironmentName: {0}, IsProduction: {1}, ContentRootPath: {2}", env.EnvironmentName, env.IsProduction(), env.ContentRootPath));
 
             if (env.IsDevelopment())
             {
@@ -86,13 +89,26 @@ namespace Search.Core.Windows
             });
 
         }
+        public static string GetACLUrl()
+        {
+            string result = Configuration["Data:ACL:Url"];
+            if (string.IsNullOrEmpty(result)) //check environment variable
+            {
+                result = Environment.GetEnvironmentVariable("Search_ACLUrl");
+            }
+            if (result == null)
+            {
+                result = "";
+            }
+            return result.TrimEnd('/');
+        }
 
         public static string GetElasticSearchUrl()
         {
-            string result = result = Configuration["Data:ElasticSearch:Url"];
-            if (string.IsNullOrEmpty(result))
+            string result = Configuration["Data:ElasticSearch:Url"];
+            if (string.IsNullOrEmpty(result)) //check environment variable
             {
-                result = Environment.GetEnvironmentVariable("ElasticUri");
+                result = Environment.GetEnvironmentVariable("ElasticUri"); 
             }
             if (result == null)
             {
@@ -108,7 +124,7 @@ namespace Search.Core.Windows
         public static string GetGoogleMapKey()
         {
             string result = Configuration["Data:Google:MapApiKey"];
-            if (string.IsNullOrEmpty(result))
+            if (string.IsNullOrEmpty(result)) //check environment variable
             {
                 result = Environment.GetEnvironmentVariable("Google_MapApiKey");
             }
@@ -119,12 +135,12 @@ namespace Search.Core.Windows
         public static KeyValuePair<string, string> GetElasticCredencials()
         {
             string user = Configuration["Data:Elastic:User"];
-            if (string.IsNullOrEmpty(user))
+            if (string.IsNullOrEmpty(user))//check environment variable
             {
                 user = Environment.GetEnvironmentVariable("ElasticUser");
             }
             string password = Configuration["Data:Elastic:Password"];
-            if (string.IsNullOrEmpty(password))
+            if (string.IsNullOrEmpty(password))//check environment variable
             {
                 password = Environment.GetEnvironmentVariable("ElasticPassword");
             }

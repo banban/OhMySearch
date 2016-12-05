@@ -3,10 +3,14 @@
 @if (Model != null)
 {
     <ul id="ulllist" class="list-unstyled">
+        <i>Model count: @Model.Count()</i>
         @foreach (var item in Model)
         {
             <li class="search-item">
-                <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
+                @if (item.CanRead)
+                {
+                    <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
+                }
                 Index: @item.Index; Type: @item.Type; Score: @item.Score;
                 @if (item.Extension.ToLower() == "pdf")
                 {
@@ -16,13 +20,13 @@
                 {
                     <label class="@item.Extension">@item.Extension</label>
                 }
-                @if (!string.IsNullOrEmpty(item.Path))
+                @if (!string.IsNullOrEmpty(item.Path) && item.CanRead)
                 {
                     <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
                 }
                 <br /><span class="small">@Html.Raw(item.Summary)</span>
             </li>
         }
-        <li><a class="jscroll-next" hidden href="../Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))&aggregations=@(Uri.EscapeUriString(ViewBag.ChosenAggregations))">End of page...</a></li>
+        <li><a class="jscroll-next" hidden href="~/Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))&aggregations=@(Uri.EscapeUriString(ViewBag.ChosenAggregations))">End of page...</a></li>
     </ul>
 }
