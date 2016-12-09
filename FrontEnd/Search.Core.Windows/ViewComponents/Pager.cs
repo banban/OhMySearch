@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Search.Core.Windows.Controllers;
 using Search.Core.Windows.Models;
 using System;
 using System.Collections.Generic;
@@ -9,6 +13,15 @@ namespace Search.Core.Windows.ViewComponents
 {
     public class Pager : ViewComponent
     {
+        private static IMemoryCache _memoryCache;
+        private readonly ILogger _logger;
+
+        public Pager(ILogger logger = null, IMemoryCache memoryCache = null)
+        {
+            _memoryCache = memoryCache;
+            _logger = logger;
+        }
+
         public async Task<IViewComponentResult> InvokeAsync(Models.Query query)
         {
             if (query == null)
@@ -30,7 +43,8 @@ namespace Search.Core.Windows.ViewComponents
             }
             if (query.QueryOptions.Count() == 0)
             {
-                query.QueryOptions = await Controllers.QueryController.GetQueryOptions(query.ChosenOptions);
+                var qc = new QueryController(_logger, _memoryCache);
+                query.QueryOptions = await qc.GetQueryOptions(query.ChosenOptions);
             }
 
             return View(query);

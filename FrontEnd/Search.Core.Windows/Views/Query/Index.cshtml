@@ -16,6 +16,7 @@
             @if (Model.ChosenOptions.Contains("4_1")
                 || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2") && !Model.ChosenOptions.Contains("4_3")))
             {
+
                 <div class="scroll col-lg-12 col-md-12">
                     <a class="jscroll-next" hidden href="~/Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))&aggregations=@(Uri.EscapeUriString(Model.ChosenAggregations))">...</a>
                 </div>
@@ -57,18 +58,14 @@
             </div>
         </div>
     </div>*@
-
+    <i class="small">applied filter: @Model.ChosenAggregations</i>
     @foreach (var aggr in Model.GetAggregations())
     {
         <div class="panel panel-info">
             <div class="panel-heading">
                 @*<a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")"></a>*@
                 <label class="panel-title">
-                    @*@aggr.Replace(".",": ").Replace("_", " ")*@
                     @aggr.Substring(aggr.IndexOf(".")+1).Replace("_", " ")
-                    <button id="findBtn" class="btn btn-primary" type="submit">
-                        <i class="glyphicon glyphicon-search"></i>
-                    </button>
                 </label>
             </div>
             <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
@@ -92,7 +89,7 @@
 
 @section Scripts {
     <script src="~/lib/jquery.jscroll/jquery.jscroll.min.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=@(Startup.GetGoogleMapKey())&language=en" type="text/javascript"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(Environment.GetEnvironmentVariable("Google_MapApiKey"))&language=en" type="text/javascript"></script>
     <script src="~/js/GoogleMap.js"></script>
     <script type="text/javascript">
         $.ajaxSetup({ cache: false }); //disable modal dialog caching
@@ -123,7 +120,7 @@
             //    return this;
             //};
             //var chosenAggs = [];
-
+            
             $('input.aggregate-filter').click(function () {
                 var agg = $(this).prop('value');
                 //console.log(agg);
@@ -141,7 +138,7 @@
                     $("#ChosenAggregations").val(chousenaggs.replace(agg + "|", ""));
                     //chosenAggs.remove(agg);
                 }
-                //console.log($("#ChosenAggregations").val());
+                console.log($("#ChosenAggregations").val());
             });
 
             //$(function () {

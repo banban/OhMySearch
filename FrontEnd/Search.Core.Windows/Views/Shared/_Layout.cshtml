@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=Edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - @Startup.Configuration["AppSettings:SiteTitle"]</title>
-
+    <link rel="icon" href="~/images/search-icon.png" />
     <environment names="Development">
         <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
         <link rel="stylesheet" href="~/css/site.css" />
@@ -91,7 +91,7 @@
         @RenderBody()
         <hr /><br/>
         <footer>
-            <p>&copy; @DateTime.Now.Year - @Startup.Configuration["AppSettings:Author"]</p>
+            <p>&copy; @DateTime.Now.Year - @Environment.GetEnvironmentVariable("Author")</p>
         </footer>
     </div>
 

@@ -243,3 +243,6 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/FrontEnd/Search.Core.Windows/appsettings.Staging.json
+/FrontEnd/Search.Core.Windows/appsettings.Production.json
+/FrontEnd/Search.Core.Windows/Logs

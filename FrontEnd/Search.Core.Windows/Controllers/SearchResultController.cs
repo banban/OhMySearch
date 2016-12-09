@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 
 // For more information on enabling MVC for empty projects, visit http://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -15,11 +16,20 @@ namespace Search.Core.Windows.Controllers
 {
     public class SearchResultController : Controller
     {
+        private static IMemoryCache _memoryCache;
         private readonly IHostingEnvironment _hostingEnvironment;
+        private readonly ILogger _logger;
 
-        public SearchResultController(IHostingEnvironment hostingEnvironment)
+        public SearchResultController(ILogger logger = null, IMemoryCache memoryCache = null) //, IHostingEnvironment hostingEnvironment = null
         {
-            _hostingEnvironment = hostingEnvironment;
+            _logger = logger;
+            //if (_logger == null)
+            //{
+            //    _logger = loggerFactory.CreateLogger("Config");
+            //    _logger.LogInformation(string.Format("EnvironmentName: {0}, IsProduction: {1}, ContentRootPath: {2}", env.EnvironmentName, env.IsProduction(), env.ContentRootPath));
+            //}
+            _memoryCache = memoryCache;
+            //_hostingEnvironment = hostingEnvironment;
         }
         // GET: /<controller>/
         public IActionResult Index()
@@ -29,7 +39,8 @@ namespace Search.Core.Windows.Controllers
 
         public async Task<ActionResult> Details(string _index, string _type, string _id)
         {
-            var result = await QueryController.GetDocument(_index, _type, _id);
+            var qc = new Controllers.QueryController(_logger, _memoryCache);
+            var result = await qc.GetDocument(_index, _type, _id);
             Models.SearchResult searchResult = new Models.SearchResult()
             {
                 Id = result.Id,
@@ -40,10 +51,11 @@ namespace Search.Core.Windows.Controllers
             };
             if (searchResult.Type == "file" || searchResult.Type == "photo")
             {
-                searchResult.Path = (string)result.Source["Path"];
-                searchResult.CanRead = QueryController.UserHasAccess(User.Identity.Name, searchResult.Path.Substring(0, searchResult.Path.LastIndexOf('/')));
+                searchResult.Path = ((string)result.Source["Path"]);
+                searchResult.CanRead = QueryHelper.UserHasAccess(User.Identity.Name, searchResult.Path.Substring(0, searchResult.Path.LastIndexOf('/')), _memoryCache);
                 if (searchResult.CanRead)
                 {
+                    //searchResult.Path = searchResult.Path.Replace("/", "\\");
                     try
                     {
                         searchResult.Extension = (string)result.Source["Extension"];
@@ -60,15 +72,23 @@ namespace Search.Core.Windows.Controllers
                     if (System.IO.File.Exists(searchResult.Path) && result.Type == "photo")
                     {
                         string imageMagicHome = Environment.GetEnvironmentVariable("MAGICK_HOME");
-                        if (!string.IsNullOrEmpty(imageMagicHome))
+                        if (!string.IsNullOrEmpty(imageMagicHome) && System.IO.Directory.Exists(imageMagicHome))
                         {
                             System.IO.FileInfo fi = new System.IO.FileInfo(searchResult.Path);
-                            var localThumbnailPath = Path.Combine(_hostingEnvironment.WebRootPath, "temp", fi.Name.Replace(fi.Extension, ".png"));
-                            var p = Process.Start(Path.Combine(imageMagicHome, "magick.exe"), string.Format("\"{0}\" -resize 300x300 \"{1}\"", fi.FullName, localThumbnailPath));
-                            searchResult.ThumbnailPath = "temp/" + fi.Name.Replace(fi.Extension, ".png");
-                            p.WaitForExit(1000);
+                            string localname = fi.FullName.GetHashCode() +  ".png";
+                            var localPath = Path.Combine(Environment.GetEnvironmentVariable("WebRootPathTemp"), localname);
+                            //var localPath = Path.Combine(_hostingEnvironment.WebRootPath, "temp", localname);
+                            searchResult.ThumbnailPath = "temp/" + localname;
+                            if (!System.IO.File.Exists(localPath))
+                            {
+                                ProcessStartInfo psi = new ProcessStartInfo(Path.Combine(imageMagicHome, "magick.exe"), string.Format("\"{0}\" -resize 300x300 \"{1}\"", fi.FullName, localPath));
+                                psi.WorkingDirectory = imageMagicHome;
+                                //psi.UseShellExecute = true;
+                                var p = Process.Start(psi);
+                                p.WaitForExit(2000); //needs 2 sec delay before rendering that page
+                            }
                         }
-                        else
+                        else //slow !!!
                         {
                             using (Stream str = System.IO.File.OpenRead(searchResult.Path))
                             {
@@ -82,7 +102,7 @@ namespace Search.Core.Windows.Controllers
                                 }
                             }
                         }
-
+                        
                         ///SystemDrawing is NotFound implemented in Core 1 RC2 yet :(
                         //Image image = Image.FromFile(imagePath, false);
                         //Image thumb = image.GetThumbnailImage(100, 100, () => false, IntPtr.Zero);
@@ -99,9 +119,8 @@ namespace Search.Core.Windows.Controllers
                 Size = 10,
                 ChosenOptions = "1_" + _index + "+2_" + _type + "+3_6+"
             };
-
-            var mltResults = await QueryController.GetSearchResponse(mltQuery);
-            searchResult.MoreLikeThis = QueryController.GetSearchResults(User.Identity.Name, mltResults, mltQuery.QueryTerm)
+            var mltResults = await qc.GetSearchResponse(mltQuery);
+            searchResult.MoreLikeThis = qc.GetSearchResults(User.Identity.Name, mltResults, mltQuery.QueryTerm)
                 .Where(sr => sr.Id != _id)
                 .Take(5);
             //foreach (var item in searchResult.MoreLikeThis)

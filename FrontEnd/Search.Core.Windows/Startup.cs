@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.IO;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Search.Core.Windows
 {
@@ -18,7 +19,8 @@ namespace Search.Core.Windows
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                //.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                //.AddInMemoryCollection(settings)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
 
@@ -48,6 +50,47 @@ namespace Search.Core.Windows
                 {
                 }
             }
+
+            Environment.SetEnvironmentVariable("Author", Configuration["AppSettings:Author"]);
+            Environment.SetEnvironmentVariable("WebRootPathTemp", tempDir);
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ElasticUri"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("ElasticUri", Configuration["Data:ElasticSearch:Url"]?.TrimEnd('/'));
+            }
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ElasticUri"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("ElasticUri", "");
+            }
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ElasticUri"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("ElasticUri", "http://localhost:9200");
+            }
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Google_MapApiKey"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("Google_MapApiKey", Configuration["Data:Google:MapApiKey"]);
+            }
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MAGICK_HOME"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("MAGICK_HOME", Configuration["Data:ImageMagic:HomePath"]);
+            }
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ACLUrl"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("ACLUrl", Configuration["Data:ACL:Url"]?.TrimEnd('/'));
+            }
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ElasticUser"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("ElasticUser", Configuration["Data:Elastic:User"]);
+            }
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ElasticPassword"))) //check environment variable
+            {
+                Environment.SetEnvironmentVariable("ElasticPassword", Configuration["Data:Elastic:Password"]);
+            }
+
         }
 
         public static IConfigurationRoot Configuration { get; set; }
@@ -61,8 +104,10 @@ namespace Search.Core.Windows
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory) //, IMemoryCache memoryCache
         {
+            //memoryCache = new MemoryCache(new MemoryCacheOptions() { CompactOnMemoryPressure = true });
+
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
             loggerFactory.AddFile("Logs/OMS-{Date}.txt");
@@ -89,64 +134,5 @@ namespace Search.Core.Windows
             });
 
         }
-        public static string GetACLUrl()
-        {
-            string result = Configuration["Data:ACL:Url"];
-            if (string.IsNullOrEmpty(result)) //check environment variable
-            {
-                result = Environment.GetEnvironmentVariable("Search_ACLUrl");
-            }
-            if (result == null)
-            {
-                result = "";
-            }
-            return result.TrimEnd('/');
-        }
-
-        public static string GetElasticSearchUrl()
-        {
-            string result = Configuration["Data:ElasticSearch:Url"];
-            if (string.IsNullOrEmpty(result)) //check environment variable
-            {
-                result = Environment.GetEnvironmentVariable("ElasticUri"); 
-            }
-            if (result == null)
-            {
-                result = "";
-            }
-            if (string.IsNullOrEmpty(result))
-            {
-                result = "http://localhost:9200";
-            }
-            return result.TrimEnd('/');
-        }
-
-        public static string GetGoogleMapKey()
-        {
-            string result = Configuration["Data:Google:MapApiKey"];
-            if (string.IsNullOrEmpty(result)) //check environment variable
-            {
-                result = Environment.GetEnvironmentVariable("Google_MapApiKey");
-            }
-
-            return result;
-        }
-
-        public static KeyValuePair<string, string> GetElasticCredencials()
-        {
-            string user = Configuration["Data:Elastic:User"];
-            if (string.IsNullOrEmpty(user))//check environment variable
-            {
-                user = Environment.GetEnvironmentVariable("ElasticUser");
-            }
-            string password = Configuration["Data:Elastic:Password"];
-            if (string.IsNullOrEmpty(password))//check environment variable
-            {
-                password = Environment.GetEnvironmentVariable("ElasticPassword");
-            }
-            KeyValuePair<string, string> result = new KeyValuePair<string, string>(user, password);
-            return result;
-        }
-
     }
 }

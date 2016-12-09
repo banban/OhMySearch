@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Search.Core.Windows.Models;
 using System;
 using System.Collections.Generic;
@@ -9,6 +12,16 @@ namespace Search.Core.Windows.ViewComponents
 {
     public class QueryOptions : ViewComponent
     {
+        private static IMemoryCache _memoryCache;// = new MemoryCache(new MemoryCacheOptions() { CompactOnMemoryPressure = true });
+        private readonly ILogger _logger;
+        public QueryOptions(ILogger logger = null, IMemoryCache memoryCache = null)
+        {
+            _logger = logger;
+            //    _logger.LogInformation("Environment.GetEnvironmentVariable:ElasticUri: " + Environment.GetEnvironmentVariable("ElasticUri"));
+            //_logger.LogInformation("Startup.GetElasticSearchUrl(): " + Startup.GetElasticSearchUrl());
+            _memoryCache = memoryCache;
+        }
+
         public async Task<IViewComponentResult> InvokeAsync(Models.Query query)
         {
             if (query == null)
@@ -37,7 +50,8 @@ namespace Search.Core.Windows.ViewComponents
             }
             if (query.QueryOptions.Count() == 0)
             {
-                query.QueryOptions = await Controllers.QueryController.GetQueryOptions(query.ChosenOptions);
+                var qc = new Controllers.QueryController(_logger, _memoryCache);
+                query.QueryOptions = await qc.GetQueryOptions(query.ChosenOptions);
             }
 
             return View(query);

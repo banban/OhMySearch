@@ -23,24 +23,32 @@ namespace Search.Core.Windows.Controllers
     public class QueryController : Controller
     {
         //private IMemoryCache _memoryCache;
-        private static IMemoryCache _memoryCache = new MemoryCache(new MemoryCacheOptions() { CompactOnMemoryPressure = true });
-        private readonly IHostingEnvironment _hostingEnvironment;
-        private readonly ILogger<QueryController> _logger;
+        private IMemoryCache _memoryCache;// = new MemoryCache(new MemoryCacheOptions() { CompactOnMemoryPressure = true });
+        private readonly ILogger _logger;
+        private readonly ElasticClient _elclient = null; //CreateClient(); // = new Nest.ElasticClient(new Nest.ConnectionSettings(new Uri(Startup.GetElasticSearchUrl())));
 
         //public QueryController() //IMemoryCache memoryCache
         //{
         //}
-        public QueryController(IHostingEnvironment hostingEnvironment, ILogger<QueryController> logger) //IMemoryCache memoryCache),
+        public QueryController(ILogger logger = null, IMemoryCache memoryCache = null)
         {
-            //_memoryCache = memoryCache;
             _logger = logger;
-            _hostingEnvironment = hostingEnvironment;
-            //    _logger.LogInformation("Environment.GetEnvironmentVariable:ElasticUri: " + Environment.GetEnvironmentVariable("ElasticUri"));
-            //_logger.LogInformation("Startup.GetElasticSearchUrl(): " + Startup.GetElasticSearchUrl());
+            if (_logger == null)
+            {
+            }
+                //    _logger.LogInformation("Environment.GetEnvironmentVariable:ElasticUri: " + Environment.GetEnvironmentVariable("ElasticUri"));
+                //_logger.LogInformation("Startup.GetElasticSearchUrl(): " + Startup.GetElasticSearchUrl());
+
+            _memoryCache = memoryCache;
+            if (memoryCache == null)
+            {
+                _memoryCache = new MemoryCache(new MemoryCacheOptions() { CompactOnMemoryPressure = true });
+            }
+
+            _elclient = CreateClient();
         }
 
-        private static readonly ElasticClient _elclient = CreateClient(); // = new Nest.ElasticClient(new Nest.ConnectionSettings(new Uri(Startup.GetElasticSearchUrl())));
-        public static ElasticClient CreateClient(int maxRetries = 3, int timeoutInMilliseconds = 1000)
+        public ElasticClient CreateClient(int maxRetries = 3, int timeoutInMilliseconds = 1000)
         {
             ElasticClient elclient = null;
             if (!_memoryCache.TryGetValue("queryClient", out elclient))
@@ -49,14 +57,14 @@ namespace Search.Core.Windows.Controllers
                 //    new List<Uri> { new Uri(Startup.GetElasticSearchUrl()) }
                 //    );
                 //ConnectionSettings config = new ConnectionSettings(pool);
-                ConnectionSettings config = new Nest.ConnectionSettings(new Uri(Startup.GetElasticSearchUrl()))
+                ConnectionSettings config = new Nest.ConnectionSettings(new Uri(Environment.GetEnvironmentVariable("ElasticUri")))
                     .MaximumRetries(maxRetries)
                     .MaxRetryTimeout(new TimeSpan(0, 0, 0, timeoutInMilliseconds));
 
                 //if x-pack is installed
-                if (!string.IsNullOrEmpty(Startup.GetElasticCredencials().Key))
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ElasticUser")))
                 {
-                    config.BasicAuthentication(Startup.GetElasticCredencials().Key, Startup.GetElasticCredencials().Value);
+                    config.BasicAuthentication(Environment.GetEnvironmentVariable("ElasticUser"), Environment.GetEnvironmentVariable("ElasticPassword"));
                 }
                 elclient = new ElasticClient(config);
                 _memoryCache.Set("queryClient", elclient, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
@@ -153,7 +161,6 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
-            //ViewBag.WebRootPath = _hostingEnvironment.WebRootPath;
             return View(query);
         }
 
@@ -173,7 +180,8 @@ namespace Search.Core.Windows.Controllers
             {
                 query.ChosenAggregations = Request.Query["aggregations"];
             }
-            
+
+
             if (query.QueryOptions.Count() == 0)
             {
                 query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
@@ -181,6 +189,7 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
+
             return RedirectToAction("Index", new { term = query.QueryTerm, options = query.ChosenOptions, aggregations = query.ChosenAggregations, from = query.From, size = query.Size });
         }
 
@@ -202,18 +211,24 @@ namespace Search.Core.Windows.Controllers
 
             var response = await GetSearchResponse(query);
             if (query.From > response.Total)
+            {
                 return View(new EmptyResult());
+            }
+
+            if (query.Total == 0)
+            {
+                query.Total = response.Total;
+            }
             //query.ScrollId = response.ScrollId;
             ViewBag.From = query.From + query.Size;
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
-            //ViewBag.WebRootPath = _hostingEnvironment.WebRootPath;
             var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
             return PartialView(results);
         }
 
-        public static async Task<List<Models.QueryOption>> GetQueryOptions(string chosenOptions)
+        public async Task<List<Models.QueryOption>> GetQueryOptions(string chosenOptions)
         {
             var options = new List<Models.QueryOption>();
             if (!_memoryCache.TryGetValue("queryOptions", out options))
@@ -238,7 +253,7 @@ namespace Search.Core.Windows.Controllers
                 //var response = _elclient.IndicesGetMapping("_all", "_all");
                 //var mappings = await _elclient.GetMappingAsync(new GetMappingRequest() { IgnoreUnavailable = true });
 
-                var _mappings = await CURL("GET", "_mapping", null);
+                var _mappings = await QueryHelper.CURL("GET", "_mapping", null);
                 Dictionary<string, List<string>> indexTypes = new Dictionary<string, List<string>>();
                 foreach (var _index in _mappings)
                 {
@@ -266,13 +281,13 @@ namespace Search.Core.Windows.Controllers
                 //var mapping = _elclient.GetMapping(new GetMappingRequest(Nest.Indices.AllIndices, Nest.Types.AllTypes) { IgnoreUnavailable = true });
                 foreach (var item in indexes)
                 {
+                    var alias = _elclient.GetAliasesPointingToIndex(item.Index).FirstOrDefault();
                     //var mapping = _elclient.GetMapping<item>();
                     options.Add(new Models.QueryOption()
                     {
                         OptionGroup = "Indices",
                         Key = "1_" + item.Index,
-                        Value = (item.Index.Contains("_") ? item.Index.Split('_')[0] : item.Index)
-                            + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs)"
+                        Value = (alias == null ? item.Index : alias.Name) + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs)"
                         //+ (string.IsNullOrEmpty(item.StoreSize) ? "0" : item.StoreSize) + " bites)"
                     });
 
@@ -346,33 +361,21 @@ namespace Search.Core.Windows.Controllers
             return options;
         }
 
-        public static async Task<Nest.IGetResponse<dynamic>> GetDocument(string index, string type, string id)
+        public async Task<Nest.IGetResponse<dynamic>> GetDocument(string index, string type, string id)
         {
             //var _id = await CURL("GET", index + "/" + type + "/" + id, null);
             var result = await _elclient.GetAsync<dynamic>(new DocumentPath<dynamic>(id).Index(index).Type(type));
-            //var searchResult new Models.SearchResult()
-            //{
-            //    Id = hit.Id,
-            //    Index = hit.Index,
-            //    Score = hit.Score,
-            //    Source = hit.Source.ToString(),
-            //    Type = hit.Type,
-            //    Path = (string)hit.Source["Path"],
-            //    Extension = (hit.Type == "file" ? ((string)hit.Source["Extension"]).ToUpper().TrimStart('.') : "")
-            //    //Hihglights = hit.Highlights.Select(hl => new { Key = hl.Key, Value = hl.Value.ToString() })
-            //})
-            
             return result;
         }
 
-        public static async Task<Nest.ISearchResponse<dynamic>> GetSearchResponse(Models.Query query)
+        public async Task<Nest.ISearchResponse<dynamic>> GetSearchResponse(Models.Query query)
         {
             //indices to search
             Nest.Indices indices = null;
             string keyIndexType = "";
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("1_"))
             {
-                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable()
+                var names = query.ChosenOptions.Replace("+"," ").Trim().Split(' ').AsEnumerable()
                     .Where(qo => qo.StartsWith("1_"))
                     .Select(qo => qo.Substring(2).Trim());
                 indices = Nest.Indices.Index(names.Select(s => new Nest.IndexName() { Name = s }));
@@ -390,7 +393,7 @@ namespace Search.Core.Windows.Controllers
             Nest.Types types = null;
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("2_"))
             {
-                var names = query.ChosenOptions.Trim('+').Split('+').AsEnumerable()
+                var names = query.ChosenOptions.Replace("+", " ").Trim().Split(' ').AsEnumerable()
                     .Where(qo => qo.StartsWith("2_"))
                     .Select(qo => qo.Substring(2).Trim());
                 types = Nest.Types.Type(names.Select(s => new Nest.TypeName() { Name = s }));
@@ -569,8 +572,8 @@ namespace Search.Core.Windows.Controllers
             };
             //check if query has aggregation filters
             if (!string.IsNullOrEmpty(query.ChosenAggregations)) //mask: "Group1.Field1.Value1|Group1.Field2.Value2|Group2.Field3.Value3|"
-            {   
-                var filters = query.ChosenAggregations.Split('|').Where(s => !string.IsNullOrEmpty(s))
+            {
+                var filters = query.ChosenAggregations.Trim('|').Split('|').Where(s => !string.IsNullOrEmpty(s))
                    .Select(s => new { Group = s.Substring(0,s.IndexOf('.')).Trim()
                                         , KeyValue = s.Substring(s.IndexOf('.')+1).Trim() } )
                    .Select(s => new { Group = s.Group
@@ -581,6 +584,8 @@ namespace Search.Core.Windows.Controllers
                 foreach (var group in groups)
                 {
                     var groupFilters = filters.Where(qo => qo.Group == group);
+                    var groupQuery = new QueryContainer();
+                    List<NumericRangeQuery> numGroupQueries = new List<NumericRangeQuery>();
                     foreach (var item in filters)
                     {
                         //NEST v5 introduces operator overloading so complex bool queries become easier to write
@@ -593,7 +598,8 @@ namespace Search.Core.Windows.Controllers
                                     Field = item.Field,
                                     Value = item.Value
                                 };
-                                elRequest.Query = elRequest.Query && termQuery;
+                                groupQuery = groupQuery || termQuery; //inside the group we use OR
+                                //elRequest.Query = elRequest.Query && termQuery;
                                 break;
                             //case "Stats":
                             //    break;
@@ -604,7 +610,8 @@ namespace Search.Core.Windows.Controllers
                                     GreaterThanOrEqualTo = start,
                                     LessThan = start.AddMonths(1)
                                 };
-                                elRequest.Query = elRequest.Query && dateRangeQuery;
+                                groupQuery = groupQuery || dateRangeQuery;  //inside the group we use OR
+                                //elRequest.Query = elRequest.Query && dateRangeQuery;
                                 break;
                             case "Top ranges": //0 - 100 or 200 - ...
                                 var numRangeQuery = +new Nest.NumericRangeQuery()
@@ -613,19 +620,18 @@ namespace Search.Core.Windows.Controllers
                                     GreaterThanOrEqualTo = double.Parse(item.Value.Split('-')[0].Trim()),
                                     LessThanOrEqualTo = ((item.Value.Split('-')[1].Trim() != "...") ? double.Parse(item.Value.Split('-')[1].Trim()) : double.MaxValue)
                                 };
-                                elRequest.Query = elRequest.Query && numRangeQuery;
+                                groupQuery = groupQuery || numRangeQuery;  //inside the group we use OR
+                                //elRequest.Query = elRequest.Query && numRangeQuery;
                                 break;
                             default:
                                 break;
                         }
-
                     }
+                    
+                    elRequest.Query = elRequest.Query && groupQuery; ///outside ogf group we use AND
                 }
-                //fagg.Filter = QueryContainer();
-
-                //elRequest.FilterPath
             }
-            //Aggregations https://www.elastic.co/guide/en/elasticsearch/client/net-api/master/aggregations.html
+            ///Aggregations https://www.elastic.co/guide/en/elasticsearch/client/net-api/master/aggregations.html
             var aggregations = new Dictionary<string, IAggregationContainer>();
 
             #region Terms aggregation
@@ -999,7 +1005,7 @@ namespace Search.Core.Windows.Controllers
         /// <param name="nestResults"></param>
         /// <param name="queryTerm"></param>
         /// <returns></returns>
-        public static List<Models.SearchResult> GetSearchResults(string userName, Nest.ISearchResponse<dynamic> nestResults, string queryTerm)
+        public List<Models.SearchResult> GetSearchResults(string userName, Nest.ISearchResponse<dynamic> nestResults, string queryTerm)
         {
             var results = new List<Models.SearchResult>();
             foreach (var hit in nestResults.Hits)
@@ -1039,7 +1045,7 @@ namespace Search.Core.Windows.Controllers
                 
                 if ((result.Type == "file" || result.Type == "photo") && result.Path.Contains("/"))
                 {
-                    result.CanRead = UserHasAccess(userName, result.Path.Substring(0, result.Path.LastIndexOf('/')));
+                    result.CanRead = QueryHelper.UserHasAccess(userName, result.Path.Substring(0, result.Path.LastIndexOf('/')), _memoryCache);
                 }
                 results.Add(result);
 
@@ -1049,131 +1055,5 @@ namespace Search.Core.Windows.Controllers
         }
 
 
-        /// <summary>
-        /// Deligate security check to another web service specific for the domain.
-        /// I use AD domain ACL check, but it could be any system
-        /// </summary>
-        /// <param name="upn">User principal name</param>
-        /// <param name="path">path to file</param>
-        /// <returns></returns>
-        public static bool UserHasAccess(string upn, string path)
-        {
-            string key = string.Format("UserHasAccess:{0}_{1}", upn, path.Replace("/","\\")); //convert hierarchy notation c:/ to path c:\
-            bool hasAccess = false;
-            if (!_memoryCache.TryGetValue(key, out hasAccess))
-            {
-                // fetch the value from ACL web service
-                string url = Startup.GetACLUrl();
-                Uri uri = new Uri(url);
-                if (string.IsNullOrEmpty(url)) //which means ACL service is not available in current environment
-                {
-                    return true; //ignore ACL security
-                }
-                else
-                {
-                    //ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;//not supported by ASP.Net Core
-                    using (var handler = new HttpClientHandler { UseDefaultCredentials = true })
-                    using (var client = new HttpClient(handler))
-                    {
-                        client.BaseAddress = new Uri(url.Substring(0, url.IndexOf(uri.LocalPath)));
-                        client.DefaultRequestHeaders.Accept.Clear();
-                        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        var result = client.PostAsync(string.Format(url.Substring(url.IndexOf(uri.LocalPath)), upn, path), null).Result;
-                        if (result.IsSuccessStatusCode)
-                        {
-                            string responseBody = result.Content.ReadAsStringAsync().Result;
-                            //hasAccess = (responseBody.Contains("\\\"CanRead\\\":true"));
-                            var responseJson = JsonConvert.DeserializeObject<dynamic>(responseBody);
-                            var responseObj = JValue.Parse(responseJson);
-                            hasAccess = (bool)responseObj["CanRead"];
-                        }
-                        else //ACL service is configured but not available
-                        {
-                            hasAccess = false;
-                            //throw;
-                        }
-                    }
-                }
-
-                // store in the cache
-                _memoryCache.Set(key, hasAccess, new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromDays(1)));
-            }
-            //else retrieved from cache
-            return hasAccess;
-        }
-
-        //private static List<Models.SearchResult> GetQueryAggregations(Nest.ISearchResponse<dynamic> nestResults)
-        //{
-        //    var myAgg = nestResults.Aggs.Terms("my_agg");
-        //    //var results = new Dictionary<string, string>();
-        //    //foreach (var agg in NestResults.Aggregations)
-        //    //{
-        //    //    results.Add(agg.Key, agg.Value.Meta);
-        //    //}
-        //    //return results;
-        //}
-
-        /// <summary>
-        /// simple helper for direct access to any REST APIs
-        /// var result = await CURL("GET", "/_all/_search?q="+query.QueryTerm, null);
-        /// </summary>
-        /// <param name="action"></param>
-        /// <param name="url"></param>
-        /// <param name="body"></param>
-        /// <returns></returns>
-        private static async Task<JObject> CURL(string action, string url, string body)
-        {
-
-            string responseBody = string.Empty;
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri(Startup.GetElasticSearchUrl());
-                Uri uri = new Uri(client.BaseAddress + url.TrimStart('/'));
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                StringContent queryString = null;
-
-                //if x-pack is installed
-                string cred = Startup.GetElasticCredencials().Key + ":" + Startup.GetElasticCredencials().Value;
-                if (cred != ":")
-                {
-                    var credentials = System.Text.Encoding.ASCII.GetBytes("elastic:changeme"); 
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(credentials));
-                }
-
-                if (!string.IsNullOrEmpty(body))
-                {
-                    queryString = new StringContent(body);
-                }
-                HttpResponseMessage response = null;
-                if (action == "POST")
-                {
-                    response = await client.PostAsync(uri, queryString);
-                }
-                else if (action == "GET")
-                {
-                    response = await client.GetAsync(uri);
-                }
-                else if (action == "PUT")
-                {
-                    response = await client.PutAsync(uri, queryString);
-                }
-                else if (action == "DELETE")
-                {
-                    response = await client.DeleteAsync(uri);
-                }
-                //response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                //response.EnsureSuccessStatusCode();
-                if (response.IsSuccessStatusCode)
-                {
-                    responseBody = await response.Content.ReadAsStringAsync();
-                    //DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(Response));
-                }
-            }
-            var resultObj = JsonConvert.DeserializeObject<dynamic>(responseBody);
-            //JsonNodes resultObj = JsonConvert.DeserializeObject<JsonNodes>(responseBody);
-            //var resultObj = JObject.Parse(responseBody);
-            return resultObj;
-        }
     }
 }

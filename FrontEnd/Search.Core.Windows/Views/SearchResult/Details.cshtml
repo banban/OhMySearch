@@ -43,7 +43,7 @@
                             <div class="col-lg-10">
                                 @if (!string.IsNullOrEmpty(Model.ThumbnailPath))
                                 {
-                                    <img id="Content" class="file-image" title="@Model.Path.Replace("\\","/")" src="@Model.ThumbnailPath" alt="Image" />
+                                    <img id="Content" class="file-image" title="@Model.Path.Replace("\\","/")" src="~/@Model.ThumbnailPath" alt="Image" />
                                 }
                                 else
                                 {

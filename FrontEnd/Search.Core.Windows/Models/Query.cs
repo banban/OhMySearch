@@ -42,11 +42,81 @@ namespace Search.Core.Windows.Models
             {
                 return myChosenAggregations;
             }
-            set
+            set 
             {
                 if (value == null)
                     value = string.Empty;
-                myChosenAggregations = value;
+
+                if (value == "|")
+                    value = string.Empty;
+
+                ///mask: "Group1.Field1.Value1|Group1.Field2.Value2|Group2.Field3.Value3|..."
+                var arr = value.Replace("||","|").Trim('|').Split('|');
+                if (arr.Length > 1)
+                {
+                    for (int i = arr.Length - 1; i >= 0; i--) //from left to right, i.g. from bottom to top
+                    {
+                        if (!string.IsNullOrEmpty(arr[i]))
+                        {
+                            var childGroup = arr[i].Substring(0, arr[i].IndexOf('.')).Trim();
+                            var childFieldRange = arr[i].Substring(arr[i].IndexOf('.') + 1).Trim();
+                            var childField = childFieldRange.Substring(0, childFieldRange.IndexOf('.')).Trim();
+                            var childRange = childFieldRange.Substring(childFieldRange.IndexOf('.') + 1).Trim();
+
+                            if (childGroup == "Top ranges")
+                            {
+                                var childGreaterThanOrEqualTo = double.Parse(childRange.Split('-')[0].Trim());
+                                var childLessThanOrEqualTo = ((childRange.Split('-')[1].Trim() != "...") ? double.Parse(childRange.Split('-')[1].Trim()) : double.MaxValue);
+                                ///We need to exclude parent ranges influencing on current range
+                                ///For example, ChosenAggregations="Top ranges.budget.7000002 - 14000001|Top ranges.budget.8540001 - 8980000|Top ranges.budget.8980001 - 9420000|"
+                                ///, which means hierarchy like this: wide range 1 > narrow range1 > narrower range2, narrower range3
+                                ///Top ranges.budget.7000002 - 14000001
+                                ///     Top ranges.budget.8540001 - 8980000
+                                ///     Top ranges.budget.8980001 - 9420000
+                                ///So, we can ignore parent range 7000002 - 14000001 as a filter, as far as children have more specific scope
+                                for (int j = i - 1; j >= 0; j--)
+                                {
+                                    var parentGroup = arr[j].Substring(0, arr[j].IndexOf('.')).Trim();
+                                    var parentFieldRange = arr[j].Substring(arr[j].IndexOf('.') + 1).Trim();
+                                    var parentField = parentFieldRange.Substring(0, parentFieldRange.IndexOf('.')).Trim();
+                                    var parentRange = parentFieldRange.Substring(parentFieldRange.IndexOf('.') + 1).Trim();
+                                    var parentGreaterThanOrEqualTo = double.Parse(parentRange.Split('-')[0].Trim());
+                                    var parentLessThanOrEqualTo = ((parentRange.Split('-')[1].Trim() != "...") ? double.Parse(parentRange.Split('-')[1].Trim()) : double.MaxValue);
+                                    ///Check if parent range (left) overlaps with current one (right), e.g. 7000002 < 8540001 and 8540001 < 14000001
+                                    if (childGroup == parentGroup && childField == parentField 
+                                        && (
+                                                (parentGreaterThanOrEqualTo <= childGreaterThanOrEqualTo && childGreaterThanOrEqualTo <= parentLessThanOrEqualTo)
+                                                || (parentGreaterThanOrEqualTo <= childLessThanOrEqualTo && childLessThanOrEqualTo <= parentLessThanOrEqualTo)
+
+                                                || (childGreaterThanOrEqualTo <= parentGreaterThanOrEqualTo && parentGreaterThanOrEqualTo <= childLessThanOrEqualTo)
+                                                || (childGreaterThanOrEqualTo <= parentLessThanOrEqualTo && parentLessThanOrEqualTo <= childLessThanOrEqualTo)
+                                            )
+                                        )
+                                    {
+                                        //inherit left border from parent
+                                        if (childGreaterThanOrEqualTo < parentGreaterThanOrEqualTo)
+                                        {
+                                            childGreaterThanOrEqualTo = parentGreaterThanOrEqualTo;
+                                        }
+
+                                        //inherit right border from parent
+                                        if (childLessThanOrEqualTo > parentLessThanOrEqualTo)
+                                        {
+                                            childLessThanOrEqualTo = parentLessThanOrEqualTo;
+                                        }
+
+                                        //remove overlapping parent
+                                        value = value.Replace(arr[j], "");
+                                    }
+                                }
+                                //update child, if applicable
+                                value = value.Replace(arr[i], childGroup + "." + childField + "." + childGreaterThanOrEqualTo.ToString() + " - " + (childLessThanOrEqualTo == double.MaxValue ? "..." : childLessThanOrEqualTo.ToString()));
+                            }
+                        }
+                    }
+                }
+
+                myChosenAggregations = value.Replace("||", "|").TrimStart('|');
             }
         }
 
@@ -60,7 +130,11 @@ namespace Search.Core.Windows.Models
             set {
                 if (value == null)
                     value = string.Empty;
-                myChosenOptions = value;
+
+                if (!value.Contains("5_")) //check if Aggregation is used
+                    this.ChosenAggregations = string.Empty;
+
+                myChosenOptions = value;//.Replace("+"," ");
             }
         }
 
