@@ -365,11 +365,6 @@ function Main(){
                 } #photo
             } #mappings
         } #obj
-
-        if ($aliasName -ne ""){
-            &$put "$indexName/_alias/$aliasName"
-        }
-
     }
 
     <#if ($DeleteAllDocuments.IsPresent){
@@ -401,6 +396,11 @@ function Main(){
         $global:BulkBody = ""
     }
 
+    if ($NewIndex.IsPresent){
+        if ($aliasName -ne ""){
+            &$put "$indexName/_alias/$aliasName"
+        }
+    }
     Echo "$(Get-Date) End session." #Write-Host
 }
 
