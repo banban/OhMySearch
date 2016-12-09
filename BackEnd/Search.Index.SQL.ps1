@@ -183,7 +183,7 @@ in which case it will update that parameter across all fields with the same name
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] 
 Param(
     #[Parameter(Mandatory=$true, Position = 0, ValueFromRemainingArguments=$true , HelpMessage = 'Target server')]
-    [string]$sql_ServerName = ".\EXPRESS2014",
+    [string]$sql_ServerName = ".\DEV2016",
     [string]$sql_DbName,
     [string]$sql_Query,
 
@@ -522,6 +522,7 @@ function Get-ElasticMappingByDataType
     { 
         'sqlgeography' {@{
                 type = "geo_point"
+                ignore_malformed = "true"
                 #geohash_prefix = "true" #tells Elasticsearch to index all geohash prefixes, up to the specified precision.
                 #geohash_precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
             }}

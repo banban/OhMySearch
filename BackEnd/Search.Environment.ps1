@@ -22,6 +22,9 @@ if (!(Test-IsAdmin)){
     throw "Please run this script with admin priviliges" 
 }
 
+#after upgrading Java you need to define home folder explicitly, for example:
+#[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Java\jre1.8.0_111", "User")
+
 #persistent for current user profile
 [Environment]::SetEnvironmentVariable("ElasticUri", "http://$($env:computername):9200", "User")
 #$env:ElasticUri
@@ -35,7 +38,6 @@ if (!(Test-IsAdmin)){
 
 
 #3rd party apps settings:
-
 [Environment]::SetEnvironmentVariable("TESSERACT_HOME", "C:\Search\tesseract", "User") 
 #Please make sure the TESSDATA_PREFIX environment variable is set to the parent directory of your "tessdata" directory.
 [Environment]::SetEnvironmentVariable("TESSDATA_PREFIX", "C:\Search\tesseract", "User") 
