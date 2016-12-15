@@ -214,8 +214,7 @@ function Main(){
                         }
                     }
 
-                    &$put "$($indexName)/_mapping/$($typeName)?update_all_types" -obj @{
-                        dynamic = $true #will create new fields dynamically.
+                    &$put "$($indexName)/_mapping/$($typeName)" -obj @{
                         date_detection = $true #avoid “malformed date” exception
                         properties = $mappingProperties
                     }

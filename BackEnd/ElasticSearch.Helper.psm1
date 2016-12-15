@@ -65,17 +65,17 @@ $delete = {
 #&$delete /shared_v1/file,photo/_query?q=* #https://www.elastic.co/guide/en/elasticsearch/plugins/2.0/delete-by-query-usage.html
 
 $put = {
-    param($params, $body, $obj)
-    if($obj) {
-        $body = ConvertTo-Json -Depth 10 $obj -Compress
+        param($params, $body, $obj)
+        if($obj) {
+            $body = ConvertTo-Json -Depth 10 $obj
+        }
+        &$call "Put" $params $body
     }
-    &$call "Put" $params $body
-}
 
 $post = {
     param($params,  $body, $obj)
     if($obj) {
-        $body = ConvertTo-Json -Depth 10 $obj -Compress
+        $body = ConvertTo-Json -Depth 10 $obj
     }
     &$call "Post" $params $body
 }
@@ -85,7 +85,7 @@ $add = {
     if($obj) {
         $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
-    &$post "$index/$type" $body
+    &$put "$index/$type" $body
 }
 
 $search = {
@@ -104,7 +104,7 @@ $update = {
     if($obj) {
         $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
-    &$post "$index/$type/$id/_update" $body
+    &$put "$index/$type/$id/_update" $body
 }
 
 #But I preffer replace instead of update
@@ -113,7 +113,7 @@ $replace = {
     if($obj) {
         $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
-    &$post "$index/$type/$id" $body
+    &$put "$index/$type/$id" $body
 }
 
 $createIndex = {
@@ -121,7 +121,7 @@ $createIndex = {
     if($obj) {
         $body = ConvertTo-Json -Depth 10 $obj -Compress
     }
-    &$post $index $body
+    &$put $index $body
 }
 
 $mapping = {

@@ -397,9 +397,6 @@ function Main(){
                 }
             }
 
-            if ($aliasName -ne $null -and $aliasName -ne ""){
-                &$put "$indexName/_alias/$aliasName"
-            }
         } #1st record
 
         #&$get "_cluster/health?wait_for_status=yellow"
@@ -510,7 +507,12 @@ function Main(){
         $BulkBody = ""
     }
 
-    Start-Sleep 1
+    if ($NewIndex.IsPresent){
+        if ($aliasName -ne $null -and $aliasName -ne ""){
+            &$put "$indexName/_alias/$aliasName"
+        }
+    }
+    #Start-Sleep 1
     #Write-Event "$(Get-Date) End session 'Search.Index.SQL'."
 }
 
