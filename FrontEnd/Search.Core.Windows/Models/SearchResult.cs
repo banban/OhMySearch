@@ -35,7 +35,7 @@ namespace Search.Core.Windows.Models
 
         public string Index { get; set; }
         public string Type { get; set; }
-        public double Score { get; set; }
+        public double? Score { get; set; }
         public string Source { get; set; }
 
         public string Path { get; set; }

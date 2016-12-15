@@ -7,7 +7,7 @@
       "version": "1.0.0-preview2-final",
       "type": "build"
     },
-    "NEST": "5.0.0-rc1",
+    "NEST": "5.0.0-rc4",
     "Newtonsoft.Json": "9.0.1",
     "BundlerMinifier.Core": "2.2.306",
     "Microsoft.Extensions.Caching.Memory": "1.1.0",

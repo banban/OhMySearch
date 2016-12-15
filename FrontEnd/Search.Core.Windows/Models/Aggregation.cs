@@ -9,7 +9,7 @@ namespace Search.Core.Windows.Models
     {
         public string Group { get; set; }
         public string Key { get; set; }
-        public long Count { get; set; }
+        public long? Count { get; set; }
         //public bool? Selected { get; set; }
     }
 }

@@ -43,48 +43,50 @@
     </div>
 </div>
 
-
-<div id="accordion" class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
-    @*<div class="panel panel-info">
-        <div class="panel-heading">
-            <h4 class="panel-title">
-               Level of confidence
-            </h4>
-        </div>
-        <div id="collapse_LevelofConfidence" class="panel-collapse collapse in">
-            <div class="panel-body">
-                <output for="fader" id="confidencelbl" class="text-center">50%</output>
-                <input type="range" min="0" max="100" value="50" id="confidence" orient="vertical" step="10" oninput="outputUpdate(value)" />
-            </div>
-        </div>
-    </div>*@
-    <i class="small">applied filter: @Model.ChosenAggregations</i>
-    @foreach (var aggr in Model.GetAggregations())
-    {
-        <div class="panel panel-info">
+@if (Model.GetAggregations().Count() > 0)
+{
+    <div id="accordion" class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
+        @*<div class="panel panel-info">
             <div class="panel-heading">
-                @*<a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")"></a>*@
-                <label class="panel-title">
-                    @aggr.Substring(aggr.IndexOf(".")+1).Replace("_", " ")
-                </label>
+                <h4 class="panel-title">
+                   Level of confidence
+                </h4>
             </div>
-            <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
+            <div id="collapse_LevelofConfidence" class="panel-collapse collapse in">
                 <div class="panel-body">
-                    <ul class="list-unstyled">
-                        @foreach (var item in Model.GetAggregations(aggr))
-                        {
-                            string key = aggr + "." + item.Key;
-                            <li>
-                                @*<label class="small"><input type="radio" name="@aggr" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked" : "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>*@
-                                <label class="small"><input type="checkbox" name="checkbox" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked": "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>
-                            </li>
-                        }
-                    </ul>
+                    <output for="fader" id="confidencelbl" class="text-center">50%</output>
+                    <input type="range" min="0" max="100" value="50" id="confidence" orient="vertical" step="10" oninput="outputUpdate(value)" />
                 </div>
             </div>
-        </div>
-    }
-</div>
+        </div>*@
+        <i class="small">applied filter: @Model.ChosenAggregations</i>
+        @foreach (var aggr in Model.GetAggregations())
+        {
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    @*<a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")"></a>*@
+                    <label class="panel-title">
+                        @aggr.Substring(aggr.IndexOf(".")+1).Replace("_", " ")
+                    </label>
+                </div>
+                <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
+                    <div class="panel-body">
+                        <ul class="list-unstyled">
+                            @foreach (var item in Model.GetAggregations(aggr))
+                            {
+                                string key = aggr + "." + item.Key;
+                                <li>
+                                    @*<label class="small"><input type="radio" name="@aggr" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked" : "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>*@
+                                    <label class="small"><input type="checkbox" name="checkbox" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked": "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
 </div>
 
 @section Scripts {
@@ -100,6 +102,20 @@
         }
 
         $(document).ready(function () {
+            //$('#QueryTerm').on("input propertychange paste", function () {
+            //    if ($("#ChosenOptions").val().indexOf("3_1") !== -1 && $("#QueryTerm").val().match(/.*=.*/g)) {
+            //        var select = $('#SuggestOptions');
+            //        $.getJSON('Query/Suggest/?queryTerm=' + $('#QueryTerm').val(), function (data) {
+            //            $("#QueryTerm").autocomplete({
+            //                source: data
+            //            });
+            //        });
+            //    }
+            //    else {
+            //        $('#QueryTerm').autocomplete('disable');
+            //    }
+            //});
+
             $('.scroll').jscroll({
                 //autoTriggerUntil: 3,
                 //padding: 20,
@@ -138,7 +154,7 @@
                     $("#ChosenAggregations").val(chousenaggs.replace(agg + "|", ""));
                     //chosenAggs.remove(agg);
                 }
-                console.log($("#ChosenAggregations").val());
+                //console.log($("#ChosenAggregations").val());
             });
 
             //$(function () {

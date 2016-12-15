@@ -1,6 +1,6 @@
 ﻿// Write your Javascript code.
 function AddFilter(filter, value) {
-    $("#QueryTerm").val("file.Name=The quick brown fox");
+    $("#QueryTerm").val("Name=The quick brown fox");
 
 }
 $(document).ready(function () {
@@ -30,7 +30,7 @@ $(document).ready(function () {
         if (params.selected) {
             $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + "+");
             if (params.selected == "3_1") {
-                $("#QueryTerm").val("file.Name=The quick brown fox");
+                $("#QueryTerm").val("Name=Value");
             }
             else if (params.selected == "3_2") {
                 $("#QueryTerm").val("The qick broon foox");

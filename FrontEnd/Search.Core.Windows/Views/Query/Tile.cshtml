@@ -23,7 +23,7 @@
                     <span class="small">@Html.Raw(item.Summary)</span>
                 </div>
                 <div class="back">
-                    Index: @item.Index; Type: @item.Type; Score: @item.Score.ToString("N3")
+                    Index: @item.Index; Type: @item.Type; Score: @item.Score.ToString()
                     @if (item.CanRead)
                     {
                         <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>

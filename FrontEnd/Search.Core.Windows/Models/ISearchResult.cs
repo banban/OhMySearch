@@ -5,7 +5,7 @@
         string Id { get; set; }
         string Index { get; set; }
         string Type { get; set; }
-        double Score { get; set; }
+        double? Score { get; set; }
         string Source { get; set; }
 
         //public string Parent { get; set; }

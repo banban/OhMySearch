@@ -1,7 +1,8 @@
 ﻿<#
     This script demonstrates how to deploy the solution to production environment
 #>
-cd C:\GitHub\banban\OhMySearch\FrontEnd\Search.Core.Windows
+$source = "C:\GitHub\banban\OhMySearch\FrontEnd\Search.Core.Windows"
+cd $source
 $remoteServer = "SVRSA1WS06"
 $remoteAppPool = "Nova.Apps.Core"
 $destination = "\\$remoteServer\c$\inetpub\Apps\Search"
@@ -15,7 +16,7 @@ dotnet publish -c release -o $destination
 
 #merge settings from staging file to default one 
 $settings = Get-Content "$destination\appsettings.json" -Raw | ConvertFrom-Json 
-$settings_prod = Get-Content "$destination\appsettings.Production.json" -Raw | ConvertFrom-Json 
+$settings_prod = Get-Content "$source\appsettings.Production.json" -Raw | ConvertFrom-Json 
 $settings.AppSettings = $settings_prod.AppSettings
 $settings.Data = $settings_prod.Data
 $settings | ConvertTo-Json -Depth 10 | Out-File "$destination\appsettings.json" -Force

@@ -136,26 +136,44 @@ namespace Search.Core.Windows.Controllers
 
             foreach (var aggr in response.Aggs.Aggregations)
             {
-                var buckets = response.Aggs.Terms(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
-                    .OrderByDescending(bct =>  bct.DocCount).ThenBy(bct => bct.KeyAsString)
-                    .Take(10);
-                foreach (var bucket in buckets)
+                try
                 {
-                    query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Key, Count = bucket.DocCount.Value });
+                    var buckets = response.Aggs.Terms(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                        .OrderByDescending(bct => bct.DocCount).ThenBy(bct => bct.KeyAsString)
+                        .Take(10);
+                    foreach (var bucket in buckets)
+                    {
+                        query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Key, Count = bucket.DocCount.Value });
+                    }
                 }
-                var buckets2 = response.Aggs.DateHistogram(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
-                    .OrderByDescending(bct => bct.DocCount) //.ThenBy(bct => bct.KeyAsString)
-                    .Take(10);
-                foreach (var bucket in buckets2)
+                catch (Exception)
                 {
-                    query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Date.ToString("MMM yyyy"), Count = bucket.DocCount });
                 }
-                var buckets3 = response.Aggs.Range(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
-                    .OrderByDescending(bct => bct.DocCount)
-                    .Take(10);
-                foreach (var bucket in buckets3)
+                try
                 {
-                    query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = (bucket.From.HasValue ? bucket.From.ToString(): "0") + " - " + (bucket.To.HasValue ? bucket.To.ToString() : "..."), Count = bucket.DocCount });
+                    var buckets2 = response.Aggs.DateHistogram(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                        .OrderByDescending(bct => bct.DocCount) //.ThenBy(bct => bct.KeyAsString)
+                        .Take(10);
+                    foreach (var bucket in buckets2)
+                    {
+                        query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = bucket.Date.ToString("MMM yyyy"), Count = bucket.DocCount });
+                    }
+                }
+                catch (Exception)
+                {
+                }
+                try
+                {
+                    var buckets3 = response.Aggs.Range(aggr.Key).Buckets.Where(bct => bct.DocCount > 0)
+                        .OrderByDescending(bct => bct.DocCount)
+                        .Take(10);
+                    foreach (var bucket in buckets3)
+                    {
+                        query.Aggregations.Add(new Models.Aggregation() { Group = aggr.Key, Key = (bucket.From.HasValue ? bucket.From.ToString() : "0") + " - " + (bucket.To.HasValue ? bucket.To.ToString() : "..."), Count = bucket.DocCount });
+                    }
+                }
+                catch (Exception)
+                {
                 }
             }
             ViewBag.QueryTerm = query.QueryTerm;
@@ -279,8 +297,10 @@ namespace Search.Core.Windows.Controllers
                 }
 
                 //var mapping = _elclient.GetMapping(new GetMappingRequest(Nest.Indices.AllIndices, Nest.Types.AllTypes) { IgnoreUnavailable = true });
+                string indexRecords = "";
                 foreach (var item in indexes)
                 {
+                    indexRecords += ","+ item.Index;
                     var alias = _elclient.GetAliasesPointingToIndex(item.Index).FirstOrDefault();
                     //var mapping = _elclient.GetMapping<item>();
                     options.Add(new Models.QueryOption()
@@ -330,6 +350,7 @@ namespace Search.Core.Windows.Controllers
                         }
                     }*/
                 }
+                _memoryCache.Set("AllIndices", indexRecords.Trim(','), new TimeSpan(1, 0, 0));
 
                 options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_1", Value = "Suggest" }); //autocomplete, MLT, phonetic, stop words
                 options.Add(new Models.QueryOption() { OptionGroup = "Confidence", Key = "3_2", Value = "Fuzzy" }); //misspelling
@@ -386,7 +407,15 @@ namespace Search.Core.Windows.Controllers
             }
             else
             {
-                indices = Nest.Indices.AllIndices;
+                string indexRecords = "";
+                if (_memoryCache.TryGetValue("AllIndices", out indexRecords))
+                {
+                    indices = indexRecords;
+                }
+                else
+                {
+                    indices = Nest.Indices.AllIndices;
+                }
                 keyIndexType += "AllIndices,";
             }
             //types to search
@@ -942,29 +971,49 @@ namespace Search.Core.Windows.Controllers
         }
 
         [HttpGet]
-        public async Task<JToken> Suggest(string queryTerm, string options)
+        public async Task<JToken> Suggest(string queryTerm) //, string options
         {
-            if (!string.IsNullOrEmpty(options)) //remove other query types to avoid conflict in builder
-            {
-                options = options.Replace("3_1", "").Replace("3_2", "").Replace("3_3", "").Replace("3_4", "");
-            }
-            else
-            {
-                options = "3_5,";
-            }
+            if (string.IsNullOrEmpty(queryTerm))
+                return null;
+            if (!queryTerm.Contains("="))
+                return null;
+            if (queryTerm.Length < 3)
+                return null;
 
-            if (!options.Contains("3_5,"))
-            {
-                options += "3_5,";
-            }
+            var field = queryTerm.Split('=')[0]; //"Name"
+            var value = queryTerm.Split('=')[1]; //
+
+            if (string.IsNullOrEmpty(field) || string.IsNullOrEmpty(value))
+                return null;
+            //if (!string.IsNullOrEmpty(options)) //remove other query types to avoid conflict in builder
+            //{
+            //    options = options.Replace("3_2", "").Replace("3_3", "").Replace("3_4", "");
+            //}
+            //else
+            //{
+            //    options = "3_1,";
+            //}
+
+            //if (!options.Contains("3_1,"))
+            //{
+            //    options += "3_1,";
+            //}
 
             Models.Query query = new Models.Query()
             {
                 QueryTerm = queryTerm,
-                ChosenOptions = options
+                ChosenOptions = "3_1"
             };
             var response = await GetSearchResponse(query);
-            var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
+            var results = new List<string>();
+            foreach (var hit in response.Hits)
+            {
+                value = (string)hit.Source[field];
+                if (!string.IsNullOrEmpty(value) && !results.Contains(value))
+                {
+                    results.Add(value);
+                }
+            }
             JArray json = JArray.FromObject(results);
             return json;
         }
