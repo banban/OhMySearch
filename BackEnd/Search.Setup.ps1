@@ -6,17 +6,17 @@
     .\Search.Environment.ps1
 
 3. Set up dev
-    .\Search.Setup.ps1 -ESVersion "5.1.1" -ClusterName "OhMySearch-Dev"
+    .\Search.Setup.ps1 -ESVersion "5.1.2" -ClusterName "OhMySearch-Dev"
 
 4. Configure production cluster:
     cd E:\Search
-    .\Search.Setup.ps1 -ESVersion "5.1.1" -ClusterName "OhMySearch-Prod" -SetEnvironment `
+    .\Search.Setup.ps1 -ESVersion "5.1.2" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-<your code>.json"
 
 5. Debug locally:
-    cmd.exe /C "C:\Search\elasticsearch-5.1.1\bin\elasticsearch.bat"
-    $ESVersion = "5.0.0-beta1"
+    cmd.exe /C "C:\Search\elasticsearch-5.1.2\bin\elasticsearch.bat"
+    $ESVersion = "5.1.2"
 
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
@@ -81,7 +81,8 @@ function Main(){
     $config = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\elasticsearch.yml" -Raw
     $config = $config.Replace("#cluster.name: my-application", " cluster.name: $ClusterName")
     #Environment variables referenced with the ${...} notation within the configuration file will be replaced with the value of the environment variable, for instance:
-    $config = $config.Replace("#node.name: node-1", " node.name: `${HOSTNAME}") #$env:COMPUTERNAME
+    #do not use host name in service mode to avoide Exception in thread "main" ception: Could not resolve placeholder 'HOSTNAME'
+    $config = $config.Replace("#node.name: node-1", " node.name: $($env:COMPUTERNAME)") #`${HOSTNAME}
     $config = $config.Replace("#path.data: /path/to/data", " path.data: $env:SEARCH_HOME\Data")
     $config = $config.Replace("#path.logs: /path/to/logs", " path.logs: $env:LOG_DIR")
 
@@ -132,10 +133,15 @@ function Main(){
             Set-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\logging.yml" $logging
         }
     }
-
+    $env:JAVA_HOME
     <#The service installer requires that the thread stack size setting be configured in jvm.options before you install the service. 
         On 32-bit Windows, you should add -Xss320k to the jvm.options file, 
-        and on 64-bit Windows you should add -Xss1m to the jvm.options file.#>
+        and on 64-bit Windows you should add -Xss1m to the jvm.options file.
+        
+        While a JRE can be used for the Elasticsearch service, due to its use of a client VM 
+        (as opposed to a server JVM which offers better performance for long-running applications) 
+        its usage is discouraged and a warning will be issued.
+    #>
     $jvmoptoins = Get-Content "$env:SEARCH_HOME\elasticsearch-$ESVersion\config\jvm.options" -Raw
     if ([Environment]::Is64BitProcess -eq $true -and $jvmoptoins.Contains("-Xss1m") -eq $false){
         $jvmoptoins += "`r`n-Xss1m"
@@ -171,18 +177,24 @@ function Main(){
     if ($AsService.IsPresent){
         #uninstall service
         try{
-            cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" stop Elastic-Search
-            cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" remove Elastic-Search
+            cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" stop Elastic-Search
+            cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" remove Elastic-Search
             #"Waiting 5 seconds to allow service to be uninstalled."
             Start-Sleep -s 5  
         }
-        catch{}
+        catch{
+            sc.exe delete "Elastic-Search"
+            sc.exe delete elasticsearch-service-x64 #default name
+        }
 
         #install service
-        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" install #Elastic-Search
-        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" start #Elastic-Search
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" install Elastic-Search
+        #manager allowes to check current status of service and java options in UI
+        #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" manager Elastic-Search
+
+        cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" start Elastic-Search
         #or run it manually in command line deamon mode. To stop use Cntrl+C
-        #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\service.bat" -d
+        #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" -d
 
         <#unfortunately kibana as a service is not available yet in v5
             cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\kibana.bat" install Kibana
