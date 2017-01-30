@@ -399,12 +399,13 @@ function Main(){
                     $result = &$post "$indexName/_bulk" $BulkBody
 
                     #validate bulk errors
-                    $resultObj = ConvertFrom-Json $result 
-                    $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
-                    if ($errors -ne $null -and $errors.Count -gt 0){
-                        $errors | %{ Write-Host "path: $($filePath); _type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+                    if ($result -ne $null){
+                        $resultObj = ConvertFrom-Json $result 
+                        $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+                        if ($errors -ne $null -and $errors.Count -gt 0){
+                            $errors | %{ Write-Host "path: $($filePath); _type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+                        }
                     }
-
                     $BulkBody = ""
                 }
             }

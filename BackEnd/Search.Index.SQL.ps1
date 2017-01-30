@@ -99,13 +99,13 @@
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
 
     &$cat
-    &$get "/adworks_v1/_mapping"
+    &$get "/adworks_v1/address/_mapping"
     &$get "/adworks_v1/person/_mapping"
     &$get "/adworks_v1/employee/_mapping"
     &$get "/adworks_v1/address/_mapping"
     &$get "/adworks_v1/address"
     &$get "/adworks_v1/person/2"
-    &$get "/adworks_v1/person/_query?q=*"
+    &$get "/adworks_v1/person/_query?q=Andrew*"
     &$delete "adworks_v1"
     &$createIndex "adworks_v1"
 
@@ -390,6 +390,7 @@ function Main(){
                 #When another type is added to exsting index it could have the same field names as other types, but different data type. 
                 #ES generate exception. I think this is wrong. 
                 #As a workaround, we need to use parameter update_all_types to avoid missmatched field types exception
+                #https://www.elastic.co/guide/en/elasticsearch/reference/5.1/indices-put-mapping.html
                 &$put "$($indexName)/_mapping/$($typeName)?update_all_types" -obj @{
                     dynamic = $true #will create new fields dynamically.
                     date_detection = $true #avoid “malformed date” exception
@@ -484,9 +485,11 @@ function Main(){
         if ($BulkBody.Length -ge $batchMaxSize){
             $result = &$post "$indexName/_bulk" $BulkBody
             #validate bulk errors
-            $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
-            if ($errors -ne $null -and $errors.Count -gt 0){
-                $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+            if ($result -ne $null){
+                $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+                if ($errors -ne $null -and $errors.Count -gt 0){
+                    $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+                }
             }
             $BulkBody = ""
         }
@@ -500,9 +503,11 @@ function Main(){
     if ($BulkBody -ne ""){
         $result = &$post "$indexName/_bulk" $BulkBody
         #validate bulk errors
-        $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
-        if ($errors -ne $null -and $errors.Count -gt 0){
-            $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+        if ($result -ne $null){
+            $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+            if ($errors -ne $null -and $errors.Count -gt 0){
+                $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+            }
         }
         $BulkBody = ""
     }

@@ -283,7 +283,7 @@ function Main(){
             GPS = @{
                 type = "geo_point"
                 geohash_prefix = "true" #tells Elasticsearch to index all geohash prefixes, up to the specified precision.
-                geohash_precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
+                precision = "1km" #The precision can be specified as an absolute number, representing the length of the geohash, or as a distance. A precision of 1km corresponds to a geohash of length 7.
             }
 
         }#general properties
@@ -388,9 +388,11 @@ function Main(){
     if ($global:BulkBody -ne ""){
         $result = &$post "$indexName/_bulk" $global:BulkBody
         #validate bulk errors
-        $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
-        if ($errors -ne $null -and $errors.Count -gt 0){
-            $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+        if ($result -ne $null){
+            $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+            if ($errors -ne $null -and $errors.Count -gt 0){
+                $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status)" -f Red }
+            }
         }
 
         $global:BulkBody = ""
@@ -567,11 +569,13 @@ function LoadFile() {
         if ($global:BulkBody.Length -ge $batchMaxSize){
             $result = &$post "$indexName/_bulk" $global:BulkBody
             #validate bulk errors
-            $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
-            if ($errors -ne $null -and $errors.Count -gt 0){
-                $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status); path: $($searchPath)" -f Red }
+            if ($result -ne $null)
+            {
+                $errors = (ConvertFrom-Json $result).items| Where-Object {$_.index.error}
+                if ($errors -ne $null -and $errors.Count -gt 0){
+                    $errors | %{ Write-Host "_type: $($_.index._type); _id: $($_.index._id); error: $($_.index.error.type); reason: $($_.index.error.reason); status: $($_.index.status); path: $($searchPath)" -f Red }
+                }
             }
-
             $global:BulkBody = ""
         }
     }
