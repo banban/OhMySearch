@@ -304,8 +304,8 @@ function Main(){
                 #clean name. ES field naming convention is pretty restrictive
                 $name = $name.TrimStart('=').Trim('"').Trim()
                 $name = $name -replace '\\u0027|\\u0091|\\u0092|\\u2018|\\u2019|\\u201B', '''' #convert quotes
-                $name = $name -replace '\\u\d{3}[0-9a-zA-Z]', '?' # remove encodded special symbols like '\u0026' '\u003c'
-                $name = $name -replace '[\-\,\.\\/''~?!*“"%&•â€¢©ø\[\]{}\(\)]', ' ' #special symbols and punctuation
+                $name = $name -replace '\\u\d{3}[0-9a-zA-Z]', ' ' # remove encodded special symbols like '\u0026' '\u003c'
+                $name = $name -replace '[`\,/''!*“"%•â€¢©ø\[\]{}\(\)]', ' ' #special symbols and punctuation
                 $name = $name.Trim() -replace '\s+', '_' #remove extra spaces and raplace with _
 
                 #existing mapping has a priority - user can change which is more accurate than dynamic mapping

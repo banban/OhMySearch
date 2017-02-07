@@ -184,6 +184,7 @@ function Main(){
         }
         catch{
             sc.exe delete "Elastic-Search"
+            sc.exe delete elasticsearch-service-x32 #default name
             sc.exe delete elasticsearch-service-x64 #default name
         }
 
@@ -192,7 +193,9 @@ function Main(){
         #manager allowes to check current status of service and java options in UI
         #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" manager Elastic-Search
 
+        #let's start it...
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" start Elastic-Search
+
         #or run it manually in command line deamon mode. To stop use Cntrl+C
         #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" -d
 

@@ -603,8 +603,8 @@ function CleanContent(){
     #$Content = -join [system.text.encoding]::ASCII.GetChars($c)
 
     $Content = $Content  -replace '\\u0027|\\u0091|\\u0092|\\u2018|\\u2019|\\u201B', '''' #convert quotes
-    $Content = $Content -replace '\\u\d{3}[0-9a-zA-Z]', '?' # remove encodded special symbols like '\u0026' '\u003c'
-    $Content = $Content -replace '[\\/''~?!*“"%&•â€¢©ø\[\]{}]', ' ' #special symbols and punctuation
+    $Content = $Content -replace '\\u\d{3}[0-9a-zA-Z]', ' ' # remove encodded special symbols like '\u0026' '\u003c'
+    $Content = $Content -replace '[`''~!*“"•â€¢©ø\[\]{}]', ' ' #special symbols and punctuation
     $Content = $Content -replace '\s+', ' ' #remove extra spaces
     $Content = $Content -replace '(\w)\1{3,}', '$1' #replace repeating symbols more than 3 times with 1: "aaaassssssssssseeeee111112222223334" -replace '(\w)\1{3,}', '$1'
     $Content = $Content.Trim() 
