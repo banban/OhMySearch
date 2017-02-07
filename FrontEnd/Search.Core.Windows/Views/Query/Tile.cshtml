@@ -18,7 +18,11 @@
                     }
                     @if (!string.IsNullOrEmpty(item.Path) && item.CanRead)
                     {
-                        <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
+                        <a title="@item.PrettyPath" class="glyphicon glyphicon-open-file" href="@Html.Raw(item.NavigatePath)" target="_self">Open</a>
+                    }
+                    <br/>@if (!string.IsNullOrEmpty(item.ThumbnailPath))
+                    {
+                        <img class="thumb-image img-thumbnail img-circle" src="@item.ThumbnailPath" />
                     }
                     <span class="small">@Html.Raw(item.Summary)</span>
                 </div>
@@ -26,7 +30,16 @@
                     Index: @item.Index; Type: @item.Type; Score: @item.Score.ToString()
                     @if (item.CanRead)
                     {
-                        <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
+                        @if (!string.IsNullOrEmpty(item.ThumbnailPath))
+                        {
+                            <a class="btn btn-info thumb-btn" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading...">
+                                <img class="thumb-image" src="@item.ThumbnailPath" />
+                            </a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." />
+                        }
                     }
                 </div>
             </div>

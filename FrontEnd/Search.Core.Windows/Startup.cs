@@ -52,6 +52,8 @@ namespace Search.Core.Windows
             }
 
             Environment.SetEnvironmentVariable("Author", Configuration["AppSettings:Author"]);
+            Environment.SetEnvironmentVariable("Wiki", Configuration["AppSettings:Wiki"]);
+            Environment.SetEnvironmentVariable("Support", Configuration["AppSettings:Support"]);
             Environment.SetEnvironmentVariable("WebRootPathTemp", tempDir);
 
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ElasticUri"))) //check environment variable

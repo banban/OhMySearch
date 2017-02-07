@@ -17,7 +17,7 @@ namespace Search.Core.Windows.Controllers
     public class SearchResultController : Controller
     {
         private static IMemoryCache _memoryCache;
-        private readonly IHostingEnvironment _hostingEnvironment;
+        //private readonly IHostingEnvironment _hostingEnvironment;
         private readonly ILogger _logger;
 
         public SearchResultController(ILogger logger = null, IMemoryCache memoryCache = null) //, IHostingEnvironment hostingEnvironment = null
@@ -47,15 +47,22 @@ namespace Search.Core.Windows.Controllers
                 CanRead = true,
                 Index = result.Index,
                 Type = result.Type,
-                Summary = result.Source.ToString()
+                Summary = result.Source.ToString(),
+                Source = result.Source.ToString()
             };
-            if (searchResult.Type == "file" || searchResult.Type == "photo")
+            try
             {
                 searchResult.Path = ((string)result.Source["Path"]);
-                searchResult.CanRead = QueryHelper.UserHasAccess(User.Identity.Name, searchResult.Path.Substring(0, searchResult.Path.LastIndexOf('/')), _memoryCache);
+            }
+            catch (Exception)
+            {
+            }
+            if (!string.IsNullOrEmpty(searchResult.Path))//(searchResult.Type == "directory" || searchResult.Type == "file" || searchResult.Type == "photo")
+            {
+                searchResult.CanRead = Helpers.QueryHelper.UserHasAccess(User.Identity.Name, searchResult.Path.Substring(0, searchResult.Path.LastIndexOf('/')), _memoryCache);
                 if (searchResult.CanRead)
                 {
-                    //searchResult.Path = searchResult.Path.Replace("/", "\\");
+                    //searchResult.Path = searchResult.PrettyPath;
                     try
                     {
                         searchResult.Extension = (string)result.Source["Extension"];

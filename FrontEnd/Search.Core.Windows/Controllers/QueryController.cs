@@ -81,7 +81,7 @@ namespace Search.Core.Windows.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string term, string options, string aggregations, int? from, int? page, int? size)
+        public async Task<IActionResult> Index(string term, string options, string aggregations, int? from, int? page, int? size, double? minScore)
         {
             //if (string.IsNullOrEmpty(term))
             //{
@@ -92,6 +92,7 @@ namespace Search.Core.Windows.Controllers
             query.ChosenAggregations = aggregations;
             query.QueryTerm = term;
             query.Size = (size.HasValue ? size.Value : query.Size);
+            query.MinScore = (minScore.HasValue ? minScore.Value : query.MinScore);
             if (from.HasValue)
             {
                 query.From = from.Value;
@@ -116,10 +117,15 @@ namespace Search.Core.Windows.Controllers
             //_logger.LogInformation(string.Format("query.QueryOptions.Count {0}", query.QueryOptions.Count));
 
             var response = await GetSearchResponse(query); //use extra call to get total
+
             //query.ScrollId = response.ScrollId;
-            query.DebugInformation = response.ApiCall.DebugInformation;
-            //query.RawQuery = response.CallDetails.;
+            if (!response.IsValid)
+            {
+                query.DebugInformation = response.ApiCall.DebugInformation;
+                //query.OriginalException = response.ApiCall.OriginalException;
+            }
             query.Total = response.Total;
+            query.MaxScore = response.MaxScore;
             if (query.From > response.Total)
             {
                 return View(new EmptyResult());
@@ -179,6 +185,7 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
+            ViewBag.MinScore = query.MinScore;
             return View(query);
         }
 
@@ -199,6 +206,10 @@ namespace Search.Core.Windows.Controllers
                 query.ChosenAggregations = Request.Query["aggregations"];
             }
 
+            if (query.MinScore == 0 && !string.IsNullOrEmpty(Request.Query["minScore"]))
+            {
+                query.MinScore = double.Parse(Request.Query["minScore"]);
+            }
 
             if (query.QueryOptions.Count() == 0)
             {
@@ -207,8 +218,9 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
+            ViewBag.MinScore = query.MinScore;
 
-            return RedirectToAction("Index", new { term = query.QueryTerm, options = query.ChosenOptions, aggregations = query.ChosenAggregations, from = query.From, size = query.Size });
+            return RedirectToAction("Index", new { term = query.QueryTerm, options = query.ChosenOptions, aggregations = query.ChosenAggregations, from = query.From, size = query.Size, minScore = query.MinScore});
         }
 
         [HttpGet]
@@ -228,6 +240,12 @@ namespace Search.Core.Windows.Controllers
                 query.Size = size.Value;
 
             var response = await GetSearchResponse(query);
+            if (!response.IsValid)
+            {
+                query.DebugInformation = response.ApiCall.DebugInformation;
+                //query.OriginalException = response.ApiCall.OriginalException;
+            }
+
             if (query.From > response.Total)
             {
                 return View(new EmptyResult());
@@ -265,14 +283,17 @@ namespace Search.Core.Windows.Controllers
                         //.Select(rec => new { rec.Index, rec.Status, rec.DocsCount, rec.StoreSize }
                         .OrderBy(rec => rec.Index).ToList();
                 }
-
+                //var indicesSettings = await _elclient.GetIndexSettingsAsync();
                 //elastic.ConnectionSettings.MaxRetries = 3;
                 //_elclient.GetMapping(new GetMappingRequest { Index = "myindex", Type = "mytype" });
                 //var response = _elclient.IndicesGetMapping("_all", "_all");
                 //var mappings = await _elclient.GetMappingAsync(new GetMappingRequest() { IgnoreUnavailable = true });
-
-                var _mappings = await QueryHelper.CURL("GET", "_mapping", null);
                 Dictionary<string, List<string>> indexTypes = new Dictionary<string, List<string>>();
+
+                //var settings = await _elclient.GetIndexSettingsAsync();
+                //var mapping = _elclient.GetMapping(new GetMappingRequest(Nest.Indices.AllIndices, Nest.Types.AllTypes) { IgnoreUnavailable = true });
+                var _settings = await Helpers.QueryHelper.CURL("GET", "_settings", null);
+                var _mappings = await Helpers.QueryHelper.CURL("GET", "_mapping?ignore_unavailable=true", null);
                 foreach (var _index in _mappings)
                 {
                     if (!indexTypes.ContainsKey(_index.Key))
@@ -295,19 +316,27 @@ namespace Search.Core.Windows.Controllers
                         }
                     }
                 }
-
-                //var mapping = _elclient.GetMapping(new GetMappingRequest(Nest.Indices.AllIndices, Nest.Types.AllTypes) { IgnoreUnavailable = true });
                 string indexRecords = "";
                 foreach (var item in indexes)
                 {
                     indexRecords += ","+ item.Index;
                     var alias = _elclient.GetAliasesPointingToIndex(item.Index).FirstOrDefault();
                     //var mapping = _elclient.GetMapping<item>();
+                    string creationDateLabel = String.Empty;
+                    try
+                    {
+                        var creationDate = DateTime.MinValue.AddYears(1969).AddMilliseconds(_settings[item.Index]["settings"]["index"]["creation_date"].Value<long>());
+                        creationDateLabel = ", as of " + creationDate.ToString("dd/MM/yy");
+                    }
+                    catch (Exception)
+                    {
+                    }
+
                     options.Add(new Models.QueryOption()
                     {
                         OptionGroup = "Indices",
                         Key = "1_" + item.Index,
-                        Value = (alias == null ? item.Index : alias.Name) + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs)"
+                        Value = (alias == null ? item.Index : alias.Name) + " (" + (string.IsNullOrEmpty(item.DocsCount) ? "0" : item.DocsCount) + " docs"+ creationDateLabel + ")"
                         //+ (string.IsNullOrEmpty(item.StoreSize) ? "0" : item.StoreSize) + " bites)"
                     });
 
@@ -442,7 +471,7 @@ namespace Search.Core.Windows.Controllers
             QueryContainer qc = new QueryContainer(); //{q => q.QueryString(qs => qs.Query(query.QueryTerm)};
             if (query.ChosenOptions != null && query.ChosenOptions.Contains("3_1") && query.QueryTerm.Contains("=")) //term Name=Value
             {
-                qc = new TermQuery()
+                qc = new FuzzyQuery()
                 {
                     Field = query.QueryTerm.Split('=')[0], //"file.Name"
                     Value = query.QueryTerm.Split('=')[1]
@@ -500,7 +529,7 @@ namespace Search.Core.Windows.Controllers
                     Name = "named_query",
                     CutoffFrequency = 0.001,
                     Query = query.QueryTerm,
-                    Fuzziness = Fuzziness.Auto,
+                    Fuzziness = Fuzziness.Auto, //The fuzzy query is depricated and replaced by MatchQuery.Fuzziness . Similarity is based on Levenshtein edit distance
                     FuzzyTranspositions = true,
                     MinimumShouldMatch = 2,
                     FuzzyRewrite = RewriteMultiTerm.ConstantScoreBoolean,
@@ -597,7 +626,8 @@ namespace Search.Core.Windows.Controllers
                 Explain = true,
                 //SearchType = Elasticsearch.Net.SearchType.QueryThenFetch,
                 From = query.From ?? 0, //.Skip()
-                Size = query.Size ?? 10 //.Take()
+                Size = query.Size ?? 10, //.Take()
+                MinScore = query.MinScore ?? 0
             };
             //check if query has aggregation filters
             if (!string.IsNullOrEmpty(query.ChosenAggregations)) //mask: "Group1.Field1.Value1|Group1.Field2.Value2|Group2.Field3.Value3|"
@@ -936,7 +966,6 @@ namespace Search.Core.Windows.Controllers
             //}
 
             #region Highlights. Not working in fuzzy yet :(
-
             elRequest.Highlight = new Highlight()
             {
                 PreTags = new[] { "<em>" },
@@ -951,7 +980,9 @@ namespace Search.Core.Windows.Controllers
                             ForceSource = true,
                             FragmentSize = 150,
                             NumberOfFragments = 3,
-                            NoMatchSize = 150
+                            NoMatchSize = 150,
+                            BoundaryMaxScan = 50,
+                            HighlightQuery = elRequest.Query
                         }
                     },
                 }
@@ -967,6 +998,45 @@ namespace Search.Core.Windows.Controllers
             //var requestURL = response.ConnectionStatus;
             //var jsonBody = Encoding.UTF8.GetString(response.RequestInformation.Request);
 
+            /*if (response.IsValid)
+            {
+                foreach (var highlightsInEachHit in response.Hits.Select(d => d.Highlights))
+                {
+                    foreach (var highlightField in highlightsInEachHit)
+                    {
+                        if (highlightField.Key == "name.standard")
+                        {
+                            foreach (var highlight in highlightField.Value.Highlights)
+                            {
+                                if (highlight.Contains("<em>") && highlight.Contains("</em>"))
+                                {
+
+                                }
+                            }
+                        }
+                        else if (highlightField.Key == "leadDeveloper.firstName")
+                        {
+                            foreach (var highlight in highlightField.Value.Highlights)
+                            {
+                                highlight.Should().Contain("<name>");
+                                highlight.Should().Contain("</name>");
+                            }
+                        }
+                        else if (highlightField.Key == "state.offsets")
+                        {
+                            foreach (var highlight in highlightField.Value.Highlights)
+                            {
+                                highlight.Should().Contain("<state>");
+                                highlight.Should().Contain("</state>");
+                            }
+                        }
+                        else
+                        {
+                            Assert.True(false, $"highlights contains unexpected key {highlightField.Key}");
+                        }
+                    }
+                }
+            }*/
             return response;
         }
 
@@ -1005,6 +1075,11 @@ namespace Search.Core.Windows.Controllers
                 ChosenOptions = "3_1"
             };
             var response = await GetSearchResponse(query);
+            if (!response.IsValid)
+            {
+                query.DebugInformation = response.ApiCall.DebugInformation;
+                //query.OriginalException = response.ApiCall.OriginalException;
+            }
             var results = new List<string>();
             foreach (var hit in response.Hits)
             {
@@ -1041,8 +1116,15 @@ namespace Search.Core.Windows.Controllers
                 ChosenOptions = options
             };
             var response = await GetSearchResponse(query);
+            if (!response.IsValid)
+            {
+                query.DebugInformation = response.ApiCall.DebugInformation;
+                //query.OriginalException = response.ApiCall.OriginalException;
+            }
             //query.ScrollId = response.ScrollId;
-            var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
+            var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm)
+                //.Select(r => new {Lat = r.Lat, Lng = r.Lng })
+                ;
             JArray json = JArray.FromObject(results);
             return json;
         }
@@ -1060,6 +1142,7 @@ namespace Search.Core.Windows.Controllers
             foreach (var hit in nestResults.Hits)
             {
                 string summary = string.Empty;
+                //get elastic highlights
                 foreach (var hh in hit.Highlights)
                 {
                     foreach (var hhh in hh.Value.Highlights)
@@ -1067,13 +1150,34 @@ namespace Search.Core.Windows.Controllers
                         summary += hhh + @"<br>";
                     }
                 }
-                if (string.IsNullOrEmpty(summary))
+
+                if (string.IsNullOrEmpty(summary) && !string.IsNullOrEmpty(queryTerm))
                 {
+                    //get direct highlights
                     summary = hit.Source.ToString();
-                    if (!string.IsNullOrEmpty(queryTerm))
+
+                    int firstHLIndex = summary.IndexOf(queryTerm);
+                    if (firstHLIndex > 0)
                     {
                         //full matched highlights;
-                        summary = summary.ToLower().Replace(queryTerm.ToLower(), "<em>" + queryTerm + "</em>");
+                        summary = summary.Replace(queryTerm, "<em>" + queryTerm + "</em>");
+                    }
+                    else if (summary.ToLower().IndexOf(queryTerm.ToLower()) > 0)
+                    {
+                        //full matched lower case highlights;
+                        summary = summary.ToLower().Replace(queryTerm.ToLower(), "<em>" + queryTerm.ToLower() + "</em>");
+                    }
+                    else //highight every word
+                    {
+                        foreach (var word in queryTerm.Trim().Split(' '))
+                        {
+                            summary = summary.ToLower().Replace(word.ToLower(), "<em>" + word + "</em>");
+                        }
+                    }
+                    firstHLIndex = summary.IndexOf("<em>");
+                    if (firstHLIndex > 100) //adjust summary to begin from highlighted area
+                    {
+                        summary = "..." + summary.Substring(firstHLIndex - 20);
                     }
                 }
                 Models.SearchResult result = new Models.SearchResult()
@@ -1084,17 +1188,19 @@ namespace Search.Core.Windows.Controllers
                     Score = hit.Score,
                     Source = hit.Source.ToString(),
                     Type = hit.Type,
+
                     /// File path is represented as Elastic hierarchy type with notation: c:\Temp -> c:/Temp. 
                     /// So we use / as folder separator
-                    Path = (string)hit.Source["Path"], 
+                    Path = (string)hit.Source["Path"],
+                    ThumbnailPath = (string)hit.Source["ThumbnailPath"],
                     //LastModified = (DateTime)hit.Source["LastModified"],
                     Extension = ((hit.Type == "file" || hit.Type == "photo") ? ((string)hit.Source["Extension"]) : ""),
                     Summary = summary
                 };
                 
-                if ((result.Type == "file" || result.Type == "photo") && result.Path.Contains("/"))
+                if (!string.IsNullOrEmpty(result.Path)) //((result.Type == "directory" || result.Type == "file" || result.Type == "photo") && result.Path.Contains("/"))
                 {
-                    result.CanRead = QueryHelper.UserHasAccess(userName, result.Path.Substring(0, result.Path.LastIndexOf('/')), _memoryCache);
+                    result.CanRead = Helpers.QueryHelper.UserHasAccess(userName, result.Path.Substring(0, result.Path.LastIndexOf('/')), _memoryCache);
                 }
                 results.Add(result);
 

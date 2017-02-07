@@ -17,6 +17,9 @@ body {
 .bgDark2 {
   color: #cccccc;
 }
+.search-panel-body {
+  padding: 0em;
+}
 .chosen-container {
   margin: 10px;
   max-width: 65%;
@@ -82,13 +85,31 @@ button.findBtn {
   color: black;
   background-color: aqua;
 }
+.DOCX {
+  width: 35px;
+  font-weight: bold;
+  color: black;
+  background-color: aqua;
+}
 .XLS {
   width: 35px;
   font-weight: bold;
   color: white;
   background-color: green;
 }
+.XLSX {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: green;
+}
 .PPT {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: orange;
+}
+.PPTX {
   width: 35px;
   font-weight: bold;
   color: white;
@@ -116,6 +137,17 @@ button.findBtn {
   position: absolute;
   /*float:left;
     overflow: auto;*/
+}
+.thumb-btn {
+  padding: 0px;
+  min-width: 40px;
+  min-height: 40px;
+}
+.thumb-image {
+  /*width: 100%;
+    height: 100%;*/
+  max-width: 40px;
+  max-height: 40px;
 }
 .file-image {
   /*width: 100%;
@@ -285,4 +317,12 @@ input[type=range]:focus::-ms-fill-lower {
 }
 input[type=range]:focus::-ms-fill-upper {
   background: #4f4f4f;
+}
+.panel-group .panel-heading + .panel-collapse > .panel-body,
+.panel-group .panel-heading + .panel-collapse > .list-group {
+  border-top: none;
+  border-bottom: none;
+}
+.list-group > .ui-accordion .ui-accordion-content {
+  padding: 0;
 }

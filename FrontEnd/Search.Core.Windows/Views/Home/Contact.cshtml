@@ -5,8 +5,7 @@
 @*<h3>@ViewData["Message"]</h3>*@
 
 <ul>
-    <li><a href="https://andrewbutenko.wordpress.com/2016/02/24/oh-my-search/">Author</a></li>
-    <li><a href="https://github.com/banban/OhMySearch">Code</a></li>
-    <li><a href="https://github.com/banban/OhMySearch/wiki">Wiki</a></li>
-    <li><a href="https://github.com/banban/OhMySearch/issues">Support</a></li>
+    <li><b>Author: </b>@Environment.GetEnvironmentVariable("Author")</li>
+    <li><b>Wiki: </b>@Environment.GetEnvironmentVariable("Wiki")</li>
+    <li><b>Support: </b>@Environment.GetEnvironmentVariable("Support")</li>
 </ul>

@@ -5,9 +5,8 @@
 <div class="col-lg-pull-1 col-md-pull-1 col-sm-pull-1 col-lg-12 col-md-12 col-sm-12" data-position="fixed" data-role="content">
 <div class="col-lg-9 col-md-9 col-sm-9" >
     @await Component.InvokeAsync("QueryOptions", new { query = Model })
-
     <ul class="nav nav-tabs" role="tablist">
-        <li class="active"><a href="#Search-Results" role="tab" data-toggle="tab" aria-expanded="true" class="glyphicon glyphicon-list">Results <span class="badge">@Model.Total</span></a></li>
+        <li class="active"><a href="#Search-Results" role="tab" data-toggle="tab" aria-expanded="true" class="glyphicon glyphicon-list">Results <span title="Total" class="badge">@Model.Total</span></a></li>
         <li><a id="MapsTab" href="#Search-Maps" role="tab" data-toggle="tab" class="glyphicon glyphicon-map-marker">Maps</a></li>
         @*<li><a href="#Search-Debug" role="tab" data-toggle="tab" class="glyphicon glyphicon-info-sign">Request Info</a></li>*@
     </ul>
@@ -17,8 +16,8 @@
                 || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2") && !Model.ChosenOptions.Contains("4_3")))
             {
 
-                <div class="scroll col-lg-12 col-md-12">
-                    <a class="jscroll-next" hidden href="~/Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))&aggregations=@(Uri.EscapeUriString(Model.ChosenAggregations))">...</a>
+                <div class="scroll col-lg-12 col-md-12 list-unstyled">
+                    <a class="jscroll-next" hidden href="~/Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))&aggregations=@(Uri.EscapeUriString(Model.ChosenAggregations))&minScore=@(ViewBag.MinScore)">...</a>
                 </div>
             }
             else if (Model.ChosenOptions.Contains("4_2"))
@@ -42,41 +41,44 @@
         </div>*@
     </div>
 </div>
+    <div class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                <label class="panel-title" title="Filter by score threshold">Confidence:</label>
+            </div>
+            <div class="panel-body">
+                <label id="lbl_minscore" class="glyphicon glyphicon-signal"> Min Score: </label><input asp-for="MinScore" type="text" id="minscore2" readonly style="border:0; color:#f6931f; font-size:large; font-weight:bold; width:20px;" />
+                <div id="slider-score"></div>
+                <i class="small">@Model.DebugInformation</i>
+            </div>
+        </div>
+    </div>
 
 @if (Model.GetAggregations().Count() > 0)
 {
-    <div id="accordion" class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
-        @*<div class="panel panel-info">
-            <div class="panel-heading">
-                <h4 class="panel-title">
-                   Level of confidence
-                </h4>
-            </div>
-            <div id="collapse_LevelofConfidence" class="panel-collapse collapse in">
-                <div class="panel-body">
-                    <output for="fader" id="confidencelbl" class="text-center">50%</output>
-                    <input type="range" min="0" max="100" value="50" id="confidence" orient="vertical" step="10" oninput="outputUpdate(value)" />
-                </div>
-            </div>
-        </div>*@
-        <i class="small">applied filter: @Model.ChosenAggregations</i>
+    <div class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
+        <i class="small">aggregation filter: @Model.ChosenAggregations</i>
         @foreach (var aggr in Model.GetAggregations())
         {
+            var coll = Model.GetAggregations(aggr);
             <div class="panel panel-info">
                 <div class="panel-heading">
-                    @*<a data-toggle="collapse" data-parent="#accordion" href="#collapse_@aggr.Replace(" ","")"></a>*@
                     <label class="panel-title">
-                        @aggr.Substring(aggr.IndexOf(".")+1).Replace("_", " ")
+                        @Search.Core.Windows.Helpers.QueryHelper.SplitCamelCase(aggr.Substring(aggr.IndexOf(".")+1).Replace("_", " "))
                     </label>
                 </div>
                 <div id="collapse_@aggr.Replace(" ","")" class="panel-collapse collapse in">
-                    <div class="panel-body">
+                    <div class="panel-body search-panel-body">
+                        @if (aggr.StartsWith("Top months"))
+                        {
+                            coll = coll.OrderByDescending(s => DateTime.Parse(s.Key));
+                        }
+                        @*<svg id="barChart_@aggr.Replace(" ","").Replace(".", "_")"></svg>*@
                         <ul class="list-unstyled">
-                            @foreach (var item in Model.GetAggregations(aggr))
+                            @foreach (var item in coll)
                             {
                                 string key = aggr + "." + item.Key;
                                 <li>
-                                    @*<label class="small"><input type="radio" name="@aggr" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked" : "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>*@
                                     <label class="small"><input type="checkbox" name="checkbox" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked": "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>
                                 </li>
                             }
@@ -91,17 +93,74 @@
 
 @section Scripts {
     <script src="~/lib/jquery.jscroll/jquery.jscroll.min.js"></script>
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=@(Environment.GetEnvironmentVariable("Google_MapApiKey"))&language=en" type="text/javascript"></script>
     <script src="~/js/GoogleMap.js"></script>
+    @*<script src="~/js/d3.min.js" charset="utf-8"></script>*@
+    @*<script type="text/javascript" src="~/lib/bootstrap-daterangepicker/daterangepicker.js"></script>*@
+    <link rel="stylesheet" type="text/css" media="all" href="~/lib/bootstrap-daterangepicker/daterangepicker.scss" />
     <script type="text/javascript">
         $.ajaxSetup({ cache: false }); //disable modal dialog caching
 
-        function outputUpdate(vol) {
-            //document.querySelector('#confidencelbl').value = vol + "%";
-            $('#confidencelbl').val(vol + " %");
-        }
+        $(function () {
+            $("#slider-score").slider({
+                //orientation: "vertical",
+                range: "max",
+                min: @Html.Raw(Model.MinScore),
+                max: @Html.Raw(Math.Floor(Model.MaxScore.Value)),
+                step: 1,
+                slide: function (event, ui) {
+                    $("#minscore2").val(ui.value);
+                    $("#MinScore").val(ui.value);
+                }
+            });
+            $("#minscore2").val( $("#slider-score").slider("value"));
+        });
+
+        //function outputUpdate(vol) {
+        //    //document.querySelector('#confidencelbl').value = vol + "%";
+        //    $('#confidencelbl').val(vol + " %");
+        //}
+
+        $(function () {
+            $(".panel").accordion({
+                collapsible: true
+            });
+        });
 
         $(document).ready(function () {
+            //d3.json("MyController/MyAction", function (data) {
+            //    //Here you have data available, an object with the same structure
+            //    //as the JSON that was send by the server.
+            //});
+            //$('a').tooltip();
+
+            @*var data = [50, 90, 30, 10, 70, 20];
+            @foreach (var aggr in Model.GetAggregations())
+            {
+                string chartId = "barChart_" + aggr.Replace(" ","").Replace(".", "_");
+                @Html.Raw("var "+ chartId+" = d3.select('#" + chartId + "').attr('width', '100%').attr('height', '100%'); ");
+                @Html.Raw(chartId + ".selectAll('rect').data([8, 22, 31, 36, 48, 17, 25]).enter(); ");
+            }*@
+            //chrt.selectAll("rect")
+            //    .data(data)
+            //    .enter()
+            //    .append("rect")
+            //    .attr("x", function (d, i) {
+            //        return i * 21;  //Bar width of 20 plus 1 for padding
+            //    })
+            //    .attr("y", function (d) {
+            //        return h - d;  //Height minus data value
+            //    })
+            //    .attr("width", 20)
+            //    .attr("height", function (d) {
+            //        return d;  //Just the data value
+            //    })
+            //    .attr("fill", function (d) {
+            //        return "rgb(0, 0, " + (d * 3) + ")";
+            //    });
+
+
             //$('#QueryTerm').on("input propertychange paste", function () {
             //    if ($("#ChosenOptions").val().indexOf("3_1") !== -1 && $("#QueryTerm").val().match(/.*=.*/g)) {
             //        var select = $('#SuggestOptions');
@@ -124,7 +183,7 @@
                 nextSelector: 'a.jscroll-next:last',
                 contentSelector: 'li'
             });
-            
+
             //Array.prototype.remove = function () {
             //    var what, a = arguments, L = a.length, ax;
             //    while (L && this.length) {
@@ -136,13 +195,12 @@
             //    return this;
             //};
             //var chosenAggs = [];
-            
+
             $('input.aggregate-filter').click(function () {
                 var agg = $(this).prop('value');
                 //console.log(agg);
                 var chousenaggs = $("#ChosenAggregations").val();
-                if (!chousenaggs)
-                {
+                if (!chousenaggs) {
                     chousenaggs = "";
                 }
                 //console.log($(this).is(":checked"));
@@ -150,41 +208,13 @@
                     //chosenAggs.push(agg);
                     $("#ChosenAggregations").val(chousenaggs + agg + "|");
                 }
-                else{
+                else {
                     $("#ChosenAggregations").val(chousenaggs.replace(agg + "|", ""));
                     //chosenAggs.remove(agg);
                 }
                 //console.log($("#ChosenAggregations").val());
             });
 
-            //$(function () {
-            //    $("#aggregations").accordion();
-            //});
-
-            //$('#confidence').change(function () {
-            //    $('#confidencelbl').val(vol + " %");
-
-            //    switch (this.value) {
-            //        case 1:
-            //            alert(1);
-            //            $('#confidencelbl').html("Help me!");
-            //            break;
-            //        case 2:
-            //            $('#confidencelbl').html("Not sure");
-            //            break;
-            //        case 3:
-            //            $('#confidencelbl').html("Average");
-            //            break;
-            //        case 4:
-            //            $('#confidencelbl').html("More or less");
-            //            break;
-            //        case 5:
-            //            $('#confidencelbl').html("I know what I'm after");
-            //            break;
-            //        //default:
-            //        //    $('#confidencelbl').html("No idea");
-            //        //    break;
-            //    }
         });
     </script>
 }

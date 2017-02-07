@@ -15,6 +15,9 @@ body {
 .bgDark     {color:@darker}
 .bgDark2    {color:@darker2}
 
+.search-panel-body {
+    padding: 0em;
+}
 .chosen-container {
     margin: 10px;
     max-width: 65%;
@@ -87,9 +90,9 @@ button.findBtn {
 }
 
 //collection of styles for file types
-@types: DOC, XLS, PPT, MSG, PDF, JPG;
-@type_colors: black, white,  white, white, black, white;
-@type_bgcolors: aqua, green,  orange, blue, red, #79097e;
+@types: DOC, DOCX, XLS, XLSX, PPT, PPTX, MSG, PDF, JPG;
+@type_colors: black, black, white, white, white,  white,  white, black, white;
+@type_bgcolors: aqua, aqua, green, green, orange, orange, blue,  red, #79097e;
 
 .filetypeclasses(@iterator:1) when(@iterator <= length(@types)) {
     @name: extract(extract(@types, @iterator),1);
@@ -109,7 +112,17 @@ button.findBtn {
     /*float:left;
     overflow: auto;*/
 }
-
+.thumb-btn {
+    padding:0px;
+    min-width:40px;
+    min-height:40px;
+}
+.thumb-image {
+    /*width: 100%;
+    height: 100%;*/
+    max-width:40px;
+    max-height:40px;
+}
 .file-image {
     /*width: 100%;
     height: 100%;*/
@@ -318,4 +331,13 @@ input[type=range] {
   &:focus::-ms-fill-upper {
     background: lighten(@track-color, @contrast);
   }
+}
+
+.panel-group .panel-heading + .panel-collapse > .panel-body, .panel-group .panel-heading + .panel-collapse > .list-group {
+  border-top: none;
+  border-bottom: none;
+}
+
+.list-group > .ui-accordion .ui-accordion-content{
+    padding: 0;
 }

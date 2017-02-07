@@ -39,6 +39,33 @@ namespace Search.Core.Windows.Models
         public string Source { get; set; }
 
         public string Path { get; set; }
+        public string NavigatePath {
+            get {
+                string path = this.Path;
+                if ( !string.IsNullOrEmpty(this.Path) && (path.StartsWith("//") || path.StartsWith("\\\\")) )
+                {
+                    path = "file:///" + path;
+                }
+                //else if ( !string.IsNullOrEmpty(this.Path) && (path.StartsWith("http")) )
+                //{
+                //    path = System.Net.WebUtility.HtmlDecode(path);
+                //}
+                return path;
+            }
+        }
+        public string PrettyPath
+        {
+            get
+            {
+                string path = this.Path;
+                if (!string.IsNullOrEmpty(this.Path) && (path.StartsWith("//")))
+                {
+                    path = path.Replace("/", "\\");
+                }
+                return path;
+            }
+        }
+
         public string ThumbnailPath { get; set; }
         private string myExtension = string.Empty;
         public string Extension

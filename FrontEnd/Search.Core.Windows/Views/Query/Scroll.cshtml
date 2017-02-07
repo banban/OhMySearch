@@ -5,10 +5,19 @@
     <ul id="ulllist" class="list-unstyled">
         @foreach (var item in Model)
         {
-            <li class="search-item">
+            <li class="search-item" >
                 @if (item.CanRead)
                 {
-                    <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
+                    @if (!string.IsNullOrEmpty(item.ThumbnailPath))
+                    {
+                        <a class="btn btn-info thumb-btn" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading...">
+                            <img class="thumb-image" src="@item.ThumbnailPath" />
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." />
+                    }
                 }
                 Index: @item.Index; Type: @item.Type; Score: @item.Score;
                 @if (item.Extension.ToLower() == "pdf")
@@ -21,11 +30,11 @@
                 }
                 @if (!string.IsNullOrEmpty(item.Path) && item.CanRead)
                 {
-                    <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
+                    <a title="@item.PrettyPath" class="glyphicon glyphicon-open-file" href="@Html.Raw(item.NavigatePath)" target="_self">Open</a>
                 }
                 <br /><span class="small">@Html.Raw(item.Summary)</span>
             </li>
         }
-        <li><a class="jscroll-next" hidden href="~/Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))&aggregations=@(Uri.EscapeUriString(ViewBag.ChosenAggregations))">End of page...</a></li>
+        <li><a class="jscroll-next" hidden href="~/Query/Scroll?from=@(ViewBag.From)&term=@(Uri.EscapeUriString(ViewBag.QueryTerm))&options=@(Uri.EscapeUriString(ViewBag.ChosenOptions))&aggregations=@(Uri.EscapeUriString(ViewBag.ChosenAggregations))&minScore=@(ViewBag.MinScore)">End of page...</a></li>
     </ul>
 }

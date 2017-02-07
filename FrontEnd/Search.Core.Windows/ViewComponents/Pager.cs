@@ -41,6 +41,10 @@ namespace Search.Core.Windows.ViewComponents
             {
                 query.ChosenAggregations = Request.Query["aggregations"];
             }
+            if (query.MinScore == 0 && !string.IsNullOrEmpty(Request.Query["minScore"]))
+            {
+                query.MinScore = double.Parse(Request.Query["minScore"]);
+            }
             if (query.QueryOptions.Count() == 0)
             {
                 var qc = new QueryController(_logger, _memoryCache);

@@ -11,6 +11,8 @@ namespace Search.Core.Windows.Models
         {
             From = 0;
             Size = 20;
+            MinScore = 0;
+            MaxScore = 0;
             QueryOptions = new List<QueryOption>();
             SearchResults = new SearchResults();
             Aggregations = new List<Aggregation>();
@@ -138,6 +140,8 @@ namespace Search.Core.Windows.Models
             }
         }
 
+        public double? MinScore { get; set; }
+        public double? MaxScore { get; set; }
         public long Total { get; set; }
         public int? From { get; set; }
         public int? Size { get; set; }

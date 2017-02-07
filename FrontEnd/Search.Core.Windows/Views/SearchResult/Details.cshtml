@@ -12,14 +12,14 @@
     <div class="tab-content">
         <div class="tab-pane active" id="General">
             <div class="col-lg-12 col-md-12">
-                @if (Model.Type == "file" || Model.Type == "photo")
+                @if (!string.IsNullOrEmpty(Model.Path) && Model.CanRead)
                 {
                     <div class="form-group">
                         <div class="col-lg-2">
                             <label asp-for="Path"></label>
                         </div>
                         <div class="col-lg-10">
-                            <a href='file:///@Model.Path.Replace("\\", "/")'>@Model.Path.Replace("/", "\\")</a>
+                            <a href="@Html.Raw(Model.NavigatePath)" target="_self">@Model.PrettyPath</a>
                             @if (Model.Extension.ToLower() == "pdf")
                             {
                                 <img id="Content" src="~/images/pdf.gif" alt="Image" />
@@ -30,33 +30,37 @@
                             }
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="col-lg-2" asp-for="LastModified"></label>
-                        <div class="col-lg-10">
-                            @Model.LastModified
+                    if (Model.LastModified > DateTime.Today.AddYears(-20))
+                    {
+                        <div class="form-group">
+                            <label class="col-lg-2" asp-for="LastModified"></label>
+                            <div class="col-lg-10">
+                                @Model.LastModified
+                            </div>
                         </div>
-                    </div>
-                    if (Model.Type == "photo")
+                    }
+                    if (Model.Type == "photo" || !string.IsNullOrEmpty(Model.ThumbnailPath))
                     {
                         <div class="form-group">
                             <label class="col-lg-2">Photo</label>
                             <div class="col-lg-10">
                                 @if (!string.IsNullOrEmpty(Model.ThumbnailPath))
                                 {
-                                    <img id="Content" class="file-image" title="@Model.Path.Replace("\\","/")" src="~/@Model.ThumbnailPath" alt="Image" />
+                                    <img id="Content" class="file-image" title="@Model.PrettyPath" src="@(Model.ThumbnailPath.StartsWith("http") ? Model.ThumbnailPath : "~"+Model.ThumbnailPath)" alt="Image" />
                                 }
                                 else
                                 {
-                                    <img id="Content" class="file-image" title="@Model.Path.Replace("\\","/")" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
+                                    <img id="Content" class="file-image" title="@Model.PrettyPath" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
                                 }
                             </div>
                         </div>
                     }
                 }
                 <div class="form-group">
-                    <label class="col-lg-2" asp-for="Summary"></label>
+                    <label class="col-lg-2" asp-for="Source"></label>
                     <div class="col-lg-10">
-                        <span class="small">@Model.Summary</span>
+                        @*<pre id="json" class="small">@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model, Newtonsoft.Json.Formatting.None))</pre>*@
+                        <pre class="small json">@Html.Raw(Model.Source.Replace("\r\n", " ").Trim())</pre>
                     </div>
                 </div>
             </div>
@@ -65,10 +69,10 @@
             <div class="col-lg-12 col-md-12">
                 <ul class="list-unstyled">
                     @foreach (var item in Model.MoreLikeThis)
-                    {
+                        {
                         <li class="search-item">
                             @*<a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." ></a>*@
-                            Index: @item.Index; Type: @item.Type;
+                            Index: @item.Index; Type: @item.Type; Score: @item.Score;
                             @if (!string.IsNullOrEmpty(item.Path) && item.CanRead)
                             {
                                 @if (item.Extension.ToLower() == "pdf")
@@ -79,7 +83,7 @@
                                 {
                                     <label class="@item.Extension">@item.Extension</label>
                                 }
-                                <a title="@item.Path.Replace("/", "\\")" class="glyphicon glyphicon-open-file" href='file:///@item.Path.Replace("\\", "/")'>Open</a>
+                                <a title="@item.PrettyPath" class="glyphicon glyphicon-open-file" href="@Html.Raw(item.NavigatePath)" target="_self">Open</a>
                             }
                             <br /><span class="small">@Html.Raw(item.Summary)</span>
                         </li>
@@ -89,3 +93,8 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    @*$(document).ready(function () {
+    }*@
+}
