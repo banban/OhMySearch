@@ -17,7 +17,7 @@ function initMap() {
 
 function findSharedImages(lat, lng) {
     infowindow.close();
-    $.getJSON('../Query/Geo?lat=' + lat + '&lng=' + lng + '&distance=' + Math.round(searchCircle.radius) + 'm&options=' + $("#ChosenOptions").val(), function (data) {
+    $.getJSON('~/Query/Geo?lat=' + lat + '&lng=' + lng + '&distance=' + Math.round(searchCircle.radius) + 'm&options=3_4+' + $("#ChosenOptions").val(), function (data) {
         google.maps.Map.prototype.clearMarkers = function () {
             for (var i = 0; i < this.markers.length; i++) {
                 this.markers[i].setMap(null);

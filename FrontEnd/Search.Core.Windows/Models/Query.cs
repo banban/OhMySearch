@@ -136,6 +136,9 @@ namespace Search.Core.Windows.Models
                 if (!value.Contains("5_")) //check if Aggregation is used
                     this.ChosenAggregations = string.Empty;
 
+                if (value.Contains("6_1")) //check if inversed filter condition is defined
+                    this.Inversed = true;
+
                 myChosenOptions = value;//.Replace("+"," ");
             }
         }
@@ -145,6 +148,7 @@ namespace Search.Core.Windows.Models
         public long Total { get; set; }
         public int? From { get; set; }
         public int? Size { get; set; }
+        public bool? Inversed { get; set; }
 
         public SearchResults SearchResults { get; set; }
         public List<QueryOption> QueryOptions { get; set; }

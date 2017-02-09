@@ -96,7 +96,7 @@ namespace Search.Core.Windows.Helpers
                                 hasAccess = (bool)responseObj["CanRead"];
                             }
                         }
-                        catch (HttpRequestException) //ACL service is configured but not available
+                        catch (Exception) //ACL service is configured but not available HttpRequestException
                         {
                         }
                     }

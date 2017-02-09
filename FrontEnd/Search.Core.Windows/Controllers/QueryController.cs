@@ -93,6 +93,7 @@ namespace Search.Core.Windows.Controllers
             query.QueryTerm = term;
             query.Size = (size.HasValue ? size.Value : query.Size);
             query.MinScore = (minScore.HasValue ? minScore.Value : query.MinScore);
+
             if (from.HasValue)
             {
                 query.From = from.Value;
@@ -224,7 +225,7 @@ namespace Search.Core.Windows.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Scroll(int? from, int? size, string term, string options, string aggregations)
+        public async Task<IActionResult> Scroll(int? from, int? size, string term, string options, string aggregations, int? minScore)
         {
             //if (string.IsNullOrEmpty(term))
             //{
@@ -238,6 +239,8 @@ namespace Search.Core.Windows.Controllers
             query.QueryOptions = await GetQueryOptions(query.ChosenOptions);
             if (size.HasValue)
                 query.Size = size.Value;
+            if (minScore.HasValue)
+                query.MinScore = minScore.Value;
 
             var response = await GetSearchResponse(query);
             if (!response.IsValid)
@@ -260,6 +263,7 @@ namespace Search.Core.Windows.Controllers
             ViewBag.QueryTerm = query.QueryTerm;
             ViewBag.ChosenOptions = query.ChosenOptions;
             ViewBag.ChosenAggregations = query.ChosenAggregations;
+            ViewBag.MinScore = query.MinScore;
             var results = GetSearchResults(User.Identity.Name, response, query.QueryTerm);
             return PartialView(results);
         }
@@ -394,8 +398,10 @@ namespace Search.Core.Windows.Controllers
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_2", Value = "Date Histogram" });
                 options.Add(new Models.QueryOption() { OptionGroup = "Aggregation", Key = "5_3", Value = "Ranges" });
 
-                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_1", Value = "Hierarchy" });
-                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "6_3", Value = "Metadata" }); //index/type/field metadata
+                options.Add(new Models.QueryOption() { OptionGroup = "Filter", Key = "6_1", Value = "Inversed" });
+                options.Add(new Models.QueryOption() { OptionGroup = "Filter", Key = "6_2", Value = "Scored" });
+                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "7_1", Value = "Hierarchy" });
+                //options.Add(new Models.QueryOption() { OptionGroup = "Analysis", Key = "7_3", Value = "Metadata" }); //index/type/field metadata
 
                 _memoryCache.Set("queryOptions", options, new TimeSpan(1, 0, 0)); //new MemoryCacheEntryOptions().AddExpirationToken(new CancellationChangeToken(cts.Token)))
             }
@@ -617,7 +623,18 @@ namespace Search.Core.Windows.Controllers
                 {
                 };
             }
-
+            //inverse logic
+            if (query.ChosenOptions.Contains("6_1"))
+            {
+                query.Inversed = true;
+            }
+            if (query.Inversed.HasValue && query.Inversed.Value == true)
+            {
+                qc = new BoolQuery()
+                {
+                    MustNot = new QueryContainer[] { qc }
+                };
+            }
             var elRequest = new SearchRequest(indices, types)
             {
                 Query = qc,
@@ -1106,9 +1123,9 @@ namespace Search.Core.Windows.Controllers
                 options = "3_4,";
             }
 
-            if (!options.Contains("3_4,"))
+            if (!options.Contains("3_4+"))
             {
-                options += "3_4,";
+                options += "3_4+";
             }
 
             Models.Query query = new Models.Query() {
@@ -1180,6 +1197,11 @@ namespace Search.Core.Windows.Controllers
                         summary = "..." + summary.Substring(firstHLIndex - 20);
                     }
                 }
+                else if (string.IsNullOrEmpty(summary))
+                {
+                    summary = hit.Source.ToString();
+                }
+
                 Models.SearchResult result = new Models.SearchResult()
                 {
                     Id = hit.Id,

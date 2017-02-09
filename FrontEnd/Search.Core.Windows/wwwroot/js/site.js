@@ -28,6 +28,7 @@ $(document).ready(function () {
         width: "70%"
     }).change(function (event, params) {
         if (params.selected) {
+            console.log("selected " + params.selected);
             $("#ChosenOptions").val($("#ChosenOptions").val() + params.selected + "+");
             if (params.selected == "3_1") {
                 $("#QueryTerm").val("Name=Value");
@@ -41,6 +42,9 @@ $(document).ready(function () {
             else if (params.selected == "3_4") {
                 $("#QueryTerm").val("Perth");
             }
+            else if (params.selected == "6_2") {
+                $('#slider-score-placeholder').show();
+            }
 
             ///some options can conflict with others
             //else if (params.selected == "4_1") { 
@@ -52,6 +56,13 @@ $(document).ready(function () {
 
 }
         else if (params.deselected) {
+            console.log("deselected " + params.deselected);
+            if (params.deselected == "6_2") {
+                $("#minscore2").val(0);
+                $("#MinScore").val(0);
+                $('#slider-score-placeholder').hide();
+            }
+
             $("#ChosenOptions").val($("#ChosenOptions").val().replace(params.deselected + "+", ""));
         }
     });

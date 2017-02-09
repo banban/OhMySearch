@@ -30,6 +30,7 @@
                             }
                         </div>
                     </div>
+
                     if (Model.LastModified > DateTime.Today.AddYears(-20))
                     {
                         <div class="form-group">
@@ -39,6 +40,7 @@
                             </div>
                         </div>
                     }
+
                     if (Model.Type == "photo" || !string.IsNullOrEmpty(Model.ThumbnailPath))
                     {
                         <div class="form-group">
@@ -46,21 +48,26 @@
                             <div class="col-lg-10">
                                 @if (!string.IsNullOrEmpty(Model.ThumbnailPath))
                                 {
-                                    <img id="Content" class="file-image" title="@Model.PrettyPath" src="@(Model.ThumbnailPath.StartsWith("http") ? Model.ThumbnailPath : "~"+Model.ThumbnailPath)" alt="Image" />
+                                    <img id="Content" class="file-image" title="@Model.PrettyPath" src="@(Model.ThumbnailPath.StartsWith("http") ? Model.ThumbnailPath : "~" + Model.ThumbnailPath)" alt="Image" />
                                 }
                                 else
                                 {
-                                    <img id="Content" class="file-image" title="@Model.PrettyPath" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content,0,Model.Content.Length)" alt="Image" />
+                                    <img id="Content" class="file-image" title="@Model.PrettyPath" src="data:image/@Model.Extension;base64,@Convert.ToBase64String(Model.Content, 0, Model.Content.Length)" alt="Image" />
                                 }
                             </div>
                         </div>
                     }
                 }
+                else if (!string.IsNullOrEmpty(Model.Path) && !Model.CanRead)
+                {
+                    <label class="col-lg-12">***Access Denied***</label>
+                }
+
                 <div class="form-group">
                     <label class="col-lg-2" asp-for="Source"></label>
-                    <div class="col-lg-10">
+                    <div class="col-lg-10 search-details-source">
                         @*<pre id="json" class="small">@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model, Newtonsoft.Json.Formatting.None))</pre>*@
-                        <pre class="small json">@Html.Raw(Model.Source.Replace("\r\n", " ").Trim())</pre>
+                        <pre class="small">@Html.Raw(Model.PrettySource)</pre>
                     </div>
                 </div>
             </div>

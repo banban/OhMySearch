@@ -41,15 +41,15 @@
         </div>*@
     </div>
 </div>
-    <div class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
+    <div id="slider-score-placeholder" class="panel-group col-lg-push-1 col-md-push-1 col-sm-push-1 col-lg-3 col-md-3 col-sm-3">
         <div class="panel panel-info">
             <div class="panel-heading">
-                <label class="panel-title" title="Filter by score threshold">Confidence:</label>
+                <label class="panel-title" title="Filter by score threshold">Score Filter</label>
             </div>
             <div class="panel-body">
                 <label id="lbl_minscore" class="glyphicon glyphicon-signal"> Min Score: </label><input asp-for="MinScore" type="text" id="minscore2" readonly style="border:0; color:#f6931f; font-size:large; font-weight:bold; width:20px;" />
                 <div id="slider-score"></div>
-                <i class="small">@Model.DebugInformation</i>
+                @*<br /><i class="small">@Model.DebugInformation</i>*@
             </div>
         </div>
     </div>
@@ -129,6 +129,7 @@
         });
 
         $(document).ready(function () {
+
             //d3.json("MyController/MyAction", function (data) {
             //    //Here you have data available, an object with the same structure
             //    //as the JSON that was send by the server.
@@ -174,7 +175,6 @@
             //        $('#QueryTerm').autocomplete('disable');
             //    }
             //});
-
             $('.scroll').jscroll({
                 //autoTriggerUntil: 3,
                 //padding: 20,
@@ -183,18 +183,6 @@
                 nextSelector: 'a.jscroll-next:last',
                 contentSelector: 'li'
             });
-
-            //Array.prototype.remove = function () {
-            //    var what, a = arguments, L = a.length, ax;
-            //    while (L && this.length) {
-            //        what = a[--L];
-            //        while ((ax = this.indexOf(what)) !== -1) {
-            //            this.splice(ax, 1);
-            //        }
-            //    }
-            //    return this;
-            //};
-            //var chosenAggs = [];
 
             $('input.aggregate-filter').click(function () {
                 var agg = $(this).prop('value');
@@ -214,6 +202,22 @@
                 }
                 //console.log($("#ChosenAggregations").val());
             });
+
+            setInterval(function(){
+                var chousenoptions = $("#ChosenOptions").val();
+                if (!chousenoptions) {
+                    chousenoptions = "";
+                }
+                //alert(chousenaggs);
+                if (chousenoptions.indexOf("6_2") !== -1){
+                    $('#slider-score-placeholder').show();
+                }
+                else{
+                    $("#minscore2").val(0);
+                    $("#MinScore").val(0);
+                    $('#slider-score-placeholder').hide();
+                }
+            },0);
 
         });
     </script>

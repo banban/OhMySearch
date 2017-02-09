@@ -20,6 +20,17 @@ body {
 .search-panel-body {
   padding: 0em;
 }
+.search-details-source {
+  padding: 0em;
+  width: 100%;
+}
+.search-details-label {
+  color: gray;
+}
+.search-details-value {
+  font: bold;
+  color: darkmagenta;
+}
 .chosen-container {
   margin: 10px;
   max-width: 65%;

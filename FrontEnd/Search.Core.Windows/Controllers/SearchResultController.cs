@@ -53,6 +53,7 @@ namespace Search.Core.Windows.Controllers
             try
             {
                 searchResult.Path = ((string)result.Source["Path"]);
+                searchResult.ThumbnailPath = ((string)result.Source["ThumbnailPath"]);
             }
             catch (Exception)
             {

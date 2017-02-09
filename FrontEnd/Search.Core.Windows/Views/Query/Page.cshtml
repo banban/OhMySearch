@@ -17,10 +17,10 @@
                     }
                     else
                     {
-                        <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..." />
+                        <a class="btn btn-info glyphicon glyphicon-info-sign" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
                     }
                 }
-                Index: @item.Index; Type: @item.Type; Score: @item.Score;
+                Title: <b>@item.PrettyTitle</b>; Index: @item.Index; Type: @item.Type;
                 @if (item.Extension.ToLower() == "pdf")
                 {
                     <img id="Content" src="~/images/pdf.gif" alt="Image" />
