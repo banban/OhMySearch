@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -40,68 +42,118 @@ namespace Search.Core.Windows.Models
         [Display(Name = "Details", Description ="This content is compressed and optimised for Elastic Search engine and do not reflect original content directly.")]
         public string Source { get; set; }
 
+        void SortJson(JObject jObj)
+        {
+            var props = jObj.Properties().ToList();
+            foreach (var prop in props)
+            {
+                prop.Remove();
+            }
+
+            foreach (var prop in props.OrderBy(p => p.Name))
+            {
+                jObj.Add(prop);
+                if (prop.Value is JObject)
+                    SortJson((JObject)prop.Value);
+            }
+        }
         public string PrettySource {
             get {
-                //remove new lines
-                string result = this.Source.Replace("\r\n", "");
-                // http/https addresses are replaced with Open link
-                result = Regex.Replace(result, "\"(http[s]?://.[^\"]+)\"", "<a href='$1' target='_self'>Open</a>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-                // unc paths are replaced with Open link
-                result = Regex.Replace(result, "\"(//.[^\"]+)\"", "<a href='file:///$1' target='_self'>Open</a>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                string result = string.Empty;
+                try
+                {
+                    var jObj = (JObject)JsonConvert.DeserializeObject(this.Source);
+                    //SortJson(jObj); //nested objects version
+                    //this.Source = jObj.ToString();
+                    foreach (var prop in jObj.Properties().ToList().OrderBy(p => p.Name))
+                    {
+                        string value = prop.Value.ToString();
+                        if (!string.IsNullOrEmpty(value))
+                        {
+                            result += "<label class='search-details-label'>" + prop.Name + "</label>: ";
+                            if (value.ToLower().StartsWith("http://") || value.ToLower().StartsWith("https://"))
+                            {
+                                result += "<a href='" + value + "' target='_self'>Open</a>";
+                            }
+                            else if (value.ToLower().StartsWith("//"))
+                            {
+                                result += "<a href='file:///" + value + "' target='_self'>Open</a>";
+                            }
+                            else
+                            {
+                                result += "<label class='search-details-value'>\"" + value + "\"</label>";
+                            }
+                            result += "<br/>";
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
 
-                //field names without values
-                result = Regex.Replace(result, "\"(.[^\"]+)\":\\s+\"\"", "", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-                result = Regex.Replace(result, "\"(.[^\"]+)\":\\s+,", "", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                ////remove new lines
+                //result = this.Source.Replace("\r\n", "");
+                //// http/https addresses are replaced with Open link
+                //result = Regex.Replace(result, "\"(http[s]?://.[^\"]+)\"", "<a href='$1' target='_self'>Open</a>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                //// unc paths are replaced with Open link
+                //result = Regex.Replace(result, "\"(//.[^\"]+)\"", "<a href='file:///$1' target='_self'>Open</a>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
-                //field names without quotes
-                result = Regex.Replace(result, "\"(.[^\"]+)\":\\s+", "<label class='search-details-label'>$1</label>: ", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-                //field values with quotes
-                result = Regex.Replace(result, ":\\s+\"(.[^\"]+)\"", ": <label class='search-details-value'>\"$1\"</label>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-                //field values without quotes
-                result = Regex.Replace(result, ":\\s+((\\d{1,10}.?(\\d{1,6})?))", ": <label class='search-details-value'>$1</label>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-                //compress
-                result = result.Trim().TrimStart('{').TrimEnd('}').Trim();
-                result = Regex.Replace(result, "\"(.[^\"]+)\":\\s?[,$]", "", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-                result = result.Replace(",  ,", ",").TrimEnd(',').Trim();
+                ////field names without values
+                //result = Regex.Replace(result, "\"(.[^\"]+)\":\\s+\"\"", "", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                //result = Regex.Replace(result, "\"(.[^\"]+)\":\\s+,", "", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+                ////field names without quotes
+                //result = Regex.Replace(result, "\"(.[^\"]+)\":\\s+", "<label class='search-details-label'>$1</label>: ", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                ////field values with quotes
+                //result = Regex.Replace(result, ":\\s+\"(.[^\"]+)\"", ": <label class='search-details-value'>\"$1\"</label>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                ////field values without quotes
+                //result = Regex.Replace(result, ":\\s+((\\d{1,10}.?(\\d{1,6})?))", ": <label class='search-details-value'>$1</label>", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                ////compress
+                //result = result.Trim().TrimStart('{').TrimEnd('}').Trim();
+                //result = Regex.Replace(result, "\"(.[^\"]+)\":\\s?[,$]", "", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                //result = result.Replace(",  ,", ",");
+                //result = Regex.Replace(result, ",\\s+,", ",", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                //result = Regex.Replace(result, "</label>,\\s+<label", "</label><br/><label", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                //result = result.TrimEnd(',').Trim();
                 return result;
             }
         }
 
+        private string[] titleNames = "Title,Name,DisplayName,FileName,Project_Title,CN_ID".Split(',');
         public string PrettyTitle
         {
             get
             {
-                var source = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(this.Source);
-                string result = (string)source["Title"];
-                if (string.IsNullOrEmpty(result))
+                string result = string.Empty;
+                try
                 {
-                    result = (string)source["Name"];
-                }
-                if (string.IsNullOrEmpty(result))
-                {
-                    result = (string)source["DisplayName"];
-                }
-                if (string.IsNullOrEmpty(result))
-                {
-                    result = (string)source["Project_Title"];
-                }
-                if (string.IsNullOrEmpty(result))
-                {
-                    result = (string)source["FileName"];
-                }
-                if (string.IsNullOrEmpty(result))
-                {
-                    var path = (string)source["Path"];
-                    if (path.StartsWith("//"))
+                    var source = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(this.Source);
+                    for (int i = 0; i < titleNames.Length; i++)
                     {
-                        if (this.CanRead && path.TrimEnd('/').LastIndexOf('/') > 0)
+                        result = (string)source[titleNames[i]];
+                        if (!string.IsNullOrEmpty(result))
                         {
-                            result = path.Substring(path.TrimEnd('/').LastIndexOf('/')+1);
+                            break;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(result))
+                    {
+                        var path = (string)source["Path"];
+                        if (path.StartsWith("//"))
+                        {
+                            if (this.CanRead && path.TrimEnd('/').LastIndexOf('/') > 0)
+                            {
+                                result = path.Substring(path.TrimEnd('/').LastIndexOf('/') + 1);
+                            }
                         }
                     }
                 }
-
-                return result;
+                catch (Exception)
+                {
+                    return string.Empty;
+                }
+                return result ?? "No Title";
             }
         }
 

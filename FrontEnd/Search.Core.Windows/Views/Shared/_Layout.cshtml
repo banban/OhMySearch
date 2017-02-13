@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - @Startup.Configuration["AppSettings:SiteTitle"]</title>
+    <title>@ViewData["Title"] - @Environment.GetEnvironmentVariable("SiteTitle")</title>
     <link rel="icon" href="~/images/search-icon.png" />
     <environment names="Development">
         <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />

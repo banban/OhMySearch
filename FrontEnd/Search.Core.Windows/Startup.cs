@@ -51,6 +51,8 @@ namespace Search.Core.Windows
                 }
             }
 
+            //share some settings without IConfiguration. Another approach could be found in Home controller cunstructor
+            Environment.SetEnvironmentVariable("SiteTitle", Configuration["AppSettings:SiteTitle"]);
             Environment.SetEnvironmentVariable("Author", Configuration["AppSettings:Author"]);
             Environment.SetEnvironmentVariable("Wiki", Configuration["AppSettings:Wiki"]);
             Environment.SetEnvironmentVariable("Support", Configuration["AppSettings:Support"]);
@@ -103,6 +105,7 @@ namespace Search.Core.Windows
             // Add framework services.
             services.AddMvc();
             services.AddMemoryCache();
+            services.AddSingleton<IConfiguration>(Configuration);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

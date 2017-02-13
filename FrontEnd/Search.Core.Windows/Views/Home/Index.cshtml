@@ -1,10 +1,12 @@
-﻿@{
+﻿@model IEnumerable<Search.Core.Windows.Models.Redirect>
+
+@{
     ViewData["Title"] = "Home Page";
 }
 <div class="jumbotron">
     <div class="row">
         <div class="col-lg-6 col-md-12 hidden-sm hidden-xs">
-            <h2 class="glyphicon glyphicon-search">@Startup.Configuration["AppSettings:SiteTitle"]</h2>
+            <h2 class="glyphicon glyphicon-search">@Environment.GetEnvironmentVariable("SiteTitle")</h2>
             <p class="lead">when content matters</p>
         </div>
         <div class="col-lg-6 hidden-md hidden-sm hidden-xs">
@@ -16,8 +18,18 @@
         </div>
         <div class="col-lg-6 col-md-12">
             @await Component.InvokeAsync("QueryOptions", null)
+
+            @{
+                int tabindex = 3;
+                foreach (var item in Model)
+                {
+                    <button class="btn btn-info" tabindex="@(tabindex).ToString()" title="@item.Title" onClick="var url = '@item.Url' + $('#QueryTerm').val();window.open(url);"><i class="glyphicon glyphicon-search">@item.Name</i></button>
+                    tabindex++;
+                }
+            }
         </div>
         <div class="col-lg-3 hidden-md hidden-sm">
         </div>
     </div>
 </div>
+

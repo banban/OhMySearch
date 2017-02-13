@@ -96,5 +96,4 @@ $(document).ready(function () {
             themesheet.attr('href', themeurl);
         });
     });
-
 });

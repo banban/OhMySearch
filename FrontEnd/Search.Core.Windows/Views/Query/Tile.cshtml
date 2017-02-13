@@ -8,11 +8,11 @@
         <div class="flip-container" ontouchstart="this.classList.toggle('hover');">
             <div class="flipper">
                 <div class="front">
-                    @if (item.Extension.ToLower() == "pdf")
+                    @if (!string.IsNullOrEmpty(item.Extension) && item.Extension.ToLower() == "pdf")
                     {
                         <img id="Content" src="~/images/pdf.gif" alt="Image" />
                     }
-                    else
+                    else if (!string.IsNullOrEmpty(item.Extension))
                     {
                         <label class="@item.Extension">@item.Extension</label>
                     }
@@ -27,7 +27,7 @@
                     <span class="small">@Html.Raw(item.Summary)</span>
                 </div>
                 <div class="back">
-                    Title: <b>@item.PrettyTitle</b>; Index: @item.Index; Type: @item.Type;
+                    <b>@item.PrettyTitle</b>
                     @if (item.CanRead)
                     {
                         @if (!string.IsNullOrEmpty(item.ThumbnailPath))
