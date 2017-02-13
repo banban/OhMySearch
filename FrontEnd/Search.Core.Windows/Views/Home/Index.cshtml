@@ -23,7 +23,9 @@
                 int tabindex = 3;
                 foreach (var item in Model)
                 {
-                    <button class="btn btn-info" tabindex="@(tabindex).ToString()" title="@item.Title" onClick="var url = '@item.Url' + $('#QueryTerm').val();window.open(url);"><i class="glyphicon glyphicon-search">@item.Name</i></button>
+                    <button class="btn btn-info" tabindex="@tabindex.ToString()" title="@item.Title" onClick="redirect('@item.Url')">
+                        <i class="glyphicon glyphicon-search">@item.Name</i>
+                    </button>
                     tabindex++;
                 }
             }
@@ -33,3 +35,13 @@
     </div>
 </div>
 
+@section Scripts {
+<script type="text/javascript">
+    function redirect(url){
+        window.open(url + $('#QueryTerm').val());
+    }
+
+    $(document).ready(function () {
+    });
+</script>
+}
