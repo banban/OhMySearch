@@ -78,7 +78,7 @@ Param(
     [String[]]
     $SharedFolders=@(),
     [Parameter(HelpMessage = 'List of full path (partial name of folder or file) parts excluded from search')]
-    $FilePathExceptions = @("*\_template*\*","*\_private\*","*\dfsrprivate\*","*\bin\*","*\tags\*","*obsolete\*","*\backup\*","*backup copy*","*\previous issues and bak-ups\*","*\log\*","*\old\*","*\recyclebin\*","*\AI_RecycleBin\*","*\conflictanddeleted\*","*\deleted\*","*\previous issues\*","*\temp\*","*\drafts\*","*\documents not used as re-worded\*","*Draft Documents\*","*\*Old Versions\*"), #,"*\archive\*"
+    $FilePathExceptions = @("*\_template*\*","*\_private\*","*\dfsrprivate\*","*\bin\*","*\tags\*","*obsolete\*","*\backup\*","*backup copy*","*\previous issues and bak-ups\*","*\log\*","*\old\*","*\recyclebin\*","*\AI_RecycleBin\*","*\conflictanddeleted\*","*\deleted\*","*\previous issues\*","*\temp\*","*\drafts\*","*\documents not used as re-worded\*","*Draft Documents\*","*\*Old Versions\*","*\.svn\*","*\.git\*","*\jre\*"), #,"*\archive\*"
     [string]$SearchFolderName = "_search",
     [string]$SearchFileMask = "*.search.json",
     [bool]$SearchFileNameHashed = $true,

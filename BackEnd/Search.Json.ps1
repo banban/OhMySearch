@@ -29,7 +29,7 @@ Param(
     [ValidateCount(1,100)]
     $FileExtensionsForSearch = @(".xls",".xlsx",".xlsm",".xlsb",".ppt",".pps",".pptx",".doc",".docx",".docm",".pdf",".jpg",".msg"), #
     [Parameter(HelpMessage = 'List of full path (partial name of folder or file) parts excluded from search')]
-    $FilePathExceptions = @("*\_template*\*","*\_private\*","*\dfsrprivate\*","*\bin\*","*\tags\*","*obsolete\*","*\backup\*","*backup copy*","*\previous issues and bak-ups\*","*\log\*","*\old\*","*\recyclebin\*","*\AI_RecycleBin\*","*\conflictanddeleted\*","*\deleted\*","*\previous issues\*","*\temp\*","*\drafts\*","*\documents not used as re-worded\*","*_Draft Documents\*","*\99_Old Versions\*","*\.svn\*","*\.git\*"),
+    $FilePathExceptions = @("*\_template*\*","*\_private\*","*\dfsrprivate\*","*\bin\*","*\tags\*","*obsolete\*","*\backup\*","*backup copy*","*\previous issues and bak-ups\*","*\log\*","*\old\*","*\recyclebin\*","*\AI_RecycleBin\*","*\conflictanddeleted\*","*\deleted\*","*\previous issues\*","*\temp\*","*\drafts\*","*\documents not used as re-worded\*","*_Draft Documents\*","*\99_Old Versions\*","*\.svn\*","*\.git\*","*\jre\*"),
     [Parameter(HelpMessage = 'List of file name excluded from search')]
     $FileNameExceptions = @("*.search.json","*.zip","*.config","*.db","*.bak","*.url","*.lnk","*.log","subsegmentlist_*.pdf","*._*.pdf","* draft *.","*_draft_*.*","temp *.*","*.bin","_permissions.txt","_readme.txt","*[?][?]*","_*~*.pdf"),
     [Parameter(HelpMessage = 'werfault process is message box described here http://smallbusiness.chron.com/stop-werfaultexe-56154.html')]
