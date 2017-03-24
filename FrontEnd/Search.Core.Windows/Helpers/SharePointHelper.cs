@@ -1,4 +1,4 @@
-﻿using Microsoft.Graph;
+﻿//using Microsoft.Graph;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,37 +11,37 @@ namespace Search.Core.Windows.Controllers
 {
     public class SharePointController
     {
-        public async Task AppendAuthenticationHeaderAsync()
-        {
-            var authenticationToken = "token";
+        //public async Task AppendAuthenticationHeaderAsync()
+        //{
+        //    var authenticationToken = "token";
 
-            var authenticationProvider = new DelegateAuthenticationProvider(
-                (requestMessage) =>
-                {
-                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue(CoreConstants.Headers.Bearer, authenticationToken);
-                    return Task.FromResult(0);
-                });
+        //    var authenticationProvider = new DelegateAuthenticationProvider(
+        //        (requestMessage) =>
+        //        {
+        //            requestMessage.Headers.Authorization = new AuthenticationHeaderValue(CoreConstants.Headers.Bearer, authenticationToken);
+        //            return Task.FromResult(0);
+        //        });
 
-            using (var httpRequestMessage = new HttpRequestMessage())
-            {
-                await authenticationProvider.AuthenticateRequestAsync(httpRequestMessage);
-                //Assert.AreEqual(
-                //    string.Format("{0} {1}", CoreConstants.Headers.Bearer, authenticationToken),
-                //    httpRequestMessage.Headers.Authorization.ToString(),
-                //    "Unexpected authorization header set.");
-            }
-        }
+        //    using (var httpRequestMessage = new HttpRequestMessage())
+        //    {
+        //        await authenticationProvider.AuthenticateRequestAsync(httpRequestMessage);
+        //        //Assert.AreEqual(
+        //        //    string.Format("{0} {1}", CoreConstants.Headers.Bearer, authenticationToken),
+        //        //    httpRequestMessage.Headers.Authorization.ToString(),
+        //        //    "Unexpected authorization header set.");
+        //    }
+        //}
 
-        public async Task AppendAuthenticationHeaderAsync_DelegateNotSet()
-        {
-            var authenticationProvider = new DelegateAuthenticationProvider(null);
+        //public async Task AppendAuthenticationHeaderAsync_DelegateNotSet()
+        //{
+        //    var authenticationProvider = new DelegateAuthenticationProvider(null);
 
-            using (var httpRequestMessage = new HttpRequestMessage())
-            {
-                await authenticationProvider.AuthenticateRequestAsync(httpRequestMessage);
-                //Assert.IsNull(httpRequestMessage.Headers.Authorization, "Unexpected authorization header set.");
-            }
-        }
+        //    using (var httpRequestMessage = new HttpRequestMessage())
+        //    {
+        //        await authenticationProvider.AuthenticateRequestAsync(httpRequestMessage);
+        //        //Assert.IsNull(httpRequestMessage.Headers.Authorization, "Unexpected authorization header set.");
+        //    }
+        //}
     }
     /*public Models.Query SearchOnPrem(Models.Query query)
     {

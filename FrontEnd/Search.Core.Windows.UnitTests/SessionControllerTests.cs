@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Moq;
+//using Moq;
 using Search.Core.Windows.Controllers;
 using Search.Core.Windows.Core.Interfaces;
 using Search.Core.Windows.Core.Model;
@@ -14,76 +14,76 @@ namespace Search.Core.Windows.UnitTests
 {
     public class SessionControllerTests
     {
-        [Fact]
-        public async Task IndexReturnsARedirectToIndexHomeWhenIdIsNull()
-        {
-            // Arrange
-            var controller = new SessionController(sessionRepository: null);
+        //[Fact]
+        //public async Task IndexReturnsARedirectToIndexHomeWhenIdIsNull()
+        //{
+        //    // Arrange
+        //    var controller = new SessionController(sessionRepository: null);
 
-            // Act
-            var result = await controller.Index(id: null);
+        //    // Act
+        //    var result = await controller.Index(id: null);
 
-            // Arrange
-            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(result);
-            Assert.Equal("Home", redirectToActionResult.ControllerName);
-            Assert.Equal("Index", redirectToActionResult.ActionName);
-        }
+        //    // Arrange
+        //    var redirectToActionResult = Assert.IsType<RedirectToActionResult>(result);
+        //    Assert.Equal("Home", redirectToActionResult.ControllerName);
+        //    Assert.Equal("Index", redirectToActionResult.ActionName);
+        //}
 
-        [Fact]
-        public async Task IndexReturnsContentWithSessionNotFoundWhenSessionNotFound()
-        {
-            // Arrange
-            int testSessionId = 1;
-            var mockRepo = new Mock<IBrainstormSessionRepository>();
-            mockRepo.Setup(repo => repo.GetByIdAsync(testSessionId))
-                .Returns(Task.FromResult((BrainstormSession)null));
-            var controller = new SessionController(mockRepo.Object);
+        //[Fact]
+        //public async Task IndexReturnsContentWithSessionNotFoundWhenSessionNotFound()
+        //{
+        //    // Arrange
+        //    int testSessionId = 1;
+        //    var mockRepo = new Mock<IBrainstormSessionRepository>();
+        //    mockRepo.Setup(repo => repo.GetByIdAsync(testSessionId))
+        //        .Returns(Task.FromResult((BrainstormSession)null));
+        //    var controller = new SessionController(mockRepo.Object);
 
-            // Act
-            var result = await controller.Index(testSessionId);
+        //    // Act
+        //    var result = await controller.Index(testSessionId);
 
-            // Assert
-            var contentResult = Assert.IsType<ContentResult>(result);
-            Assert.Equal("Session not found.", contentResult.Content);
-        }
+        //    // Assert
+        //    var contentResult = Assert.IsType<ContentResult>(result);
+        //    Assert.Equal("Session not found.", contentResult.Content);
+        //}
 
-        [Fact]
-        public async Task IndexReturnsViewResultWithStormSessionViewModel()
-        {
-            // Arrange
-            int testSessionId = 1;
-            var mockRepo = new Mock<IBrainstormSessionRepository>();
-            mockRepo.Setup(repo => repo.GetByIdAsync(testSessionId))
-                .Returns(Task.FromResult(GetTestSessions().FirstOrDefault(s => s.Id == testSessionId)));
-            var controller = new SessionController(mockRepo.Object);
+        //[Fact]
+        //public async Task IndexReturnsViewResultWithStormSessionViewModel()
+        //{
+        //    // Arrange
+        //    int testSessionId = 1;
+        //    var mockRepo = new Mock<IBrainstormSessionRepository>();
+        //    mockRepo.Setup(repo => repo.GetByIdAsync(testSessionId))
+        //        .Returns(Task.FromResult(GetTestSessions().FirstOrDefault(s => s.Id == testSessionId)));
+        //    var controller = new SessionController(mockRepo.Object);
 
-            // Act
-            var result = await controller.Index(testSessionId);
+        //    // Act
+        //    var result = await controller.Index(testSessionId);
 
-            // Assert
-            var viewResult = Assert.IsType<ViewResult>(result);
-            var model = Assert.IsType<StormSessionViewModel>(viewResult.ViewData.Model);
-            Assert.Equal("Test One", model.Name);
-            Assert.Equal(2, model.DateCreated.Day);
-            Assert.Equal(testSessionId, model.Id);
-        }
+        //    // Assert
+        //    var viewResult = Assert.IsType<ViewResult>(result);
+        //    var model = Assert.IsType<StormSessionViewModel>(viewResult.ViewData.Model);
+        //    Assert.Equal("Test One", model.Name);
+        //    Assert.Equal(2, model.DateCreated.Day);
+        //    Assert.Equal(testSessionId, model.Id);
+        //}
 
-        private List<BrainstormSession> GetTestSessions()
-        {
-            var sessions = new List<BrainstormSession>();
-            sessions.Add(new BrainstormSession()
-            {
-                DateCreated = new DateTime(2016, 7, 2),
-                Id = 1,
-                Name = "Test One"
-            });
-            sessions.Add(new BrainstormSession()
-            {
-                DateCreated = new DateTime(2016, 7, 1),
-                Id = 2,
-                Name = "Test Two"
-            });
-            return sessions;
-        }
+        //private List<BrainstormSession> GetTestSessions()
+        //{
+        //    var sessions = new List<BrainstormSession>();
+        //    sessions.Add(new BrainstormSession()
+        //    {
+        //        DateCreated = new DateTime(2016, 7, 2),
+        //        Id = 1,
+        //        Name = "Test One"
+        //    });
+        //    sessions.Add(new BrainstormSession()
+        //    {
+        //        DateCreated = new DateTime(2016, 7, 1),
+        //        Id = 2,
+        //        Name = "Test Two"
+        //    });
+        //    return sessions;
+        //}
     }
 }

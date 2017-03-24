@@ -51,6 +51,7 @@ Check existing plugins
 
 Test your configuration use this command:
     C:\Search\logstash-5.0.0-alpha3\bin\logstash.bat -f "C:\Search\Import\logstash-austender.conf" --config.test_and_exit
+    C:\Search\logstash-5.0.0-alpha3\bin\logstash.bat -f "C:\Search\Import\logstash-events.conf" --config.test_and_exit
 Expected result: Configuration OK
 Unexpected error: The signal HUP is in use by the JVM and will not work correctly on this platform
 Which means - kill existing jruby process conflicting with your request :(

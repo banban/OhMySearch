@@ -282,6 +282,7 @@ namespace Search.Core.Windows.Controllers
                 {
                     indexes = catIndices.Records
                         .Where(rec => !rec.Index.StartsWith(".")  //exclude .kibana, .marvel, .logstash
+                            && !rec.Index.StartsWith("winlogbeat-")
                             && (string.IsNullOrEmpty(rec.DocsCount) ? "0" : rec.DocsCount) != "0")
                         // && rec.Status == "open"
                         //.Select(rec => new { rec.Index, rec.Status, rec.DocsCount, rec.StoreSize }
@@ -674,8 +675,14 @@ namespace Search.Core.Windows.Controllers
                                     Field = item.Field,
                                     Value = item.Value
                                 };
-                                groupQuery = groupQuery || termQuery; //inside the group we use OR
-                                //elRequest.Query = elRequest.Query && termQuery;
+                                if (filters.Count() == 1)
+                                {
+                                    groupQuery = groupQuery && termQuery;
+                                }
+                                else
+                                {
+                                    groupQuery = groupQuery || termQuery; //inside the group we use OR
+                                }
                                 break;
                             //case "Stats":
                             //    break;
@@ -686,8 +693,14 @@ namespace Search.Core.Windows.Controllers
                                     GreaterThanOrEqualTo = start,
                                     LessThan = start.AddMonths(1)
                                 };
-                                groupQuery = groupQuery || dateRangeQuery;  //inside the group we use OR
-                                //elRequest.Query = elRequest.Query && dateRangeQuery;
+                                if (filters.Count() == 1)
+                                {
+                                    groupQuery = groupQuery && dateRangeQuery;
+                                }
+                                else
+                                {
+                                    groupQuery = groupQuery || dateRangeQuery; //inside the group we use OR
+                                }
                                 break;
                             case "Top ranges": //0 - 100 or 200 - ...
                                 var numRangeQuery = +new Nest.NumericRangeQuery()
@@ -696,8 +709,14 @@ namespace Search.Core.Windows.Controllers
                                     GreaterThanOrEqualTo = double.Parse(item.Value.Split('-')[0].Trim()),
                                     LessThanOrEqualTo = ((item.Value.Split('-')[1].Trim() != "...") ? double.Parse(item.Value.Split('-')[1].Trim()) : double.MaxValue)
                                 };
-                                groupQuery = groupQuery || numRangeQuery;  //inside the group we use OR
-                                //elRequest.Query = elRequest.Query && numRangeQuery;
+                                if (filters.Count() == 1)
+                                {
+                                    groupQuery = groupQuery && numRangeQuery;
+                                }
+                                else
+                                {
+                                    groupQuery = groupQuery || numRangeQuery; //inside the group we use OR
+                                }
                                 break;
                             default:
                                 break;
@@ -728,9 +747,15 @@ namespace Search.Core.Windows.Controllers
                             {
                                 foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
+                                    var textValue = (fieldMapping.Value as Nest.TextProperty);
                                     if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name)
-                                        && fieldMapping.Value.Type.Name == "keyword" //can't use text fields for terms aggregation
-                                        && fieldMapping.Key.Name != "rowguid" && fieldMapping.Key.Name != "id" && fieldMapping.Key.Name != "Path"
+                                        //exclude some predefined names
+                                        && fieldMapping.Key.Name != "rowguid" && fieldMapping.Key.Name != "id" && fieldMapping.Key.Name != "Path" 
+                                        //check metadata has keyword ref
+                                        && (
+                                            fieldMapping.Value.Type.Name == "keyword" //can't use text fields for terms aggregation
+                                            || (textValue != null && textValue.Fields != null && textValue.Fields.Where(f => f.Key == "keyword") != null) //some text fields are keyword in mind
+                                            )
                                         )
                                     {
                                         termList.Add(fieldMapping.Key.Name);
@@ -841,7 +866,7 @@ namespace Search.Core.Windows.Controllers
                                 foreach (var fieldMapping in typeMapping.Value.Properties)
                                 {
                                     if (fieldMapping.Value != null && !termList.Contains(fieldMapping.Key.Name)
-                                        && (fieldMapping.Value.Type.Name == "double" || fieldMapping.Value.Type.Name == "float")
+                                        && (fieldMapping.Value.Type.Name == "double" || fieldMapping.Value.Type.Name == "float" || fieldMapping.Value.Type.Name == "number" || fieldMapping.Value.Type.Name == "integer" || fieldMapping.Value.Type.Name == "short" || fieldMapping.Value.Type.Name == "long")
                                         )
                                     {
                                         termList.Add(fieldMapping.Key.Name);
@@ -876,22 +901,22 @@ namespace Search.Core.Windows.Controllers
                                 if (minValue.HasValue && maxValue.HasValue)
                                 {
                                     string term = agg.Key.Replace("Stats: ", "");
-                                    var ranges = new List<Nest.Range>();
+                                    var ranges = new List<Nest.AggregationRange>();
                                     double step = Math.Round((maxValue.Value - minValue.Value) / 10, 0);
                                     double currValue = minValue.Value;
                                     for (int i = 0; i < 10; i++)
                                     {
                                         if (currValue == minValue.Value)
                                         {
-                                            ranges.Add(new Nest.Range { To = currValue + step });
+                                            ranges.Add(new Nest.AggregationRange { To = currValue + step });
                                         }
                                         else if (i == 9)
                                         {
-                                            ranges.Add(new Nest.Range { From = currValue + 1 });
+                                            ranges.Add(new Nest.AggregationRange { From = currValue + 1 });
                                         }
                                         else
                                         {
-                                            ranges.Add(new Nest.Range { From = currValue + 1, To = currValue + step });
+                                            ranges.Add(new Nest.AggregationRange { From = currValue + 1, To = currValue + step });
                                         }
                                         currValue += step; 
                                     }

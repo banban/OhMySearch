@@ -53,6 +53,7 @@ function Main(){
         DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/logstash/logstash-$($ESVersion).zip"
         DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/kibana/kibana-$($ESVersion)-windows-x86.zip"
         DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-$($ESVersion)-windows-x86_64.zip"
+        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-x86_64.zip"
     }
     
     #configure file processors: tesseract, image, etc. Install-Module described here: http://psget.net
@@ -83,7 +84,7 @@ function Main(){
     $config = $config.Replace("#cluster.name: my-application", " cluster.name: $ClusterName")
     #Environment variables referenced with the ${...} notation within the configuration file will be replaced with the value of the environment variable, for instance:
     #do not use host name in service mode to avoide Exception in thread "main" ception: Could not resolve placeholder 'HOSTNAME'
-    $config = $config.Replace("#node.name: node-1", " node.name: $($env:COMPUTERNAME)") #`${HOSTNAME}
+    $config = $config.Replace("#node.name: node-1", " node.name: $($env:COMPUTERNAME)") #`${HOSTNAME} or use ${COMPUTERNAME}
     $config = $config.Replace("#path.data: /path/to/data", " path.data: $env:SEARCH_HOME\Data")
     $config = $config.Replace("#path.logs: /path/to/logs", " path.logs: $env:LOG_DIR")
 
@@ -193,6 +194,8 @@ function Main(){
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" install Elastic-Search
         #manager allowes to check current status of service and java options in UI
         #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" manager Elastic-Search
+        #cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" manager Elastic-Search
+        #C:\Search\winlogbeat-5.2.2-windows-x86_64\scripts\import_dashboards.exe -es
 
         #let's start it...
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-service.bat" start Elastic-Search
@@ -203,10 +206,15 @@ function Main(){
         <#unfortunately kibana as a service is not available yet in v5
             cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\kibana.bat" install Kibana
 
+            sc create "Kibana <version>" binPath= "{path to batch file}" depend= "elasticsearch-service-x64" 
+            sc create "Kibana <version>" binPath= "{path to batch file}" depend= "elasticsearch-service-x64" 
+            sc config "Kibana <version>" obj= LocalSystem password= "" 
+
+
         but we can simulate that service. run the following command in admin mode:
             cmd.exe /C sc create "ElasticSearch Kibana" binPath= "$env:SEARCH_HOME\kibana-$ESVersion-windows\bin\kibana.bat" depend= "Elastic-Search" 
             sc start "ElasticSearch Kibana"
-        ignore messages that service is not accesable. it is already running, just check http://localhost:5601
+        ignore messages that service is not accessible. it is already running, just check http://localhost:5601
         to uninstall run:
             sc stop "ElasticSearch Kibana"
             sc delete "ElasticSearch Kibana"
