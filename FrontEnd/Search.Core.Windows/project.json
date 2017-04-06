@@ -8,8 +8,8 @@
       "type": "build"
     },
     "Microsoft.VisualStudio.Web.BrowserLink.Loader": "14.1.0",
-    "Serilog.Extensions.Logging.File": "1.0.0",
-    "NEST": "5.2.0",
+    "Serilog.Extensions.Logging.File": "1.0.1",
+    "NEST": "5.3.0",
     "BundlerMinifier.Core": "2.4.337",
     "Microsoft.AspNetCore.Diagnostics": "1.1.1",
     "Microsoft.AspNetCore.Mvc": "1.1.2",
