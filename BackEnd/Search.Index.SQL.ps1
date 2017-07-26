@@ -207,7 +207,7 @@ Param(
 )
 
 function Main(){
-    Clear-Host
+    try{Clear-Host}catch{} # avoid Exception setting "ForegroundColor": "Cannot convert null to type 
     if ($sql_DbName -eq "" -or $sql_Query -eq ""){
         Echo "Please specify sql_DbName and sql_Query parameter value"
         break;

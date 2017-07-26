@@ -15,7 +15,7 @@ Param(
 
     [string]$indexName,
     [string]$aliasName,
-    [string]$typeName,
+    [string]$typeName = "log",
 
     [Parameter(HelpMessage = '~1 Mb. A good place to start is with batches of 1,000 to 5,000 documents or, if your documents are very large, with even smaller batches.')]
     [int]$batchMaxSize = 1000,

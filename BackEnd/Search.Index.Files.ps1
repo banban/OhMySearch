@@ -100,7 +100,7 @@ Param(
 
 
 function Main(){
-    Clear-Host
+    try{Clear-Host}catch{} # avoid Exception setting "ForegroundColor": "Cannot convert null to type 
     <#if ($pscmdlet.ShouldProcess($SharedFolders)){
         Write-output "Going to index the following folders $($SharedFolders)"
         break

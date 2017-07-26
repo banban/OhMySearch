@@ -6,18 +6,18 @@
     .\Search.Environment.ps1
 
 3. Set up dev
-    .\Search.Setup.ps1 -ESVersion_Old "5.3.1" -ESVersion "5.4.0" -ClusterName "OhMySearch-Dev"
+    .\Search.Setup.ps1 -ESVersion_Old "5.4.0" -ESVersion "5.5.1" -ClusterName "OhMySearch-Dev"
 
 4. Configure production cluster:
     cd E:\Search
-    .\Search.Setup.ps1 -ESVersion_Old "5.3.1" -ESVersion "5.4.0" -ClusterName "OhMySearch-Prod" -SetEnvironment `
+    .\Search.Setup.ps1 -ESVersion_Old "5.4.0" -ESVersion "5.5.1" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-<your code>.json"
 
 5. Debug locally:
-    cmd.exe /C "C:\Search\elasticsearch-5.4.0\bin\elasticsearch.bat"
-    $ESVersion_Old = "5.3.1"
-    $ESVersion = "5.4.0"
+    cmd.exe /C "C:\Search\elasticsearch-5.5.1\bin\elasticsearch.bat"
+    $ESVersion_Old = "5.4.0"
+    $ESVersion = "5.5.1"
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
 Param(
@@ -35,7 +35,7 @@ Param(
 [string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
 if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
 function Main(){
-    Clear-Host
+    try{Clear-Host}catch{} # avoid Exception setting "ForegroundColor": "Cannot convert null to type 
 
     if ($env:JAVA_HOME -eq $null) # since alpha 3 $env:JAVA_HOME is not the only option. It accepts java.exe path. Not implemented yet
     {

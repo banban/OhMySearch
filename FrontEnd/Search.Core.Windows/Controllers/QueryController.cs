@@ -539,7 +539,7 @@ namespace Search.Core.Windows.Controllers
                     Fuzziness = Fuzziness.Auto, //The fuzzy query is depricated and replaced by MatchQuery.Fuzziness . Similarity is based on Levenshtein edit distance
                     FuzzyTranspositions = true,
                     MinimumShouldMatch = 2,
-                    FuzzyRewrite = RewriteMultiTerm.ConstantScoreBoolean,
+                    FuzzyMultiTermQueryRewrite = MultiTermQueryRewrite.ConstantScoreBoolean,
                     MaxExpansions = 2,
                     Slop = 2,
                     Lenient = true,

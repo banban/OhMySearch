@@ -103,7 +103,7 @@ Param(
 )
 
 function Main(){
-    Clear-Host
+    try{Clear-Host}catch{} # avoid Exception setting "ForegroundColor": "Cannot convert null to type 
 
     if ($webSite -ne $null -and $webSite -ne ""){
         #ignore test ssl certificate warning, do not use for external resources

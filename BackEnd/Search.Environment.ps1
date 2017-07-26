@@ -44,7 +44,7 @@ if (!(Test-IsAdmin)){
 #$env:TESSERACT_HOME
 #$env:TESSDATA_PREFIX
 
-[Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-7.0.2-Q16", "User")
+[Environment]::SetEnvironmentVariable("MAGICK_HOME", "C:\Program Files\ImageMagick-7.0.5-Q16", "User")
 [Environment]::SetEnvironmentVariable("MAGICK_TMPDIR", "C:\Temp\MAGICK_TMPDIR", "User") #use non system drive with enough free space
 
 [Environment]::SetEnvironmentVariable("SEARCH_HOME", "C:\Search", "User")

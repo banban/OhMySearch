@@ -929,7 +929,7 @@ function GetEntities(){
 
 
 function Main(){
-    Clear-Host
+    try{Clear-Host}catch{} # avoid Exception setting "ForegroundColor": "Cannot convert null to type 
     [string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
     if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
     #configure logging
