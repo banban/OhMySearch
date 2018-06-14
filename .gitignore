@@ -246,3 +246,9 @@ ModelManifest.xml
 /FrontEnd/Search.Core.Windows/appsettings.Staging.json
 /FrontEnd/Search.Core.Windows/appsettings.Production.json
 /FrontEnd/Search.Core.Windows/Logs
+/FrontEnd/Search.Core/Logs
+/FrontEnd/Search.Core/appsettings.Production.json
+/FrontEnd/Search.Core/appsettings.Development.json
+/FrontEnd/Search.Core/appsettings.Development.json
+/FrontEnd/Search.Core/appsettings.Production.json
+/FrontEnd/Search.Core/appsettings.Staging.json

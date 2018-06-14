@@ -1,0 +1,65 @@
+.content {
+    padding-top: 20px;
+}
+.markdown-section {
+    padding: 1.5em;
+}
+.cover img {
+    max-width: 100px;
+}
+@media (min-height: 600px) {
+    .cover img {
+        max-width: 200px;
+    }
+}
+#carbon, .markdown-section p.warn:first-child {
+    max-width: 400px;
+}
+#carbon {
+    margin: 1em auto;
+    padding: 1em;
+    background: rgba(0, 0, 0, 0.05);
+    text-align: left;
+}
+#carbonads {
+    position: relative;
+}
+.carbon-img {
+    margin-right: 1em;
+}
+.carbon-text {
+    max-width: 200px;
+    line-height: 1.2;
+}
+#carbonads a {
+    text-decoration: none;
+    font-weight: normal;
+}
+#carbonads img {
+    display: block;
+}
+.carbon-wrap {
+    display: flex;
+}
+.carbon-wrap a {
+    display: block;
+}
+.carbon-poweredby {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    font-size: 11px;
+    line-height: 1;
+    font-style: italic;
+}
+.sidebar h1 a {
+    display: block;
+}
+.sidebar h1 a img {
+    max-width:100px;
+    display: block;
+    margin: 0 auto;
+}
+.sidebar-nav {
+    border-top: 1px solid rgba(0,0,0,.07);
+}

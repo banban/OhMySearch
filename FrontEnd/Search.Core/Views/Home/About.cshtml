@@ -1,0 +1,241 @@
+﻿@{
+    ViewBag.Title = "About";
+}
+<div class="row page-header">
+    <h2>@ViewBag.Title.</h2>
+    @*<h3>@ViewBag.Message</h3>*@
+</div>
+<h2>Overview</h2>
+<p>
+    The application simplifies company search experience making it more relevant. It distinguishes "what", "where" and "how" to search.
+    It remembers user search history to build advisory profile, communicates with other systems and searching engines without duplicating content.
+    It minimises navigation efforts, hides complexity and visualizes search results summary.<br />
+</p>
+<h2>Getting started</h2>
+<p>
+    If you put your search term - or parts of it - in quotes, you’ll get more specific results. For instance, “mark hamill” “star wars” would probably get better results than mark hamill star wars.
+    Your search term should sound like the answer you’re looking for rather than the question. So search for “2015 academy award winner” instead of “who was that guy who won that film award in 2015”?
+    Be LESS specific. Every new word you add is narrowing your results!
+</p>
+<div class="row">
+    <div class="col-md-4 col-lg-4">
+        <ul class="faq">
+            <li><a href="#q1">What is Full-Text Search?</a></li>
+            <li><a href="#q2">How do I do a basic search on Full-Text Search?</a></li>
+            <li><a href="#q3">Is there an advanced search feature on Full-Text Search?</a></li>
+            <li><a href="#q4">The filing I was looking for did not show up at the top of the results. Why not?</a></li>
+            <li><a href="#q6">Can I specify query URL?</a></li>
+            <li><a href="#q7">Can I use only digits in search query?</a></li>
+            <li><a href="#q8">Can I search in images?</a></li>
+            <li><a href="#q9">What does "Search in" mean?</a></li>
+            <li><a href="#q10">Which folders are included in "Files" search scope?</a></li>
+            <li><a href="#q12">What kinds of searches can I do on Full-Text Search?</a></li>
+            <li><a href="#q13">What is "natural language" searching?</a></li>
+            <li><a href="#q14">How do I search for an exact phrase, such as "management discussion and analysis"?</a></li>
+            <li><a href="#q15">I want to search for a proper name. Should I capitalize the name?</a></li>
+            <li><a href="#q16">I did a search and found a document I wanted to look at. I opened the document but I couldn't find the search term in the document. What do I do?</a></li>
+            <li><a href="#q17">How does Boolean searching work?</a></li>
+            <li><a href="#q18">How does the Boolean operator AND work?</a></li>
+            <li><a href="#q19">How does the Boolean operator OR work?</a></li>
+            <li><a href="#q20">How does the Boolean operator NOT work?</a></li>
+            <li><a href="#q21">What if I find a document that includes the terms I entered, but I want the terms to be closer together in the document?</a></li>
+            <li><a href="#q22">Is there a "wildcard" symbol that will allow me to search by the root of a word followed by one or more additional characters? </a></li>
+            <li><a href="#q26">I search on a specific word, but the results return other stems or variations of the word. How can I turn this off?</a></li>
+        </ul>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-8">
+        <a name="q1"></a><strong>What is Full-Text Search?</strong>
+        <p>
+            Full-Text Search (FTS) allows to search and rank indexed by keywords content from different types of files.
+            Full-Text Search uses a conceptual search engine to search and retrieve the information you need. It knows about semantic similariity and forms od word.
+        </p>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q2"></a><strong>How do I do a basic search on Full-Text Search? </strong>
+        <p>
+            Type your search in the search box and click the "Find" button.
+            If you would like to enter a new search, type new search in the "Search For Text" box.
+        </p>
+        <p>When you receive your search results, click on the title of any document to view the full document.</p>
+        <p><a href="#top">top</a></p>
+
+        <a name="q3"></a><strong>Is there an advanced search feature on Full-Text Search?</strong>
+        <p>Use “Scope” and “Semantic” tabs to improve your search capabilities</p>
+        <p><a href="#top">top</a></p>
+
+        <a name="q4"></a><strong>The filing I was looking for did not show up at the top of the results. Why not? </strong>
+        <p>
+            After you click "Search", the results returned by the search engine are sorted in reverse
+            rank order, meaning that the most relevant filings are at the top. You can narrow the results by adding new search terms, selecting a form type, and selecting a date range for the filing.
+        </p>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q6"></a><strong>Can I specify query URL?</strong>
+        <p>
+            Yes. Each executed query has integer Id which is stored in your query history. You can copy full url from your browse link like the following <a href="~/Query/Create/45">link with query id</a>
+        </p> after executing query and share it or save in Favorites.<br />
+        Also you can assign query string parameter named "q" like the following <a href="~/Query/Create?q=find something for me">link with query string</a>
+        </p>
+
+        <strong>Can I use only digits in search query?</strong>
+        <p>
+            No, try to avoid digits in search text. Standalong digits are treated as noise and ignored by search engine. If you need to find file with name &quot;D06005.docx&quot; do not
+            use &quot;06005&quot; as search creteria. It must be &quot;D06005.docx&quot;.
+        </p>
+        <a name="q8"></a><p><a href="#top">top</a></p>
+
+        <strong>Can I search in images?</strong>
+        <p>
+            There are number of aproaches for image search (CamFind app, Google images, etc.). But they not always match with expectations or not relevant to search context.
+            BMP, TIFF, GIF, PNG, JPG files can be indexed using OCR techniques. That approach is also used in PDF scanned files. <br />
+            JPG (photo) files are generated by camera/mobile phone with a number of useful properties in EXIF format. These properties are used for search as well. <br />
+            The most important properties are geolocation (latitude, longitude, altitude). You have to activate GPS tag on your camera before taking the photo. This allows us to show search results on the Bing/Google maps. <br />
+            Additionally, image is converted to vector format (SVG) and in simplified (charcoal: 2, threshold: 50%, reduced noise, trimmed, striped) format as a part of search index.
+            The idea of vectorization is to keep contour map (shapes) of original image (as a rule 10% or less of original size) to compare with shappes derived from other images.
+            Geometry allows us to find some key attributes of shapes and build similarity profile based on these attributes. These unique feature will be available soon.<br />
+            Another interesting aspect is merging your photo/file attributes with social networks content (flickr, foursquare, facebook, etc.) to get extra info about site current status.
+        </p>
+
+        <a name="q9"></a><p><a href="#top">top</a></p>
+        <strong>What does "Search in" mean?</strong>
+        <p>That means scope for search in different contexts by redirecting request to other search engines.</p>
+
+        <a name="q10"></a><p><a href="#top">top</a></p>
+        <strong>Which folders are included in "Files" search scope?</strong>
+        <p>
+            "Files" is the biggest scope in our search landscape. We index different shared folders files based on extension.<br />
+            Additionally, we index log files some technical archives (CTM invoices, recruting candidate profiles, etc). User can access search results only if access to original folders is granted.<br />
+            Current list of indexed folders spesified in back-end integration scripts<br />
+        </p>
+
+        <a name="q12"></a><p><a href="#top">top</a></p>
+
+        </a><strong>What kinds of searches can I do on Full-Text Search? </strong>
+        <p>You can search Full-Text Search using "natural language" or Boolean search operators.</p>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q13"></a><strong>What is "natural language" searching? </strong>
+        <p>Natural language searching allows you to search for a concept by using the language that you would use to express that concept to another person.</p>
+        <blockquote>Example: <strong>fluctuations in interest rates</strong></blockquote>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q14"></a><strong>How do I search for an exact phrase, such as "management discussion and analysis"? </strong>
+        <p>Enter the exact phrase in quotation marks.</p>
+
+        <blockquote>Example: <strong>"management discussion and analysis"</strong></blockquote>
+
+        <p>The use of quotation marks will find documents containing the exact phrase "management discussion and analysis." The results set will not be limited only to that phrase, however, and may also include conceptually related phrases such as "managerial discussion & analysis."</p>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q15"></a><strong>I want to search for a proper name. Should I capitalize the name? </strong>
+        <p>Yes. Capitalizing the proper name will cause the search engine to increase the relevance ranking of the documents containing the name.</p>
+        <blockquote>Example: <strong>Department of Energy</strong></blockquote>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q16"></a><strong>I did a search and found a document that I wanted to view. I opened the document, but I couldn't find the search term in the document. What do I do? </strong>
+        <p><strong>Notes:</strong></p>
+        <ul>
+            <li>
+                <p>The search engine is a <em><strong>conceptual</strong></em> search engine rather than a <strong>key word</strong> search engine.  Therefore it may retrieve some results that are conceptually related to your search terms but do not necessarily contain your precise search term.</p>
+                <p>Also, if you did a wildcard search, the search engine may retrieve results that include words similar to your search terms.</p>
+                <p>
+                    Example:<br />
+                    <table border="1">
+                        <tr>
+                            <td><strong>You searched on ...	</strong></td>
+                            <td><strong>The search retrieved documents that contained ...</strong></td>
+                        </tr>
+                        <tr>
+                            <td>commun*	</td>
+                            <td>community or communication or communal, etc.</td>
+                        </tr>
+                    </table>
+                </p>
+            </li>
+        </ul>
+        <p><strong>Finding your search terms within the document:</strong></p>
+        <ul>
+            <li>If the document is in <strong>HTML</strong> (the usual web page format), or a <strong>text file</strong>, click CTRL+F (at the same time), then type your search term in the box, and click "Find Next." </li>
+            <li>If the document is in <strong>Adobe PDF</strong> format, click on the binocular icon, type your search term, and click "Find." </li>
+        </ul>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q17"></a><strong>How does Boolean searching work? </strong>
+        <p>Boolean searching allows you to narrow, broaden, or limit a search by connecting search terms with Boolean operators such as AND, OR, and NOT. <strong>All Boolean operators</strong> must be typed in uppercase letters.</p>
+        <blockquote>Example: <strong>AND</strong>, <strong>OR</strong>, <strong>NOT</strong> </blockquote>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q18"></a><strong>How does the Boolean operator AND work? </strong>
+        <p>The Boolean operator AND narrows your search by telling Autonomy that <strong>all</strong> terms connected by the AND operator <strong>must</strong> be contained in a document (but not necessarily in the same sentence or paragraph). These terms can appear in any order in the document.</p>
+        <blockquote>Example: <strong>(software AND hardware)</strong></blockquote>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q19"></a><strong>How does the Boolean operator OR work? </strong>
+        <p>The Boolean operator OR broadens your search by locating a document containing <strong>any</strong> of the terms connected by the OR operator.</p>
+        <blockquote>Example: <strong>(trucks OR cars)</strong> </blockquote>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q20"></a><strong>How does the Boolean operator NOT work? </strong>
+        <p>The Boolean operator NOT limits your search by locating documents that contain one term but <strong>not</strong> another term.</p>
+        <blockquote>Example: <strong>(petroleum NOT gasoline)</strong></blockquote>
+        <p>This search will locate documents that contain the term "petroleum" but not the term "gasoline."</p>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q21"></a><strong>What if I find a document that includes the terms I entered, but I want the terms to be closer together in the document? </strong>
+        <p>You can use operator NEAR to locate documents that contain the terms close each other.</p>
+        <blockquote>Example: <strong>(Equipment NEAR Diagram)</strong></blockquote>
+        <p>Also, you can use operator NEAR to locate documents that contain the terms you selected within "<strong><em>n</em></strong>" words, or fewer, of one another (where <strong><em>n</em></strong> is the number of words).</p>
+
+        <blockquote>Example: <strong>NEAR((defence,navy),5)</strong></blockquote>
+
+        <p><a href="#top">top</a></p>
+
+        <a name="q22"></a><strong>Is there a "wildcard" symbol that will allow me to search by the root of a word followed by one or more additional characters? </strong>
+        <p>The asterisk (*) is a wildcard symbol that searches for the root of a word followed by one or more characters.</p>
+        <blockquote>Example: <strong>communicat*</strong></blockquote>
+        <p>This search will locate documents that contain terms such as <em>communicate</em>, <em>communicates</em>, <em>communicated</em>, <em>communication</em>, <em>communications</em>, and <em>communicating</em>.</p>
+
+        <p><a href="#top">top</a></p>
+
+        <strong>I search on a specific word, but the results return other stems or variations of the word. How can I turn this off?</strong>
+        <p>
+            The Full-Text Search Engine, by default, searches on the stems of words in the query. For instance, "securities" would get stemmed to "secur" and also find
+            "security," "secure," "securing," and "secures."
+        </p>
+        @*To turn this off, on the Advanced search menu page, deselect the "Use Stemming" checkbox and the search engine will not stem your query terms. A search on "securities" will only return "securities."*@
+
+        <p><a href="#top">top</a></p>
+
+    </div>
+    <div class="col-md-3 col-lg-3">
+
+        <h2>Search in sources?</h2>
+        <p>Visual Studio Online search.</p>
+        <p><a class="btn btn-default" href="https://visualstudio.com/">Learn more &raquo;</a></p>
+
+        <h2>Search by image?</h2>
+        <p>Over 1 million users love CamFind! Take a picture of any object and learn more about it.</p>
+        <p><a class="btn btn-default" href="https://itunes.apple.com/app/camfind-search-qr-reader-price/id595857716">Learn more &raquo;</a></p>
+
+        <h2>Ready for cloud search?</h2>
+        <p><a class="btn btn-default" href="https://azure.microsoft.com/en-us/services/search/">Learn more &raquo;</a></p>
+
+    </div>
+</div>
+
+<p>
+    Powered by <a class="tran" href="http://asp.net/">ASP.Net</a>, <a class="tran" href="http://getbootstrap.com/">Bootstrap</a>
+</p>

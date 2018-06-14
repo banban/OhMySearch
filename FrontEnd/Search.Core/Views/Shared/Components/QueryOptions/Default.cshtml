@@ -1,0 +1,33 @@
+﻿@model Search.Core.Models.Query
+
+<form method="post" asp-antiforgery="true" asp-controller="Query" asp-action="Index" enctype="multipart/form-data">
+    <div class="row">
+        <div class="col-md-12">
+            <input id="QueryTerm" asp-for="QueryTerm" class="form-control searchbox" type="search" placeholder="Search Terms..." autofocus tabindex="1" />
+            <button id="findBtn" class="btn btn-primary fa fa-search" type="submit" tabindex="2"></button>
+        </div>
+        <div class="col-md-12">
+            <select id="QueryOptions" data-placeholder="Search Options..." class="chosen-select form-control" multiple tabindex="3">
+                @foreach (var group in Model.GetOptionGroups())
+                {
+                    <optgroup label="@group">
+                        @foreach (var option in Model.GetOptions(group))
+                        {
+                            if (option.Selected == true)
+                            {
+                                <option selected value="@option.Key">@option.Value</option>
+                            }
+                            else
+                            {
+                                <option value="@option.Key">@option.Value</option>
+                            }
+                        }
+                    </optgroup>
+                }
+            </select>
+            <input id="ChosenOptions" hidden asp-for="ChosenOptions" />
+            <input id="ChosenAggregations" hidden asp-for="ChosenAggregations" />
+            <input id="MinScore" hidden asp-for="MinScore" />
+        </div>
+    </div>
+</form>

@@ -23,7 +23,7 @@ if (!(Test-IsAdmin)){
 }
 
 #after upgrading Java you need to define home folder explicitly, for example:
-#[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Java\jre1.8.0_111", "User")
+#[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Java\jre1.8.0_161", "User")
 
 #persistent for current user profile
 [Environment]::SetEnvironmentVariable("ElasticUri", "http://$($env:computername):9200", "User")

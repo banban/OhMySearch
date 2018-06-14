@@ -1,0 +1,21 @@
+{
+  "name": "asp.net",
+  "private": true,
+  "dependencies": {
+    "bootstrap": "v4.1.1",
+    "jquery-validation": "1.17.0",
+    "jquery-validation-unobtrusive": "v3.2.10",
+    "jquery-ui": "1.12.1",
+    "jscroll": "v2.4.1",
+    "chosen": "v1.8.6",
+    "Font-Awesome": "5.0.13"
+  },
+  "resolutions": {
+    "jquery": ">=1.10",
+    "jquery-validation": "1.15.0",
+    "chosen": "v1.8.6",
+    "jscroll": "v2.4.1",
+    "bootstrap": "v4.1.1",
+    "jquery-validation-unobtrusive": "v3.2.10"
+  }
+}

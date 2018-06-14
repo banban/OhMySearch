@@ -1,0 +1,34 @@
+﻿@model Search.Core.Models.Query
+
+<!-- pager -->
+@if (Model?.SearchResults?.Pager?.EndPage > 1)
+{
+    <ul class="pagination pager">
+        @if (Model.SearchResults.Pager.CurrentPage > 1)
+        {
+            <li>
+                <a href="~/Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&aggregations=@(Model.ChosenAggregations)&minScore=@(ViewBag.MinScore)">First</a>
+            </li>
+            <li>
+                <a href="~/Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&aggregations=@(Model.ChosenAggregations)&page=@(Model.SearchResults.Pager.CurrentPage - 1)&minScore=@(ViewBag.MinScore)">Previous</a>
+            </li>
+        }
+
+        @for (var page = Model.SearchResults.Pager.StartPage; page <= Model.SearchResults.Pager.EndPage; page++)
+        {
+            <li class="@(page == Model.SearchResults.Pager.CurrentPage ? "active" : "")">
+                <a href="~/Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&aggregations=@(Model.ChosenAggregations)&page=@(page)&minScore=@(ViewBag.MinScore)">@(page)</a>
+            </li>
+        }
+
+        @if (Model.SearchResults.Pager.CurrentPage < Model.SearchResults.Pager.TotalPages)
+        {
+            <li>
+                <a href="~/Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&aggregations=@(Model.ChosenAggregations)&page=@(Model.SearchResults.Pager.CurrentPage + 1)&minScore=@(ViewBag.MinScore)">Next</a>
+            </li>
+            <li>
+                <a href="~/Query/Index?term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Model.ChosenOptions)&aggregations=@(Model.ChosenAggregations)&page=@(Model.SearchResults.Pager.TotalPages)&minScore=@(ViewBag.MinScore)">Last</a>
+            </li>
+        }
+    </ul>
+}

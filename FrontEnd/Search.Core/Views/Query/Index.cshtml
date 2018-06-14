@@ -1,0 +1,226 @@
+﻿@model Search.Core.Models.Query
+@{
+    ViewData["Title"] = "Search Results";
+}
+<div class="col-lg-12 col-md-12" data-position="fixed" data-role="content">
+    @await Component.InvokeAsync("QueryOptions", new { query = Model })
+    <div class="col-lg-8 col-md-8 float-sm-left">
+        <ul class="nav nav-tabs tab-header">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#Search-Results">Results <span title="Total" class="badge badge-dark">@Model.Total</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" id="MapsTab" href="#Search-Maps">Maps</a>
+            </li>
+            @*<li><a href="#Search-Debug" role="tab" data-toggle="tab" class="glyphicon glyphicon-info-sign">Request Info</a></li>*@
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane table-responsive active" id="Search-Results">
+                @if (Model.ChosenOptions.Contains("4_1")
+             || (!Model.ChosenOptions.Contains("4_1") && !Model.ChosenOptions.Contains("4_2") && !Model.ChosenOptions.Contains("4_3")))
+                {
+
+                    <div class="scroll col-lg-12 col-md-12 list-unstyled">
+                        <a class="jscroll-next" hidden href="~/Query/Scroll?from=0&term=@(Uri.EscapeUriString(Model.QueryTerm))&options=@(Uri.EscapeUriString(Model.ChosenOptions))&aggregations=@(Uri.EscapeUriString(Model.ChosenAggregations))&minScore=@(ViewBag.MinScore)">...</a>
+                    </div>
+                }
+                else if (Model.ChosenOptions.Contains("4_2"))
+                {
+                    <div class="page col-lg-12 col-md-12">
+                        @await Html.PartialAsync("Page")
+                    </div>
+                }
+                else if (Model.ChosenOptions.Contains("4_3"))
+                {
+                    <div class="page col-lg-12 col-md-12">
+                        @await Html.PartialAsync("Tile")
+                    </div>
+                }
+            </div>
+            <div class="tab-pane table-responsive" id="Search-Maps">
+                <div id="googleMap"></div>
+            </div>
+            @*<div class="tab-pane" id="Search-Debug">
+                    <span id="searchDebugInfo">@Model.DebugInformation</span>
+                </div>*@
+        </div>
+    </div>
+    <div id="slider-score-placeholder" class="float-sm-right">
+        <div class="card">
+            <div class="card-block">
+                <label class="card-header" title="Filter by score threshold">Score Filter</label>
+                <p class="card-text">
+                    <label id="lbl_minscore" class="glyphicon glyphicon-signal"> Min Score: </label><input asp-for="MinScore" type="text" id="minscore2" readonly style="border:0; color:#f6931f; font-size:large; font-weight:bold; width:20px;" />
+                    <div id="slider-score"></div>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.GetAggregations().Count() > 0)
+{
+    <i class="small">aggregation filter: @Model.ChosenAggregations</i>
+    <div id="slider-score-placeholder" class="float-sm-right">
+        @foreach (var aggr in Model.GetAggregations())
+        {
+            var coll = Model.GetAggregations(aggr);
+            <div class="card">
+                <div class="card-block">
+                    <label class="card-header">@Search.Core.Helpers.QueryHelper.SplitCamelCase(aggr.Substring(aggr.IndexOf(".") + 1).Replace("_", " "))</label>
+                    <p class="card-text">
+                        @if (aggr.StartsWith("Top months"))
+                        {
+                            coll = coll.OrderByDescending(s => DateTime.Parse(s.Key));
+                        }
+                        @*<svg id="barChart_@aggr.Replace(" ","").Replace(".", "_")"></svg>*@
+                        <ul class="list-unstyled">
+                            @foreach (var item in coll)
+                            {
+                                string key = aggr + "." + item.Key;
+                                <li>
+                                    <label class="small"><input type="checkbox" name="checkbox" @Html.Raw((Model.ChosenAggregations.Contains(key) ? "checked" : "")) class="aggregate-filter" value="@key"> @item.Key <span class="badge">@item.Count</span></label>
+                                </li>
+                            }
+                        </ul>
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script src="~/lib/jscroll/dist/jquery.jscroll.min.js"></script>
+    <script src="~/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@(Environment.GetEnvironmentVariable("Google_MapApiKey"))&language=en" type="text/javascript"></script>
+    <script src="~/js/GoogleMap.js"></script>
+    @*<script src="~/js/d3.min.js" charset="utf-8"></script>*@
+    @*<script type="text/javascript" src="~/lib/bootstrap-daterangepicker/daterangepicker.js"></script>*@
+    @*<link rel="stylesheet" type="text/css" media="all" href="~/lib/bootstrap-daterangepicker/daterangepicker.css" />*@
+    <script type="text/javascript">
+        $.ajaxSetup({ cache: false }); //disable modal dialog caching
+
+        $(function () {
+            $("#slider-score").slider({
+                //orientation: "vertical",
+                range: "max",
+                min: @Html.Raw(Model.MinScore),
+                max: @Html.Raw(Math.Floor(Model.MaxScore.Value)),
+                step: 1,
+                slide: function (event, ui) {
+                    $("#minscore2").val(ui.value);
+                    $("#MinScore").val(ui.value);
+                }
+            });
+            $("#minscore2").val( $("#slider-score").slider("value"));
+        });
+
+        //function outputUpdate(vol) {
+        //    //document.querySelector('#confidencelbl').value = vol + "%";
+        //    $('#confidencelbl').val(vol + " %");
+        //}
+
+        $(function () {
+            $(".panel").accordion({
+                collapsible: true
+            });
+        });
+
+        $(document).ready(function () {
+            setInterval(function () {
+                $(".chosen-select").chosen();
+            }, 0);
+
+            //d3.json("MyController/MyAction", function (data) {
+            //    //Here you have data available, an object with the same structure
+            //    //as the JSON that was send by the server.
+            //});
+            //$('a').tooltip();
+
+            @*var data = [50, 90, 30, 10, 70, 20];
+            @foreach (var aggr in Model.GetAggregations())
+            {
+                string chartId = "barChart_" + aggr.Replace(" ","").Replace(".", "_");
+                @Html.Raw("var "+ chartId+" = d3.select('#" + chartId + "').attr('width', '100%').attr('height', '100%'); ");
+                @Html.Raw(chartId + ".selectAll('rect').data([8, 22, 31, 36, 48, 17, 25]).enter(); ");
+            }*@
+            //chrt.selectAll("rect")
+            //    .data(data)
+            //    .enter()
+            //    .append("rect")
+            //    .attr("x", function (d, i) {
+            //        return i * 21;  //Bar width of 20 plus 1 for padding
+            //    })
+            //    .attr("y", function (d) {
+            //        return h - d;  //Height minus data value
+            //    })
+            //    .attr("width", 20)
+            //    .attr("height", function (d) {
+            //        return d;  //Just the data value
+            //    })
+            //    .attr("fill", function (d) {
+            //        return "rgb(0, 0, " + (d * 3) + ")";
+            //    });
+
+
+            //$('#QueryTerm').on("input propertychange paste", function () {
+            //    if ($("#ChosenOptions").val().indexOf("3_1") !== -1 && $("#QueryTerm").val().match(/.*=.*/g)) {
+            //        var select = $('#SuggestOptions');
+            //        $.getJSON('Query/Suggest/?queryTerm=' + $('#QueryTerm').val(), function (data) {
+            //            $("#QueryTerm").autocomplete({
+            //                source: data
+            //            });
+            //        });
+            //    }
+            //    else {
+            //        $('#QueryTerm').autocomplete('disable');
+            //    }
+            //});
+            $('.scroll').jscroll({
+                //autoTriggerUntil: 3,
+                //padding: 20,
+                //loadingHtml: '<div>End of search</div>',
+                loadingHtml: '<div class="row"><div class="col s4 center"><div class="progress"><div class="indeterminate"></div>End of search</div></div></div>',
+                nextSelector: 'a.jscroll-next:last',
+                contentSelector: 'li'
+            });
+
+            $('input.aggregate-filter').click(function () {
+                var agg = $(this).prop('value');
+                //console.log(agg);
+                var chousenaggs = $("#ChosenAggregations").val();
+                if (!chousenaggs) {
+                    chousenaggs = "";
+                }
+                //console.log($(this).is(":checked"));
+                if ($(this).is(":checked")) {
+                    //chosenAggs.push(agg);
+                    $("#ChosenAggregations").val(chousenaggs + agg + "|");
+                }
+                else {
+                    $("#ChosenAggregations").val(chousenaggs.replace(agg + "|", ""));
+                    //chosenAggs.remove(agg);
+                }
+                //console.log($("#ChosenAggregations").val());
+            });
+
+            setInterval(function(){
+                var chousenoptions = $("#ChosenOptions").val();
+                if (!chousenoptions) {
+                    chousenoptions = "";
+                }
+                //alert(chousenaggs);
+                if (chousenoptions.indexOf("6_2") !== -1){
+                    $('#slider-score-placeholder').show();
+                }
+                else{
+                    $("#minscore2").val(0);
+                    $("#MinScore").val(0);
+                    $('#slider-score-placeholder').hide();
+                }
+            },0);
+
+        });
+    </script>
+}

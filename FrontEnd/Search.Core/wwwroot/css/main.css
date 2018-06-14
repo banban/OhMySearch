@@ -1,0 +1,337 @@
+body {
+  background-color: #ffffff;
+  background-image: url(~/images/gsa-universal.png);
+}
+.baseColor {
+  color: #ffffff;
+}
+.bgLight {
+  color: #ffffff;
+}
+.bgLight2 {
+  color: #ffffff;
+}
+.bgDark {
+  color: #e6e6e6;
+}
+.bgDark2 {
+  color: #cccccc;
+}
+.search-panel-body {
+  padding: 0em;
+}
+.search-details-source {
+  padding: 0em;
+  width: 100%;
+}
+.search-details-label {
+  color: gray;
+}
+.search-details-value {
+  font: bold;
+  color: darkmagenta;
+}
+.chosen-container {
+  margin: 10px;
+  max-width: 65%;
+}
+button.findBtn {
+  margin-top: 10px;
+  margin-left: 5px;
+  height: 34px;
+}
+.searchbox {
+  margin-top: 10px;
+  float: left;
+  max-width: 70%;
+  min-width: 50%;
+  /*min-width: 200px;
+    color: rgb(0, 0, 0);*/
+  border-radius: 5px;
+  /*background-color: transparent;resize:both;*/
+}
+#googleMap {
+  width: 100%;
+  height: 500px;
+}
+#findBtn {
+  margin-top: 10px;
+}
+.gm-style-iw {
+  max-width: 200px;
+  max-hight: 400px;
+}
+/*.search-item {
+  margin-top: 2px;
+  border-left: solid 8px rgba(255, 255, 255, 0);
+  padding-top: 3px;
+  padding-left: 0px;
+}
+    .search-item:hover {
+        border-left: solid 8px #CF8346;
+        padding-left: 0px;
+    }*/
+.modal-dialog {
+  min-height: 300px;
+  max-height: 500px;
+  min-width: 30%;
+  max-width: 95%;
+}
+.button {
+  font: bold 11px Arial;
+  text-decoration: none;
+  background-color: #EEEEEE;
+  color: #333333;
+  padding: 2px 6px 2px 6px;
+  border-top: 1px solid #CCCCCC;
+  border-right: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  border-left: 1px solid #CCCCCC;
+}
+.DOC {
+  width: 35px;
+  font-weight: bold;
+  color: black;
+  background-color: aqua;
+}
+.DOCX {
+  width: 35px;
+  font-weight: bold;
+  color: black;
+  background-color: aqua;
+}
+.XLS {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: green;
+}
+.XLSX {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: green;
+}
+.PPT {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: orange;
+}
+.PPTX {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: orange;
+}
+.MSG {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: blue;
+}
+.PDF {
+  width: 35px;
+  font-weight: bold;
+  color: black;
+  background-color: red;
+}
+.JPG {
+  width: 35px;
+  font-weight: bold;
+  color: white;
+  background-color: #79097e;
+}
+.sidebar {
+  position: absolute;
+  /*float:left;
+    overflow: auto;*/
+}
+.thumb-btn {
+  padding: 0px;
+  min-width: 40px;
+  min-height: 40px;
+}
+.thumb-image {
+  /*width: 100%;
+    height: 100%;*/
+  max-width: 40px;
+  max-height: 40px;
+}
+.file-image {
+  /*width: 100%;
+    height: 100%;*/
+  max-width: 200px;
+  max-height: 200px;
+}
+ul.ulllist {
+  list-style: none;
+}
+.panel-title {
+  font: medium;
+}
+em {
+  font: bold;
+  background: yellow;
+}
+/* entire container, keeps perspective */
+.flip-container {
+  perspective: 300px;
+  transform-style: preserve-3d;
+  /*border:dotted;
+    border-color:gray;*/
+}
+/*  UPDATED! flip the pane when hovered */
+.flip-container:hover .back {
+  transform: rotateY(0deg);
+}
+.flip-container:hover .front {
+  transform: rotateY(180deg);
+}
+.flip-container,
+.front,
+.back {
+  float: left;
+  width: 300px;
+  height: 150px;
+  margin: 10px;
+  cursor: pointer;
+}
+/* flip speed goes here */
+.flipper {
+  transition: 0.6s;
+  transform-style: preserve-3d;
+  position: relative;
+}
+/* hide back of pane during swap */
+.front,
+.back {
+  backface-visibility: hidden;
+  transition: 0.6s;
+  transform-style: preserve-3d;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+/*  UPDATED! front pane, placed above back */
+.front {
+  z-index: 2;
+  transform: rotateY(0deg);
+  background-color: antiquewhite;
+}
+/* back, initially hidden pane */
+.back {
+  transform: rotateY(-180deg);
+  background-color: rgba(50, 50, 50, 0.1);
+}
+/* 
+	Some vertical flip updates 
+*/
+.vertical.flip-container {
+  position: relative;
+}
+.vertical .back {
+  transform: rotateX(180deg);
+}
+.vertical.flip-container:hover .back {
+  transform: rotateX(0deg);
+}
+.vertical.flip-container:hover .front {
+  transform: rotateX(180deg);
+}
+input[type=range] {
+  -webkit-appearance: none;
+  margin: 15px 0;
+  width: 100%;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
+  animate: 0.2s;
+  box-shadow: 2px 2px 2px #222, 0px 0px 2px #2f2f2f;
+  background: #424242;
+  border-radius: 5px;
+  border: 1px solid black;
+}
+input[type=range]::-webkit-slider-thumb {
+  box-shadow: 1px 1px 1px #111, 0px 0px 1px #1e1e1e;
+  border: 1px solid white;
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+  background: #555bc8;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -11px;
+}
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: #4f4f4f;
+}
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
+  animate: 0.2s;
+  box-shadow: 2px 2px 2px #222, 0px 0px 2px #2f2f2f;
+  background: #424242;
+  border-radius: 5px;
+  border: 1px solid black;
+}
+input[type=range]::-moz-range-thumb {
+  box-shadow: 1px 1px 1px #111, 0px 0px 1px #1e1e1e;
+  border: 1px solid white;
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+  background: #555bc8;
+  cursor: pointer;
+}
+input[type=range]::-ms-track {
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
+  animate: 0.2s;
+  background: transparent;
+  border-color: transparent;
+  border-width: 30px 0;
+  color: transparent;
+}
+input[type=range]::-ms-fill-lower {
+  background: #353535;
+  border: 1px solid black;
+  border-radius: 10px;
+  box-shadow: 2px 2px 2px #222, 0px 0px 2px #2f2f2f;
+}
+input[type=range]::-ms-fill-upper {
+  background: #424242;
+  border: 1px solid black;
+  border-radius: 10px;
+  box-shadow: 2px 2px 2px #222, 0px 0px 2px #2f2f2f;
+}
+input[type=range]::-ms-thumb {
+  box-shadow: 1px 1px 1px #111, 0px 0px 1px #1e1e1e;
+  border: 1px solid white;
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+  background: #555bc8;
+  cursor: pointer;
+}
+input[type=range]:focus::-ms-fill-lower {
+  background: #424242;
+}
+input[type=range]:focus::-ms-fill-upper {
+  background: #4f4f4f;
+}
+.panel-group .panel-heading + .panel-collapse > .panel-body,
+.panel-group .panel-heading + .panel-collapse > .list-group {
+  border-top: none;
+  border-bottom: none;
+}
+.list-group > .ui-accordion .ui-accordion-content {
+  padding: 0;
+}

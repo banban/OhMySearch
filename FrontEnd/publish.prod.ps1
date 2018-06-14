@@ -13,6 +13,7 @@ Invoke-Command -ComputerName "$remoteServer" -ScriptBlock { Stop-WebAppPool -Nam
 #npm install -g gulp #if exception dotnet : No executable found matching command "gulp"
 #dotnet build -c release
 dotnet publish -c release -o $destination
+#msbuild SlnFolders.sln /t:NotInSolutionfolder:Rebuild;NewFolder\InSolutionFolder:Clean
 
 #merge settings from staging file to default one 
 $settings = Get-Content "$destination\appsettings.json" -Raw | ConvertFrom-Json 

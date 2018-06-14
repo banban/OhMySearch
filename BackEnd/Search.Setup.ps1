@@ -6,18 +6,18 @@
     .\Search.Environment.ps1
 
 3. Set up dev
-    .\Search.Setup.ps1 -ESVersion_Old "5.4.0" -ESVersion "5.5.1" -ClusterName "OhMySearch-Dev"
+    .\Search.Setup.ps1 -ESVersion_Old "6.0.0" -ESVersion "6.1.0" -ClusterName "OhMySearch-Dev"
 
 4. Configure production cluster:
     cd E:\Search
-    .\Search.Setup.ps1 -ESVersion_Old "5.4.0" -ESVersion "5.5.1" -ClusterName "OhMySearch-Prod" -SetEnvironment `
+    .\Search.Setup.ps1 -ESVersion_Old "6.0.0" -ESVersion "6.1.0" -ClusterName "OhMySearch-Prod" -SetEnvironment `
         -DiscoveryHosts @("10.1.0.178","10.1.0.179") -AsService `
         -LicenceFilePath "E:\Search\company-license-<your code>.json"
 
 5. Debug locally:
-    cmd.exe /C "C:\Search\elasticsearch-5.5.1\bin\elasticsearch.bat"
-    $ESVersion_Old = "5.4.0"
-    $ESVersion = "5.5.1"
+    cmd.exe /C "C:\Search\elasticsearch-6.0.0\bin\elasticsearch.bat"
+    $ESVersion_Old = "6.0.0"
+    $ESVersion = "6.1.0"
 #>
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
 Param(
@@ -32,10 +32,17 @@ Param(
     [switch]$SetEnvironment
 )
 
+function Test-IsAdmin { 
+    ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator") 
+} 
 [string]$scripLocation = (Get-Variable MyInvocation).Value.PSScriptRoot
 if ($scripLocation -eq ""){$scripLocation = (Get-Location).Path}
 function Main(){
     try{Clear-Host}catch{} # avoid Exception setting "ForegroundColor": "Cannot convert null to type 
+
+    if (!(Test-IsAdmin)){ 
+        throw "Please run this script with admin priviliges" 
+    }
 
     if ($env:JAVA_HOME -eq $null) # since alpha 3 $env:JAVA_HOME is not the only option. It accepts java.exe path. Not implemented yet
     {
@@ -43,19 +50,19 @@ function Main(){
     }
     
     if ($UseSnapshot.IsPresent){#daily builds works for kibana only :(
-        #DownLoadAndExtract -Url "http://download.elastic.co/elasticsearch/elasticsearch-snapshot/elasticsearch-5.0.0-snapshot.zip"
-        #DownLoadAndExtract -Url "http://download.elastic.co/logstash/logstash-snapshot/logstash-5.0.0-snapshot.zip"
-        #DownLoadAndExtract -Url "http://download.elastic.co/kibana/kibana-snapshot/kibana-5.0.0-snapshot-windows.zip"
-        #DownLoadAndExtract -Url "http://download.elastic.co/beats/winlogbeat-snapshot/winlogbeat-5.0.0-snapshot-windows-64.zip"
+        #DownLoadAndExtract -Url "http://download.elastic.co/elasticsearch/elasticsearch-snapshot/elasticsearch-6.0.0-snapshot.zip"
+        #DownLoadAndExtract -Url "http://download.elastic.co/logstash/logstash-snapshot/logstash-6.0.0-snapshot.zip"
+        #DownLoadAndExtract -Url "http://download.elastic.co/kibana/kibana-snapshot/kibana-6.0.0-snapshot-windows.zip"
+        #DownLoadAndExtract -Url "http://download.elastic.co/beats/winlogbeat-snapshot/winlogbeat-6.0.0-snapshot-windows-64.zip"
     }
     else{ #Official release
         DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$($ESVersion).zip"
         DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/logstash/logstash-$($ESVersion).zip"
-        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/kibana/kibana-$($ESVersion)-windows-x86.zip"
+        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/kibana/kibana-$($ESVersion)-windows-x86_64.zip"
         DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-$($ESVersion)-windows-x86_64.zip"
         DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/beats/winlogbeat/winlogbeat-$($ESVersion)-windows-x86_64.zip"
+        DownLoadAndExtract -Url "https://artifacts.elastic.co/downloads/beats/packetbeat/packetbeat-$($ESVersion)-windows-x86_64.zip"
     }
-    
     #configure file processors: tesseract, image, etc. Install-Module described here: http://psget.net
     Install-Module -ModuleUrl "https://gallery.technet.microsoft.com/scriptcenter/PowerShell-Image-module-caa4405a/file/62238/1/Image.zip" -Verbose
 
@@ -225,6 +232,15 @@ function Main(){
     else{
         Echo "To run elastic service use this command in separate window: cmd.exe /C '$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch.bat'"
     }
+
+    #configure MS office temp folders required for unattended sessions/jobs.
+    if ((Test-Path "C:\Windows\SysWOW64\config\systemprofile\Desktop") -eq $False){
+        New-Item "C:\Windows\SysWOW64\config\systemprofile\Desktop" -itemtype directory
+    }
+    if ((Test-Path "C:\Windows\System32\config\systemprofile\Desktop") -eq $False){
+        New-Item "C:\Windows\System32\config\systemprofile\Desktop" -itemtype directory
+    }
+    
 
     <#configure plugins. 
         cmd.exe /C "$env:SEARCH_HOME\elasticsearch-$ESVersion\bin\elasticsearch-plugin.bat list"

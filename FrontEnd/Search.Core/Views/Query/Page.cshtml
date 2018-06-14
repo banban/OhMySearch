@@ -1,0 +1,43 @@
+﻿@model Search.Core.Models.Query
+@if (Model != null)
+{
+    @await Component.InvokeAsync("Pager", new { query = Model })
+
+    <ul id="ulllist" class="list-unstyled">
+        @foreach (var item in Model.SearchResults.Items)
+        {
+            <li class="search-item">
+                @if (item.CanRead)
+                {
+                    @if (!string.IsNullOrEmpty(item.ThumbnailPath))
+                    {
+                        <a class="btn btn-info thumb-btn" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading...">
+                            <img class="thumb-image" src="@item.ThumbnailPath" />
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-info fa fa-info" title="Details" asp-action="Details" asp-controller="SearchResult" asp-route-_index="@item.Index" asp-route-_type="@item.Type" asp-route-_id="@item.Id" data-toggle="modal" data-target="#editDialog" , data-loading-text="Loading..."></a>
+                    }
+                }
+                <b>@item.PrettyTitle</b>
+                @if (item.Extension.ToLower() == "pdf")
+                {
+                    <img id="Content" src="~/images/pdf.gif" alt="Image" />
+                }
+                else
+                {
+                    <label class="@item.Extension">@item.Extension</label>
+                }
+                @if (!string.IsNullOrEmpty(item.Path) && item.CanRead)
+                {
+                    <a title="@item.PrettyPath" class="glyphicon glyphicon-open-file" href="@Html.Raw(item.NavigatePath)" target="_self">Open</a>
+                }
+               
+                <br /><span class="small">@Html.Raw(item.Summary)</span>
+            </li>
+        }
+    </ul>
+    @await Component.InvokeAsync("Pager", new { query = Model })
+
+}
