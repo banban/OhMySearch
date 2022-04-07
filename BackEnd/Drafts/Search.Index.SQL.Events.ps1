@@ -43,7 +43,7 @@ function Main(){
     SqlDependency.Start("Server=$SQL_ServerName;Database=$SQL_DbName;Integrated Security=True"); #, queueName
     AddNotification();
     Thread.Sleep(new TimeSpan(6, 0, 0)); //stop current thread to listen events
-    SqlDependency.Stop(cmAX2009_NOVA.ConnectionString); #, queueName
+    SqlDependency.Stop(cmd.ConnectionString); #, queueName
 
 function AddNotification() {
 
