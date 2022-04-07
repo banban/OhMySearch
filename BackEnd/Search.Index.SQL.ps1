@@ -75,8 +75,8 @@
     &$cat
 
  6. Another database (index)
-    .\Search.Index.SQL.ps1 -indexName "bms_v1" -newIndex -aliasName "bms" `
-        -sql_ServerName ".\SQL2014" -sql_DbName "Nova_Search" -typeName "acronym" -keyFieldName "Id" -sql_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
+    .\Search.Index.SQL.ps1 -indexName "bms_v1" -newIndex -aliasName "wiki" `
+        -sql_ServerName ".\SQL2014" -sql_DbName "dbname" -typeName "acronym" -keyFieldName "Id" -sql_Query "SELECT [Id],[Abbr],[Definition],[Context],[Reference],[AddDate] FROM [dbo].[Acronym] WHERE DeleteDate IS NULL"
     4 records rejected:
             _type: acronym; _id: 700; error: mapper_parsing_exception; reason: failed to parse [Definition]; status: 400
             _type: acronym; _id: 3722; error: mapper_parsing_exception; reason: failed to parse [Definition]; status: 400
