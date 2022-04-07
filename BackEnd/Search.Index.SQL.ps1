@@ -8,9 +8,9 @@
         -sql_DbName "AdventureWorks2014" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]"
 
     .\Search.Index.SQL.ps1 -indexName "datamart_v1" -aliasName "datamart" -newIndex `
-        -sql_ServerName "SVRADLDB02" -sql_DbName "Nova_Datamart" -typeName "project" -keyFieldName "ProjectNo" -sql_Query "SELECT * FROM t_ProjectsAll"
+        -sql_ServerName "servername" -sql_DbName "dnname" -typeName "table1" -keyFieldName "ProjectNo" -sql_Query "SELECT * FROM table1"
     .\Search.Index.SQL.ps1 -indexName "datamart_v1" -aliasName "datamart" `
-        -sql_ServerName "SVRADLDB02" -sql_DbName "Nova_Datamart" -typeName "client" -keyFieldName "Id" -sql_Query "SELECT * FROM t_Clients"
+        -sql_ServerName "servername" -sql_DbName "dnname" -typeName "table2" -keyFieldName "Id" -sql_Query "SELECT * FROM table2"
     &$get "datamart/project/711"
 
 
@@ -18,7 +18,7 @@
     
    The same test but with explicit mapping:
     .\Search.Index.SQL.ps1 -indexName "adworks_v1" -aliasName "adworks" -newIndex `
-        -sql_DbName "AdventureWorks2014" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT [BusinessEntityID],[PersonType],[NameStyle],[Title],[FirstName],[MiddleName],[LastName],[Suffix],[EmailPromotion],[ModifiedDate] FROM [Person].[Person]" `
+        -sql_DbName "AdventureWorks2014" -typeName "person" -keyFieldName "BusinessEntityID" -sql_Query "SELECT *" `
         -typeMapping '{"adworks_v1":{"mappings":{"person":{"dynamic":"true","properties":{"BusinessEntityID":{"type":"integer"},"EmailPromotion":{"type":"integer"},"FirstName":{"type":"text"},"LastName":{"type":"text"},"MiddleName":{"type":"text"},"ModifiedDate":{"type":"date","format":"YYYY-MM-DD"},"NameStyle":{"type":"text"},"PersonType":{"type":"text"},"Suffix":{"type":"text"},"Title":{"type":"text"},}}}}}'
 
     &$cat
@@ -84,14 +84,8 @@
             _type: acronym; _id: 3877; error: mapper_parsing_exception; reason: failed to parse [Definition]; status: 400
     &$cat
 
-    .\Search.Index.SQL.ps1 -indexName "bms_v1" -newType `
-        -sql_DbName "Integrations_NOVA" -typeName "austender" -keyFieldName "Id" -sql_Query "SELECT [Id],[Parent_CN_ID],[CN_ID],[Publish_Date],[Amendment_Date],[Status],[StartDate],[EndDate]
-            ,[Value],[Description],[Agency_Ref_ID],[Category],[Procurement_Method],[ATM_ID],[SON_ID],[Confidentiality_Contract]
-            ,[Confidentiality_Contract_Reasons],[Confidentiality_Outputs],[Confidentiality_Outputs_Reasons],[Consultancy],[Consultancy_Reasons],[Amendment_Reason]
-            ,[Supplier_Name],[Supplier_Address],[Supplier_City],[Supplier_Postcode],[Supplier_Latitude],[Supplier_Longitude]
-            ,[Supplier_Country],[Supplier_ABNExempt],[Supplier_ABN]
-            ,[Agency],[Agency_Branch],[Agency_Divison],[Agency_Postcode],[Agency_State],[Agency_Latitude],[Agency_Longitude]
-        FROM [dbo].[t_AusTenderContractNotice] ORDER BY [Id]"
+    .\Search.Index.SQL.ps1 -indexName "table3_v1" -newType `
+        -sql_DbName "dbname" -typeName "table3" -keyFieldName "Id" -sql_Query "SELECT * FROM [dbo].[table3] ORDER BY [Id]"
 
  7.Just test API calls:
     $global:Debug = $false
