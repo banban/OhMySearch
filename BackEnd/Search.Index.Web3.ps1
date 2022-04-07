@@ -4,7 +4,7 @@ Unit tests:
     cd C:\Search\Scripts
     
 Test 1. Process document:
-    .\Search.Index.Web3.ps1 -rootPath "https://intranet.novagroup.com.au/bms/wiki/Forms/AllPages.aspx" -mask "acrftreg.csv" -delimeter "," -keyFieldName "Serial" -indexName "aircraft_v1" -aliasName "aircraft" -typeName "casa" -newIndex
+    .\Search.Index.Web3.ps1 -rootPath "https://mysharepoint/wiki/Forms/AllPages.aspx" -mask "wiki.csv" -delimeter "," -keyFieldName "Serial" -indexName "wiki_v1" -aliasName "wiki" -typeName "wiki" -newIndex
 
  2 records rejected
 
@@ -12,25 +12,8 @@ Test 1. Process document:
     $global:Debug = $true
     Import-Module -Name "$scripLocation\ElasticSearch.Helper.psm1" -Force -Verbose
     &$cat
-    &$get "aircraft_v1/_mapping"
-    &$get "aircraft_v1/casa"
-    &$get "aircraft_v1/casa/_query?q=*"
-    &$get "aircraft_v1"
-    &$get "aircraft_v1/casa/AVUQ7SGd4sw0coEpumpQ"
-
-    &$post "aircraft_v1/casa/_search" -obj @{
-        size = 0
-        aggs = @{
-            Agencies = @{
-                terms = @{
-                    field = "Agency"
-                }
-            }
-        }
-    }
-
-    &$delete "aircraft_v1" 
-
+    &$get "wiki_v1/_mapping"
+    &$delete "wiki_v1" 
 #>
 
 [CmdletBinding(PositionalBinding=$false, DefaultParameterSetName = "SearchSet")] #SupportShouldProcess=$true, 
