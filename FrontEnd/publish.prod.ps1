@@ -3,8 +3,8 @@
 #>
 $source = "C:\GitHub\banban\OhMySearch\FrontEnd\Search.Core.Windows"
 cd $source
-$remoteServer = "SVRSA1WS06"
-$remoteAppPool = "Nova.Apps.Core"
+$remoteServer = "localhost"
+$remoteAppPool = "Apps.Core"
 $destination = "\\$remoteServer\c$\inetpub\Apps\Search"
 #stop remote application pool
 Invoke-Command -ComputerName "$remoteServer" -ScriptBlock { Stop-WebAppPool -Name $args[0] } -ArgumentList($remoteAppPool)
